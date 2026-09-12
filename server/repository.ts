@@ -1,12 +1,12 @@
-import { supabaseAdmin, isSupabaseConfigured } from './supabase';
-import { store } from './store';
+import { supabaseAdmin, isSupabaseConfigured } from './supabase.js';
+import { store } from './store.js';
 import {
   EventItem,
   Participant,
   RegistrationRecord,
   SiteSettings,
-} from '../src/types';
-import { initialSiteSettings } from '../src/data/defaultSettings';
+} from '../src/types.js';
+import { initialSiteSettings } from '../src/data/defaultSettings.js';
 
 type DbEvent = Record<string, any>;
 type DbParticipant = Record<string, any>;
