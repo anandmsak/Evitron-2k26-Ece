@@ -1,0 +1,40 @@
+import { SiteSettings } from '../types';
+
+export const initialSiteSettings: SiteSettings = {
+  symposiumTitle: 'EVITRON 2K26',
+  subTitle: 'National Level Technical Symposium',
+  department: 'Department of Electronics and Communication Engineering',
+  college: 'Mahendra Engineering College (Autonomous)',
+  associations: 'VELOCITY & IEEE',
+  eventDate: '08/10/2026',
+  countdownTarget: '2026-10-08T09:00:00',
+  registrationDeadline: '01/10/2026',
+  paperSubmissionDeadline: '27/09/2026',
+  isRegistrationOpen: true,
+  closedReason: 'Registrations are currently closed. Please contact event coordinators for further inquiries.',
+  upiId: 'evitron144031.rzp@rxairtel',
+  upiPayeeName: 'Evitron',
+  upiQrImageUrl: '',
+  workshopUpiId: 'evitron144031.rzp@rxairtel',
+  workshopUpiPayeeName: 'Evitron Workshop',
+  workshopUpiQrImageUrl: '',
+  techUpiId: 'evitron144031.rzp@rxairtel',
+  techUpiPayeeName: 'Evitron Technical',
+  techUpiQrImageUrl: '',
+  razorpayEnabled: true,
+  driveUploadUrl: 'https://docs.google.com/forms/d/1R1VhrsHfC9GYo-j_npPZv8fDXXhlUOPbfYtNUBy1Vh0/edit?ts=6aa4f3ae',
+  participantFormUrl: 'https://docs.google.com/forms/d/e/1FAIpQLSdXYq3Pfeb_2w5jPtdjqeLJPv3sIVsb9Y1ahPUe47WT76OUYg/viewform?usp=publish-editor',
+  contactEmail: 'evitron26@gmail.com',
+  instagramHandle: 'velocityecemec',
+  venue: 'Mahendhirapuri, Mallasamudram (M), Namakkal (Dt), Tamil Nadu - 637 503',
+  announcementText: 'Registrations are now live! Paper abstract submission deadline is 27/09/2026. Cash prizes, welcome kits, food and refreshments included.',
+  announcementActive: true,
+  feePerPerson: 350,
+  appEnv: 'development',
+  showRazorpayPayment: true,
+  googleSheetWebhookUrl: 'https://script.google.com/macros/s/AKfycbwQFDmE-3bG517qhy5jP6my90QCKsps5GLn2q7ih3vHJmTq96PikBitSCJgIqyxOqRoaQ/exec',
+  adminNotificationEmails: ['evitron26@gmail.com'],
+};
+
+export const defaultSettings = initialSiteSettings;
+
