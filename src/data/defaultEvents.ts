@@ -1,4 +1,4 @@
-import { EventItem } from '../types';
+import { EventItem } from '../types.js';
 
 export const initialEvents: EventItem[] = [
   // --- WORKSHOPS (Individual, 1 Person = Rs 350) ---
