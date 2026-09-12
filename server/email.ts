@@ -1,6 +1,6 @@
 import nodemailer, { SendMailOptions } from 'nodemailer';
-import { RegistrationRecord } from '../src/types';
-import { buildAttendeeQrText, generateAttendeeQrBuffer } from './qr';
+import { RegistrationRecord } from '../src/types.js';
+import { buildAttendeeQrText, generateAttendeeQrBuffer } from './qr.js';
 
 export interface EmailDispatchResult {
   sent: boolean;
@@ -14,12 +14,58 @@ export interface EmailDispatchResult {
 // In-memory log of dispatched / queued emails for audit in admin
 export const emailAuditLog: EmailDispatchResult[] = [];
 
+/**
+ * Returns a configured Nodemailer Transporter, with password space sanitization
+ * and serverless-friendly timeout settings.
+ */
+export function getSmtpTransporter() {
+  const smtpHost = process.env.SMTP_HOST || 'smtp.gmail.com';
+  const smtpPort = Number(process.env.SMTP_PORT || 465);
+  const smtpUser = (process.env.SMTP_USER || 'evitron26@gmail.com').trim();
+  const rawPass = process.env.SMTP_PASS || process.env.GMAIL_APP_PASSWORD || '';
+  const cleanPass = rawPass.trim().replace(/\s+/g, '');
+
+  if (!cleanPass) {
+    return null;
+  }
+
+  // If using Gmail (default), using the 'gmail' service is recommended for maximum reliability
+  if (smtpHost === 'smtp.gmail.com' || smtpUser.toLowerCase().endsWith('@gmail.com')) {
+    return nodemailer.createTransport({
+      service: 'gmail',
+      auth: {
+        user: smtpUser,
+        pass: cleanPass,
+      },
+      connectionTimeout: 10000,
+      greetingTimeout: 10000,
+      socketTimeout: 15000,
+    });
+  }
+
+  return nodemailer.createTransport({
+    host: smtpHost,
+    port: smtpPort,
+    secure: smtpPort === 465,
+    auth: {
+      user: smtpUser,
+      pass: cleanPass,
+    },
+    connectionTimeout: 10000,
+    greetingTimeout: 10000,
+    socketTimeout: 15000,
+  });
+}
+
 export async function sendRegistrationConfirmationEmail(
   reg: RegistrationRecord,
   eventTitles: string[]
 ): Promise<EmailDispatchResult> {
   const recipient = reg.teamLeader.email;
-  const subject = `EVITRON 2K26 Official Entry Pass & Registration Confirmed - [${reg.id}]`;
+  const isPaid = reg.paymentStatus === 'paid';
+  const subject = isPaid
+    ? `EVITRON 2K26 Official Entry Pass & Registration Confirmed - [${reg.id}]`
+    : `EVITRON 2K26 Registration Received (Pending Payment Verification) - [${reg.id}]`;
 
   // Gather CC recipients from other team members if provided
   const otherEmails = reg.participants
@@ -210,23 +256,11 @@ export async function sendRegistrationConfirmationEmail(
   `;
 
   // SMTP configuration (Strictly from evitron26@gmail.com)
-  const smtpHost = process.env.SMTP_HOST || 'smtp.gmail.com';
-  const smtpPort = Number(process.env.SMTP_PORT || 465);
-  const smtpUser = process.env.SMTP_USER || 'evitron26@gmail.com';
-  const smtpPass = process.env.SMTP_PASS || process.env.GMAIL_APP_PASSWORD;
+  const smtpUser = (process.env.SMTP_USER || 'evitron26@gmail.com').trim();
+  const transporter = getSmtpTransporter();
 
-  if (smtpPass) {
+  if (transporter) {
     try {
-      const transporter = nodemailer.createTransport({
-        host: smtpHost,
-        port: smtpPort,
-        secure: smtpPort === 465,
-        auth: {
-          user: smtpUser,
-          pass: smtpPass,
-        },
-      });
-
       const mailOptions: SendMailOptions = {
         from: `"EVITRON 2K26 - MEC ECE" <${smtpUser}>`,
         to: recipient,
@@ -332,20 +366,12 @@ export async function sendAdminNewRegistrationNotification(
   `;
 
   const results: EmailDispatchResult[] = [];
-  const smtpHost = process.env.SMTP_HOST || 'smtp.gmail.com';
-  const smtpPort = Number(process.env.SMTP_PORT || 465);
-  const smtpUser = process.env.SMTP_USER || 'evitron26@gmail.com';
-  const smtpPass = process.env.SMTP_PASS || process.env.GMAIL_APP_PASSWORD;
+  const smtpUser = (process.env.SMTP_USER || 'evitron26@gmail.com').trim();
+  const transporter = getSmtpTransporter();
 
   for (const recipient of recipients) {
-    if (smtpPass) {
+    if (transporter) {
       try {
-        const transporter = nodemailer.createTransport({
-          host: smtpHost,
-          port: smtpPort,
-          secure: smtpPort === 465,
-          auth: { user: smtpUser, pass: smtpPass },
-        });
         const info = await transporter.sendMail({
           from: `"EVITRON 2K26 Admin Alert" <${smtpUser}>`,
           to: recipient,
@@ -356,7 +382,7 @@ export async function sendAdminNewRegistrationNotification(
         const resObj: EmailDispatchResult = {
           sent: true,
           provider: 'smtp',
-          message: `Admin alert sent to ${recipient}`,
+          message: `Admin alert sent to ${recipient} (Message ID: ${info.messageId})`,
           recipient,
           timestamp: new Date().toISOString(),
           subject,
@@ -391,6 +417,67 @@ export async function sendAdminNewRegistrationNotification(
   }
 
   return results;
+}
+
+export async function sendTestEmail(toEmail: string): Promise<EmailDispatchResult> {
+  const recipient = (toEmail || '').trim();
+  const subject = `EVITRON 2K26 - Live SMTP Configuration Test [${new Date().toLocaleTimeString()}]`;
+  const smtpUser = (process.env.SMTP_USER || 'evitron26@gmail.com').trim();
+  const transporter = getSmtpTransporter();
+
+  if (!transporter) {
+    return {
+      sent: false,
+      provider: 'logged',
+      message: 'SMTP_PASS or GMAIL_APP_PASSWORD is not set in environment variables.',
+      recipient,
+      timestamp: new Date().toISOString(),
+      subject,
+    };
+  }
+
+  try {
+    const info = await transporter.sendMail({
+      from: `"EVITRON 2K26 Diagnostic" <${smtpUser}>`,
+      to: recipient,
+      subject,
+      text: `Hello! This is a verification test email from EVITRON 2K26 backend running on Vercel.\n\nYour SMTP credentials are authenticated and operational!`,
+      html: `
+        <div style="font-family: sans-serif; padding: 24px; border: 1px solid #e5e7eb; border-radius: 8px; max-width: 500px;">
+          <h2 style="color: #B22222; margin-top: 0;">EVITRON 2K26 - Live SMTP Test</h2>
+          <p>Your SMTP mail configuration is <strong>active and working</strong> on Vercel!</p>
+          <ul style="color: #374151; font-size: 13px;">
+            <li><strong>Sender:</strong> ${smtpUser}</li>
+            <li><strong>Recipient:</strong> ${recipient}</li>
+            <li><strong>Timestamp:</strong> ${new Date().toISOString()}</li>
+          </ul>
+        </div>
+      `,
+    });
+
+    const res: EmailDispatchResult = {
+      sent: true,
+      provider: 'smtp',
+      message: `Test email successfully sent to ${recipient}! (Message ID: ${info.messageId})`,
+      recipient,
+      timestamp: new Date().toISOString(),
+      subject,
+    };
+    emailAuditLog.unshift(res);
+    return res;
+  } catch (err: any) {
+    console.error('Test email delivery error:', err);
+    const fail: EmailDispatchResult = {
+      sent: false,
+      provider: 'smtp',
+      message: `SMTP test delivery failed: ${err.message || err}`,
+      recipient,
+      timestamp: new Date().toISOString(),
+      subject,
+    };
+    emailAuditLog.unshift(fail);
+    return fail;
+  }
 }
 
 
