@@ -1,9 +1,9 @@
 import fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
-import { EventItem, RegistrationRecord, SiteSettings } from '../src/types';
-import { initialEvents } from '../src/data/defaultEvents';
-import { initialSiteSettings } from '../src/data/defaultSettings';
+import { EventItem, RegistrationRecord, SiteSettings } from '../src/types.js';
+import { initialEvents } from '../src/data/defaultEvents.js';
+import { initialSiteSettings } from '../src/data/defaultSettings.js';
 
 const isVercel = Boolean(process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME);
 const DATA_DIR = isVercel ? path.join('/tmp', 'data') : path.resolve(process.cwd(), 'data');
