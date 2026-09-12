@@ -1,4 +1,4 @@
-import { SiteSettings } from '../types';
+import { SiteSettings } from '../types.js';
 
 export const initialSiteSettings: SiteSettings = {
   symposiumTitle: 'EVITRON 2K26',
