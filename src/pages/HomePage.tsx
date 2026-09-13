@@ -194,7 +194,7 @@ export const HomePage: React.FC<HomePageProps> = ({ settings: propSettings, even
               </div>
               <h3 className="font-bold text-stone-900 text-sm mb-1">Food & Refreshments</h3>
               <p className="text-xs text-stone-500 leading-relaxed">
-                Complimentary breakfast, delicious lunch, and evening snacks during the symposium day.
+               Morning refreshments, lunch, and evening snacks will be provided for all participants.
               </p>
             </div>
 
