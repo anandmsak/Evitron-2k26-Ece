@@ -24,9 +24,10 @@
     "driveUploadUrl": "https://docs.google.com/forms/d/1R1VhrsHfC9GYo-j_npPZv8fDXXhlUOPbfYtNUBy1Vh0/edit?ts=6aa4f3ae",
     "participantFormUrl": "https://docs.google.com/forms/d/e/1FAIpQLSdXYq3Pfeb_2w5jPtdjqeLJPv3sIVsb9Y1ahPUe47WT76OUYg/viewform?usp=publish-editor",
     "contactEmail": "evitron26@gmail.com",
-    "instagramHandle": "velocity_ece_mec",
+    "instagramHandle": "https://www.instagram.com/velocity_ece_mec?stkn=dWV5ejA4ZW5hOWkz",
     "venue": "Mahendhirapuri, Mallasamudram (M), Namakkal (Dt), Tamil Nadu - 637 503",
     "announcementText": "Registrations are now live! Paper abstract submission deadline is 27/09/2026. Cash prizes, welcome kits, food and refreshments included.",
+    "announcementTextActive": true,
     "announcementActive": true,
     "feePerPerson": 350,
     "appEnv": "development",
@@ -88,8 +89,8 @@
           "a": "No. Workshops run parallel full-day sessions, so workshop participants are restricted to this single workshop."
         }
       ],
-      "coordinatorName": "[Mr.Moneswar]",
-      "coordinatorPhone": "[+91 6369033324]",
+      "coordinatorName": "Mr.Moneswar",
+      "coordinatorPhone": "+91 6369033324",
       "coordinatorEmail": "evitron26@gmail.com",
       "isActive": true
     },
@@ -127,7 +128,7 @@
       "outcomes": [
         "Solid grasp of real-time embedded programming and hardware-software co-design."
       ],
-      "certificates": "Official Certificate of Workshop Completion from Mahendra Engineering College",
+      "certificates": "Official Certificate of Workshop Completion from Mahendra Engineering College.",
       "importantInstructions": [
         "Bring your own laptop with Keil / Arduino IDE pre-installed if possible."
       ],
@@ -137,8 +138,8 @@
           "a": "Yes, demonstration boards and sensor kits will be provided for lab exercises."
         }
       ],
-      "coordinatorName": "[Mr.Manigandan S]",
-      "coordinatorPhone": "[+91 8248171977]",
+      "coordinatorName": "Mr.Manigandan S",
+      "coordinatorPhone": "+91 8248171977",
       "coordinatorEmail": "evitron26@gmail.com",
       "isActive": true
     },
@@ -186,8 +187,8 @@
           "a": "Yes, configured desktop systems with LabVIEW are provided in the department laboratory."
         }
       ],
-      "coordinatorName": "[Ms.Lakshana M]",
-      "coordinatorPhone": "[+91 6385777167]",
+      "coordinatorName": "Ms.Lakshana M",
+      "coordinatorPhone": "+91 6385777167",
       "coordinatorEmail": "evitron26@gmail.com",
       "isActive": true
     },
@@ -198,7 +199,7 @@
       "tagline": "Paper Presentation",
       "category": "technical",
       "description": "Platform to present innovative research papers in emerging domains including VLSI, Embedded Systems, IoT, Wireless Communication, AI/ML in signal processing, and Renewable Energy.",
-      "venue": "MEC - Classroom No:208, 209,,210,302",
+      "venue": "MEC - Classroom No: 208, 209, 210, 302",
       "time": "10:00 AM - 01:00 PM",
       "date": "08/10/2026",
       "eligibility": "UG / PG Engineering students. Teams must contain exactly 3 members.",
@@ -241,8 +242,8 @@
           "a": "Abstract submission deadline is 27/09/2026."
         }
       ],
-      "coordinatorName": "[Ms.Gopika G]",
-      "coordinatorPhone": "[+91 6374791671]",
+      "coordinatorName": "Ms.Gopika G",
+      "coordinatorPhone": "+91 6374791671",
       "coordinatorEmail": "evitron26@gmail.com",
       "isActive": true
     },
@@ -264,7 +265,7 @@
         "Every team must consist of exactly 3 members.",
         "Teams must bring their working prototype/hardware demonstration.",
         "Standard 230V AC power supply and test benches will be provided.",
-        "[EVENT RULES WILL BE UPDATED]"
+        "Software/simulation only projects are Not allowed, Allowed Only for Hardware Based"
       ],
       "procedure": [
         "Display project hardware on assigned project booth.",
@@ -281,8 +282,7 @@
       ],
       "certificates": "Winner Cash Prize + Certificate of Excellence; Participation Certificates for all registered members.",
       "importantInstructions": [
-        "Bring all required extension cords, batteries and connectors for your setup.",
-"Software/simulation only projecs are Not allowed, Allowed Only for Hardware Based"
+        "Bring all required extension cords, batteries and connectors for your setup."
       ],
       "faqs": [
         {
@@ -290,8 +290,8 @@
           "a": "Yes, 230V AC standard sockets are available at the demonstration stalls."
         }
       ],
-      "coordinatorName": "[Mr.Dharanish S]",
-      "coordinatorPhone": "[+91 6379374763]",
+      "coordinatorName": "Mr.Dharanish S",
+      "coordinatorPhone": "+91 6379374763",
       "coordinatorEmail": "evitron26@gmail.com",
       "isActive": true
     },
@@ -339,8 +339,8 @@
           "a": "Yes, during designated pit time before your official turn."
         }
       ],
-      "coordinatorName": "[Mr.Aadhitya K]",
-      "coordinatorPhone": "[+91 9384464856]",
+      "coordinatorName": "Mr.Aadhitya K",
+      "coordinatorPhone": "+91 9384464856",
       "coordinatorEmail": "evitron26@gmail.com",
       "isActive": true
     },
@@ -387,8 +387,8 @@
           "a": "No. As per symposium regulations, non-technical events can only be chosen in conjunction with at least one technical event."
         }
       ],
-      "coordinatorName": "[Ms.Varshini.V]",
-      "coordinatorPhone": "[+91 6384778040]",
+      "coordinatorName": "Ms.Varshini.V",
+      "coordinatorPhone": "+91 6384778040",
       "coordinatorEmail": "evitron26@gmail.com",
       "isActive": true
     },
@@ -424,16 +424,16 @@
       ],
       "certificates": "Winner Certificates & Badges.",
       "importantInstructions": [
-        "Participants must do on there mobiles or laptop, systems will not be provided."
+        "Participants must do on their mobiles or laptop, systems will not be provided."
       ],
       "faqs": [
         {
           "q": "Which AI platforms will be used?",
-          "a": "Standard open/accessible generative interfaces such as chatgpt, Gemini and more."
+          "a": "Standard open/accessible generative interfaces such as ChatGPT, Gemini and more."
         }
       ],
-      "coordinatorName": "[Mr.Madhan M]",
-      "coordinatorPhone": "[+91 6382409516]",
+      "coordinatorName": "Mr.Madhan M",
+      "coordinatorPhone": "+91 6382409516",
       "coordinatorEmail": "evitron26@gmail.com",
       "isActive": true
     },
@@ -448,7 +448,7 @@
       "time": "02:00 PM - 03:30 PM",
       "date": "08/10/2026",
       "eligibility": "Must be registered for at least one Technical Event with your 3-member team.",
-      "teamSize": nil,
+      "teamSize": 1,
       "teamSizeLabel": "Individual",
       "feePerPerson": 0,
       "rules": [
@@ -479,8 +479,8 @@
           "a": "Standard meme templates are permitted; captions must be 100% original."
         }
       ],
-      "coordinatorName": "[Mr.Harendra R]",
-      "coordinatorPhone": "[+91 9514876965]",
+      "coordinatorName": "Mr.Harendra R",
+      "coordinatorPhone": "+91 9514876965",
       "coordinatorEmail": "evitron26@gmail.com",
       "isActive": true
     },
@@ -525,8 +525,8 @@
           "a": "digital puzzle decoding!"
         }
       ],
-      "coordinatorName": "[Mr.Jeevanesh S]",
-      "coordinatorPhone": "[+91 8015272452",
+      "coordinatorName": "Mr.Jeevanesh S",
+      "coordinatorPhone": "+91 8015272452",
       "coordinatorEmail": "evitron26@gmail.com",
       "isActive": true
     }
@@ -534,307 +534,93 @@
   "registrations": [
     {
       "id": "EV26-LCD8G8",
-      "createdAt": "2026-09-12T18:45:41.771Z",
-      "registrationType": "workshop",
-      "selectedWorkshopId": "4e91a80e-4baa-4fc2-bf6c-7f95e135fc80",
-      "selectedTechnicalIds": [],
-      "selectedNonTechnicalIds": [],
-      "participants": [
-        {
-          "fullName": "as",
-          "email": "anandmsak27@gmail.com",
-          "phone": "1234567894",
-          "college": "ffhk",
-          "department": "",
-          "year": ""
-        }
-      ],
-      "teamLeader": {
-        "fullName": "as",
-        "email": "anandmsak27@gmail.com",
-        "phone": "1234567894",
-        "college": "ffhk",
-        "department": "",
-        "year": ""
-      },
-      "totalAmount": 350,
-      "paymentMethod": "upi",
-      "paymentStatus": "paid",
-      "upiReference": "123456789452",
-      "driveScreenshotSubmitted": true,
-      "attendanceMarked": false
-    },
-    {
-      "id": "EV26-2XY8BA",
-      "createdAt": "2026-09-12T18:40:02.616Z",
-      "registrationType": "workshop",
-      "selectedWorkshopId": "4e91a80e-4baa-4fc2-bf6c-7f95e135fc80",
-      "selectedTechnicalIds": [],
-      "selectedNonTechnicalIds": [],
-      "participants": [
-        {
-          "fullName": "Sow",
-          "email": "anandhperumal27@gmail.com",
-          "phone": "06383109049",
-          "college": "ghd",
-          "department": "",
-          "year": ""
-        }
-      ],
-      "teamLeader": {
-        "fullName": "Sow",
-        "email": "anandhperumal27@gmail.com",
-        "phone": "06383109049",
-        "college": "ghd",
-        "department": "",
-        "year": ""
-      },
-      "totalAmount": 350,
-      "paymentMethod": "upi",
-      "paymentStatus": "pending_verification",
-      "upiReference": "12345678911",
-      "driveScreenshotSubmitted": true,
-      "attendanceMarked": false
-    },
-    {
-      "id": "EV26-PSJMY8",
-      "createdAt": "2026-09-12T18:36:56.506Z",
-      "registrationType": "workshop",
-      "selectedWorkshopId": "d6699fda-e9a5-404d-88e8-bd9e0610988e",
-      "selectedTechnicalIds": [],
-      "selectedNonTechnicalIds": [],
-      "participants": [
-        {
-          "fullName": "mr ak",
-          "email": "anandmsak27@gmail.com",
-          "phone": "1234567891",
-          "college": "ak",
-          "department": "",
-          "year": ""
-        }
-      ],
-      "teamLeader": {
-        "fullName": "mr ak",
-        "email": "anandmsak27@gmail.com",
-        "phone": "1234567891",
-        "college": "ak",
-        "department": "",
-        "year": ""
-      },
-      "totalAmount": 350,
-      "paymentMethod": "upi",
-      "paymentStatus": "pending_verification",
-      "upiReference": "123456789123",
-      "driveScreenshotSubmitted": true,
-      "attendanceMarked": false
-    },
-    {
-      "id": "EV26-SMPMSJ",
-      "createdAt": "2026-09-12T18:18:23.163Z",
-      "registrationType": "workshop",
-      "selectedWorkshopId": "d6699fda-e9a5-404d-88e8-bd9e0610988e",
-      "selectedTechnicalIds": [],
-      "selectedNonTechnicalIds": [],
-      "participants": [
-        {
-          "fullName": "AS",
-          "email": "anandmsak27@gmail.com",
-          "phone": "1234567891",
-          "college": "MIET",
-          "department": "",
-          "year": ""
-        }
-      ],
-      "teamLeader": {
-        "fullName": "AS",
-        "email": "anandmsak27@gmail.com",
-        "phone": "1234567891",
-        "college": "MIET",
-        "department": "",
-        "year": ""
-      },
-      "totalAmount": 350,
-      "paymentMethod": "upi",
-      "paymentStatus": "pending_verification",
-      "upiReference": "12234567894",
-      "driveScreenshotSubmitted": true,
-      "attendanceMarked": false
-    },
-    {
-      "id": "EV26-K94P5J",
-      "createdAt": "2026-09-12T18:16:20.750Z",
-      "registrationType": "workshop",
-      "selectedWorkshopId": "d6699fda-e9a5-404d-88e8-bd9e0610988e",
-      "selectedTechnicalIds": [],
-      "selectedNonTechnicalIds": [],
-      "participants": [
-        {
-          "fullName": "MSAKK",
-          "email": "anandmsak27@gmail.com",
-          "phone": "6383109014",
-          "college": "mec",
-          "department": "",
-          "year": ""
-        }
-      ],
-      "teamLeader": {
-        "fullName": "MSAKK",
-        "email": "anandmsak27@gmail.com",
-        "phone": "6383109014",
-        "college": "mec",
-        "department": "",
-        "year": ""
-      },
-      "totalAmount": 350,
-      "paymentMethod": "upi",
-      "paymentStatus": "pending_verification",
-      "upiReference": "123456789123",
-      "driveScreenshotSubmitted": true,
-      "attendanceMarked": false
-    },
-    {
-      "id": "EV26-24594W",
-      "createdAt": "2026-09-12T18:01:27.399Z",
-      "registrationType": "workshop",
-      "selectedWorkshopId": "4e91a80e-4baa-4fc2-bf6c-7f95e135fc80",
-      "selectedTechnicalIds": [],
-      "selectedNonTechnicalIds": [],
-      "participants": [
-        {
-          "fullName": "MS",
-          "email": "anandmsak27@gmail.com",
-          "phone": "6383109049",
-          "college": "Viveka Nandha",
-          "department": "",
-          "year": ""
-        }
-      ],
-      "teamLeader": {
-        "fullName": "MS",
-        "email": "anandmsak27@gmail.com",
-        "phone": "6383109049",
-        "college": "Viveka Nandha",
-        "department": "",
-        "year": ""
-      },
-      "totalAmount": 350,
-      "paymentMethod": "upi",
-      "paymentStatus": "pending_verification",
-      "upiReference": "123456789123",
-      "driveScreenshotSubmitted": true,
-      "attendanceMarked": false
-    },
-    {
-      "id": "EV26-D2V2EQ",
-      "createdAt": "2026-09-10T16:56:39.274Z",
-      "registrationType": "workshop",
-      "selectedWorkshopId": "ws-embedded",
-      "selectedTechnicalIds": [],
-      "selectedNonTechnicalIds": [],
-      "participants": [
-        {
-          "fullName": "Test Attendee",
-          "email": "test.attendee@example.com",
-          "phone": "9876543210",
-          "college": "MEC College",
-          "department": "ECE",
-          "year": "3rd Year"
-        }
-      ],
-      "teamLeader": {
-        "fullName": "Test Attendee",
-        "email": "test.attendee@example.com",
-        "phone": "9876543210",
-        "college": "MEC College",
-        "department": "ECE",
-        "year": "3rd Year"
-      },
-      "totalAmount": 350,
-      "paymentMethod": "upi",
-      "paymentStatus": "pending_verification",
-      "upiReference": "123456789012",
-      "driveScreenshotSubmitted": true,
-      "attendanceMarked": false
-    },
-    {
-      "id": "EV26-DUNM9Y",
-      "createdAt": "2026-09-10T14:31:24.213Z",
-      "registrationType": "technical",
-      "selectedTechnicalIds": [
-        "tech-evolvex"
-      ],
-      "selectedNonTechnicalIds": [],
-      "participants": [
-        {
-          "fullName": "Anandha Krishnan",
-          "email": "mytseryak27@gmail.com",
-          "phone": "6383109049",
-          "college": "mahendra ",
-          "department": "ECE",
-          "year": "III"
-        },
-        {
-          "fullName": "Anandha ",
-          "email": "mytseryak27@gmail.com",
-          "phone": "06383109049",
-          "college": "MS",
-          "department": "ECE",
-          "year": "II"
-        },
-        {
-          "fullName": "AK",
-          "email": "anandhperumal27@gmail.com",
-          "phone": "6383109049",
-          "college": "Mahendra",
-          "department": "ECE",
-          "year": "II"
-        }
-      ],
-      "teamLeader": {
-        "fullName": "Anandha Krishnan",
-        "email": "mytseryak27@gmail.com",
-        "phone": "6383109049",
-        "college": "mahendra ",
-        "department": "ECE",
-        "year": "III"
-      },
-      "totalAmount": 1050,
-      "paymentMethod": "razorpay",
-      "paymentStatus": "paid",
-      "paymentId": "pay_test_nte2qt0b",
-      "attendanceMarked": false
-    },
-    {
-      "id": "EV26-3KP4J3",
-      "createdAt": "2026-09-10T14:21:02.209Z",
+      "createdAt": "2026-09-12T20:25:28.403Z",
       "registrationType": "workshop",
       "selectedWorkshopId": "ws-silicon-2-gds",
       "selectedTechnicalIds": [],
       "selectedNonTechnicalIds": [],
       "participants": [
         {
-          "fullName": "Kavitha R",
-          "email": "kavitha.ece@example.com",
-          "phone": "9876543210",
-          "college": "Government College of Technology, Coimbatore",
+          "fullName": "as",
+          "email": "anandmsak27@gmail.com",
+          "phone": "6383109049",
+          "college": "Mahendra Engineering College",
           "department": "ECE",
-          "year": "Final Year"
+          "year": "III"
         }
       ],
       "teamLeader": {
-        "fullName": "Kavitha R",
-        "email": "kavitha.ece@example.com",
-        "phone": "9876543210",
-        "college": "Government College of Technology, Coimbatore",
+        "fullName": "as",
+        "email": "anandmsak27@gmail.com",
+        "phone": "6383109049",
+        "college": "Mahendra Engineering College",
         "department": "ECE",
-        "year": "Final Year"
+        "year": "III"
       },
       "totalAmount": 350,
       "paymentMethod": "upi",
       "paymentStatus": "pending_verification",
-      "upiReference": "428971039482",
-      "driveScreenshotSubmitted": true,
-      "attendanceMarked": false
+      "upiReference": "123456789012"
+    },
+    {
+      "id": "EV26-2XY8BA",
+      "createdAt": "2026-09-12T20:30:45.123Z",
+      "registrationType": "workshop",
+      "selectedWorkshopId": "ws-silicon-2-gds",
+      "selectedTechnicalIds": [],
+      "selectedNonTechnicalIds": [],
+      "participants": [
+        {
+          "fullName": "Sow",
+          "email": "anandhperumal27@gmail.com",
+          "phone": "6383109049",
+          "college": "Mahendra Engineering College",
+          "department": "ECE",
+          "year": "III"
+        }
+      ],
+      "teamLeader": {
+        "fullName": "Sow",
+        "email": "anandhperumal27@gmail.com",
+        "phone": "6383109049",
+        "college": "Mahendra Engineering College",
+        "department": "ECE",
+        "year": "III"
+      },
+      "totalAmount": 350,
+      "paymentMethod": "upi",
+      "paymentStatus": "pending_verification",
+      "upiReference": "098765432109"
+    },
+    {
+      "id": "EV26-PSJMY8",
+      "createdAt": "2026-09-12T20:35:12.456Z",
+      "registrationType": "workshop",
+      "selectedWorkshopId": "ws-virtual-instrumentation",
+      "selectedTechnicalIds": [],
+      "selectedNonTechnicalIds": [],
+      "participants": [
+        {
+          "fullName": "mr ak",
+          "email": "anandmsak27@gmail.com",
+          "phone": "6383109049",
+          "college": "Mahendra Engineering College",
+          "department": "ECE",
+          "year": "III"
+        }
+      ],
+      "teamLeader": {
+        "fullName": "mr ak",
+        "email": "anandmsak27@gmail.com",
+        "phone": "6383109049",
+        "college": "Mahendra Engineering College",
+        "department": "ECE",
+        "year": "III"
+      },
+      "totalAmount": 350,
+      "paymentMethod": "upi",
+      "paymentStatus": "pending_verification",
+      "upiReference": "567890123456"
     }
   ],
   "adminPasswordHash": "cc545a21a77e6b3aae3db8914a297cc12449a48a26f161bf113d0df752871457",
