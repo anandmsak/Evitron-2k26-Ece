@@ -35,14 +35,14 @@ export const CategoryPage: React.FC<CategoryPageProps> = ({ category, events, on
     technical: {
       title: 'Technical Events',
       subtitle: 'Present Your Research, Working Hardware Prototypes & Autonomous Line Followers',
-      badge: 'Team Size: Exactly 3 Members (₹1050 / Team)',
-      ruleNotice: 'Every technical event requires a team of exactly 3 participants. Registering for a technical event also qualifies your team to participate in Non-Technical events!',
+      badge: 'Team Size: 2 to 4 Members (₹350 / Person • Min 2 Compulsory)',
+      ruleNotice: 'Every technical event requires a team of 2 to 4 participants (min 2 compulsory, up to 4 total). Registering for a technical event also qualifies your team to participate in Non-Technical events!',
       alertType: 'success',
     },
     'non-technical': {
       title: 'Non-Technical Events',
       subtitle: 'Sharpen Your Logical Aptitude, AI Prompt Crafting, Tech Memes & Hardware Deduction',
-      badge: 'Team of 3 (Included with Technical Registration)',
+      badge: 'Team of 2 to 4 (Included with Technical Registration)',
       ruleNotice: 'Important Rule: Non-technical events can only be registered if your team has selected at least one Technical Event (TECHPAPER, EVOLVEX, or TRACKTRON).',
       alertType: 'warning',
     },
