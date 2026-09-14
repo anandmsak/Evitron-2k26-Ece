@@ -707,7 +707,7 @@ export const RegistrationPage: React.FC<RegistrationPageProps> = ({ events, sett
             </h1>
             <p className="text-xs text-stone-600 mt-2">
               Choose either a hands-on <span className="font-bold text-stone-800">Workshop</span> (Individual) OR the{' '}
-              <span className="font-bold text-stone-800">Technical Symposium Track</span> (Team of Exactly 3).
+              <span className="font-bold text-stone-800">Technical Symposium Track</span> (Team of 2 to 4).
             </p>
           </div>
 
