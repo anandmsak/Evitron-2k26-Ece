@@ -32,10 +32,16 @@ function mapEvent(row: DbEvent): EventItem {
     time: metadata.time || '',
     date: metadata.date || '08/10/2026',
     eligibility: metadata.eligibility || '',
-    teamSize: row.max_team_size || 1,
+    teamSize: row.category === 'technical' ? 4 : row.max_team_size || 1,
+    minTeamSize: metadata.minTeamSize || (row.category === 'technical' ? 2 : 1),
+    maxTeamSize: metadata.maxTeamSize || (row.category === 'technical' ? 4 : row.max_team_size || 1),
     teamSizeLabel:
       metadata.teamSizeLabel ||
-      ((row.max_team_size || 1) === 1 ? 'Individual (1 Participant)' : `Team of Exactly ${row.max_team_size} Participants`),
+      ((row.max_team_size || 1) === 1
+        ? 'Individual (1 Participant)'
+        : row.category === 'technical'
+        ? 'Team of 2 to 4 Participants'
+        : `Team of ${row.max_team_size} Participants`),
     feePerPerson: Number(row.price || 0),
     rules: Array.isArray(row.rules) ? row.rules : [],
     procedure: Array.isArray(row.procedure) ? row.procedure : [],
@@ -45,6 +51,16 @@ function mapEvent(row: DbEvent): EventItem {
     importantInstructions: Array.isArray(metadata.importantInstructions)
       ? metadata.importantInstructions
       : [],
+    themes: Array.isArray(metadata.themes)
+      ? metadata.themes
+      : (row.code === 'techpaper' || row.id === 'tech-techpaper' || (row.name && row.name.toLowerCase().includes('techpaper')))
+      ? [
+          'Emerging Electronics, Embedded Systems & IoT',
+          'Next-Generation Semiconductor & VLSI Technologies',
+          'Artificial Intelligence, Computing & Cybersecurity',
+          'Sustainable Technology, Environmental Innovation & Clean Energy',
+        ]
+      : undefined,
     faqs: Array.isArray(row.faqs) ? row.faqs : [],
     coordinatorName: coordinator.name || metadata.coordinatorName || '[COORDINATOR NAME]',
     coordinatorPhone: coordinator.phone || metadata.coordinatorPhone || '[COORDINATOR PHONE]',
