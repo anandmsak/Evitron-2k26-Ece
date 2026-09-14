@@ -157,7 +157,7 @@ export const initialEvents: EventItem[] = [
     isActive: true,
   },
 
-  // --- TECHNICAL EVENTS (Team Size: Exactly 3 Participants) ---
+  // --- TECHNICAL EVENTS (Team Size: 2 to 4 Participants) ---
   {
     id: 'tech-techpaper',
     slug: 'techpaper',
