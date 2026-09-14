@@ -169,7 +169,7 @@ export const EventDetailPage: React.FC<EventDetailPageProps> = ({ event, onNavig
             </p>
             {event.category === 'technical' && (
               <p className="text-amber-800 bg-amber-50 p-2.5 rounded border border-amber-200 mt-2 font-medium">
-                Mandatory rule: Technical events strictly require exactly 3 participants per team (Team Leader + 2 Members). Individual or 2-person registrations are not accepted.
+                Mandatory rule: Technical events require 2 to 4 participants per team (minimum 2 compulsory, up to 4 total members including Team Leader). Individual registrations are not accepted.
               </p>
             )}
             {event.category === 'workshops' && (
