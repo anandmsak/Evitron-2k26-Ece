@@ -76,7 +76,7 @@ export async function sendRegistrationConfirmationEmail(
   const trackLabel =
     reg.registrationType === 'workshop'
       ? 'Hands-on Workshop Track (Individual)'
-      : 'National Technical Symposium Track (Team of 3)';
+      : `National Technical Symposium Track (${reg.participants.length} Members)`;
 
   const qrPayloadData = {
     symposium: 'EVITRON 2K26',
@@ -333,7 +333,7 @@ export async function sendAdminNewRegistrationNotification(
   const trackLabel =
     reg.registrationType === 'workshop'
       ? 'Hands-on Workshop Track (Individual)'
-      : 'National Technical Symposium Track (Team of 3)';
+      : `National Technical Symposium Track (${reg.participants.length} Members)`;
 
   const htmlContent = `
 <!DOCTYPE html>
