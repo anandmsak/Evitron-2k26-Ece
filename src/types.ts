@@ -51,7 +51,7 @@ export interface RegistrationRecord {
   selectedWorkshopId?: string;
   selectedTechnicalIds: string[];
   selectedNonTechnicalIds: string[];
-  participants: Participant[]; // 1 for workshop, exactly 3 for technical
+  participants: Participant[]; // 1 for workshop, 2 to 4 for technical
   teamLeader: Participant;
   totalAmount: number;
   paymentMethod: 'razorpay' | 'upi';
