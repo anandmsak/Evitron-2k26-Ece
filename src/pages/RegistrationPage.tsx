@@ -53,9 +53,7 @@ export const RegistrationPage: React.FC<RegistrationPageProps> = ({ events, sett
   // UPI Form state
   const [upiReference, setUpiReference] = useState('');
   const [upiCopied, setUpiCopied] = useState(false);
-  const [paymentMode, setPaymentMode] = useState<'choice' | 'manual' | 'razorpay'>(
-    settings.razorpayEnabled !== false ? 'choice' : 'manual'
-  );
+  const [paymentMode, setPaymentMode] = useState<'manual'>('manual');
   const [screenshotDriveProof, setScreenshotDriveProof] = useState('');
 
   // UI state
@@ -1151,297 +1149,169 @@ export const RegistrationPage: React.FC<RegistrationPageProps> = ({ events, sett
             </div>
 
             <button
+              type="button"
               onClick={() => {
-                if (paymentMode !== 'choice' && settings.razorpayEnabled !== false) {
-                  setPaymentMode('choice');
-                } else {
-                  setStep('form');
-                }
+                setStep('form');
               }}
               className="text-xs font-semibold text-stone-600 hover:text-stone-900 flex items-center gap-1 cursor-pointer"
             >
-              <ArrowLeft className="w-3.5 h-3.5" /> {paymentMode !== 'choice' && settings.razorpayEnabled !== false ? 'Back to Payment Options' : 'Edit Details'}
+              <ArrowLeft className="w-3.5 h-3.5" /> Edit Details
             </button>
           </div>
 
-          {/* CHOICE SCREEN (If Razorpay is enabled and paymentMode is 'choice') */}
-          {settings.razorpayEnabled !== false && paymentMode === 'choice' && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
-              {/* Option Card 1: Manual UPI QR */}
-              <div className="bg-white border-2 border-stone-200 hover:border-[#B22222] rounded-2xl p-6 shadow-xs flex flex-col justify-between transition-all">
-                <div>
-                  <div className="flex items-center justify-between mb-3">
-                    <span className="text-xs font-bold uppercase tracking-wider text-[#B22222] bg-red-50 px-2 py-1 rounded">
-                      Option A — Manual UPI QR
-                    </span>
-                    <span className="text-[10px] font-bold bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded">
-                      Zero Gateway Fee
-                    </span>
-                  </div>
-                  <h3 className="text-lg font-extrabold text-stone-900 mb-2">
-                    Pay via UPI / QR & Submit Details
-                  </h3>
-                  <p className="text-xs text-stone-600 leading-relaxed mb-6">
-                    Scan the symposium QR code, pay ₹{totalAmount} using any UPI app (GPay/PhonePe/Paytm), upload your screenshot to our Drive folder, and submit your UTR reference for manual verification by our team.
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setPaymentMode('manual')}
-                  className="w-full py-3 px-4 bg-stone-900 hover:bg-stone-800 text-white font-bold text-xs rounded-xl shadow-xs cursor-pointer flex items-center justify-center gap-2"
-                >
-                  <QrCode className="w-4 h-4" />
-                  Choose Manual UPI QR Page →
-                </button>
+          <div className="max-w-2xl mx-auto bg-white border border-stone-200 rounded-2xl p-6 sm:p-8 shadow-xs">
+            <div className="flex items-center justify-between mb-6 border-b border-stone-100 pb-4">
+              <div>
+                <span className="text-xs font-bold text-[#B22222] uppercase tracking-wider block mb-1">
+                  Manual UPI & QR Payment Page
+                </span>
+                <h3 className="text-lg font-extrabold text-stone-900">
+                  Scan, Pay ₹{totalAmount}, and Submit Details
+                </h3>
               </div>
+            </div>
 
-              {/* Option Card 2: Razorpay Online */}
-              <div className="bg-white border-2 border-stone-200 hover:border-[#B22222] rounded-2xl p-6 shadow-xs flex flex-col justify-between transition-all">
-                <div>
-                  <div className="flex items-center justify-between mb-3">
-                    <span className="text-xs font-bold uppercase tracking-wider text-[#B22222] bg-red-50 px-2 py-1 rounded">
-                      Option B — Razorpay Online
-                    </span>
-                    <span className="text-[10px] font-bold bg-blue-100 text-blue-800 px-2 py-0.5 rounded">
-                      Instant Automated
-                    </span>
-                  </div>
-                  <h3 className="text-lg font-extrabold text-stone-900 mb-2">
-                    Secure Online Checkout
-                  </h3>
-                  <p className="text-xs text-stone-600 leading-relaxed mb-6">
-                    Pay instantly using Cards, Netbanking, UPI apps, or Wallets via Razorpay gateway with instant cryptographic verification and automated ticket generation.
-                  </p>
-                </div>
+            {/* QR Code Container */}
+            <div className="bg-stone-50 border border-stone-200 rounded-xl p-5 flex flex-col items-center justify-center mb-6">
+              <div className="w-48 h-48 bg-white border border-stone-300 rounded-lg p-2 shadow-xs flex items-center justify-center">
+                {activeQrImageUrl ? (
+                  <img
+                    src={activeQrImageUrl}
+                    alt={isWorkshopTrack ? 'Workshop UPI QR Code' : 'Technical Symposium UPI QR Code'}
+                    className="w-full h-full object-contain"
+                  />
+                ) : (
+                  <QrCode className="w-24 h-24 text-stone-400" />
+                )}
+              </div>
+              <div className="mt-3 text-center">
+                <span className="text-xs font-bold text-stone-900 block">Scan & Pay Exact Amount: ₹{totalAmount}</span>
+                <span className="text-[11px] text-stone-500">
+                  {activePayeeName} ({isWorkshopTrack ? 'Workshop Payment QR' : 'Technical Events Payment QR'})
+                </span>
+              </div>
+            </div>
+
+            {/* UPI ID Copy Field */}
+            <div className="mb-6">
+              <label className="block text-xs font-bold text-stone-700 mb-1">
+                {isWorkshopTrack ? 'Workshop UPI ID' : 'Technical Symposium UPI ID'} (Tap to Copy)
+              </label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  readOnly
+                  value={activeUpiId}
+                  className="w-full px-3 py-2.5 bg-stone-50 border border-stone-300 rounded-lg font-mono text-xs text-stone-900"
+                />
                 <button
                   type="button"
-                  onClick={() => setPaymentMode('razorpay')}
-                  className="w-full py-3 px-4 bg-[#B22222] hover:bg-[#961c1c] text-white font-bold text-xs rounded-xl shadow-xs cursor-pointer flex items-center justify-center gap-2"
+                  onClick={copyUpiId}
+                  className="px-4 py-2.5 bg-stone-100 hover:bg-stone-200 text-stone-800 text-xs font-bold rounded-lg border border-stone-300 flex items-center gap-1.5 cursor-pointer shrink-0"
                 >
-                  <CreditCard className="w-4 h-4" />
-                  Choose Razorpay Online Checkout →
+                  {upiCopied ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                  <span>{upiCopied ? 'Copied' : 'Copy'}</span>
                 </button>
               </div>
             </div>
-          )}
 
-          {/* MANUAL UPI PAGE (Shown if paymentMode === 'manual' or Razorpay disabled) */}
-          {(paymentMode === 'manual' || settings.razorpayEnabled === false) && (
-            <div className="max-w-2xl mx-auto bg-white border border-stone-200 rounded-2xl p-6 sm:p-8 shadow-xs">
-              <div className="flex items-center justify-between mb-6 border-b border-stone-100 pb-4">
-                <div>
-                  <span className="text-xs font-bold text-[#B22222] uppercase tracking-wider block mb-1">
-                    Manual UPI & QR Payment Page
-                  </span>
-                  <h3 className="text-lg font-extrabold text-stone-900">
-                    Scan, Pay ₹{totalAmount}, and Submit Details
-                  </h3>
-                </div>
-                {settings.razorpayEnabled !== false && (
-                  <button
-                    type="button"
-                    onClick={() => setPaymentMode('choice')}
-                    className="text-xs text-stone-600 hover:text-stone-900 underline font-medium cursor-pointer"
-                  >
-                    ← Switch to Razorpay
-                  </button>
-                )}
-              </div>
-
-              {/* QR Code Container */}
-              <div className="bg-stone-50 border border-stone-200 rounded-xl p-5 flex flex-col items-center justify-center mb-6">
-                <div className="w-48 h-48 bg-white border border-stone-300 rounded-lg p-2 shadow-xs flex items-center justify-center">
-                  {activeQrImageUrl ? (
-                    <img
-                      src={activeQrImageUrl}
-                      alt={isWorkshopTrack ? 'Workshop UPI QR Code' : 'Technical Symposium UPI QR Code'}
-                      className="w-full h-full object-contain"
-                    />
-                  ) : (
-                    <QrCode className="w-24 h-24 text-stone-400" />
-                  )}
-                </div>
-                <div className="mt-3 text-center">
-                  <span className="text-xs font-bold text-stone-900 block">Scan & Pay Exact Amount: ₹{totalAmount}</span>
-                  <span className="text-[11px] text-stone-500">
-                    {activePayeeName} ({isWorkshopTrack ? 'Workshop Payment QR' : 'Technical Events Payment QR'})
-                  </span>
-                </div>
-              </div>
-
-              {/* UPI ID Copy Field */}
-              <div className="mb-6">
-                <label className="block text-xs font-bold text-stone-700 mb-1">
-                  {isWorkshopTrack ? 'Workshop UPI ID' : 'Technical Symposium UPI ID'} (Tap to Copy)
-                </label>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="text"
-                    readOnly
-                    value={activeUpiId}
-                    className="w-full px-3 py-2.5 bg-stone-50 border border-stone-300 rounded-lg font-mono text-xs text-stone-900"
-                  />
-                  <button
-                    type="button"
-                    onClick={copyUpiId}
-                    className="px-4 py-2.5 bg-stone-100 hover:bg-stone-200 text-stone-800 text-xs font-bold rounded-lg border border-stone-300 flex items-center gap-1.5 cursor-pointer shrink-0"
-                  >
-                    {upiCopied ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
-                    <span>{upiCopied ? 'Copied' : 'Copy'}</span>
-                  </button>
-                </div>
-              </div>
-
-              {/* Paper Presentation Google Form Link Card (If TECHPAPER selected) */}
-              {isPaperPresentationSelected && (
-                <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-xl">
-                  <div className="flex items-start gap-3">
-                    <ExternalLink className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
-                    <div className="space-y-1.5">
-                      <span className="text-xs font-bold text-blue-900 block">
-                        Paper Presentation Abstract & Title Submission Required
-                      </span>
-                      <p className="text-xs text-blue-800 leading-relaxed">
-                        You have selected Paper Presentation (TECHPAPER). Please submit your paper title, abstract, and team details via our official Google Form.
-                      </p>
-                      <a
-                        href="https://docs.google.com/forms/d/e/1FAIpQLSd8CtXbeQ-NhxOK5xV_wphW-K1am_dVK7pji6z_Itr0w1mM3w/viewform?usp=publish-editor"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-lg shadow-xs cursor-pointer"
-                      >
-                        <ExternalLink className="w-3.5 h-3.5" />
-                        Open Paper Presentation Google Form
-                      </a>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Google Form Payment Upload Callout & Required Confirmation */}
-              <div className="mb-6 p-4 bg-red-50/70 border border-red-200 rounded-xl">
+            {/* Paper Presentation Google Form Link Card (If TECHPAPER selected) */}
+            {isPaperPresentationSelected && (
+              <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-xl">
                 <div className="flex items-start gap-3">
-                  <ExternalLink className="w-5 h-5 text-[#B22222] shrink-0 mt-0.5" />
-                  <div className="space-y-2">
-                    <span className="text-xs font-bold text-stone-900 block">
-                      Official Payment Screenshot Google Form <span className="text-red-600">*</span>
+                  <ExternalLink className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
+                  <div className="space-y-1.5">
+                    <span className="text-xs font-bold text-blue-900 block">
+                      Paper Presentation Abstract & Title Submission Required
                     </span>
-                    <p className="text-xs text-stone-700 leading-relaxed">
-                      Please submit your payment screenshot and details via our official Google Form before entering your UTR below.
+                    <p className="text-xs text-blue-800 leading-relaxed">
+                      You have selected Paper Presentation (TECHPAPER). Please submit your paper title, abstract, and team details via our official Google Form.
                     </p>
                     <a
-                      href={settings.participantFormUrl || 'https://docs.google.com/forms/d/e/1FAIpQLSdXYq3Pfeb_2w5jPtdjqeLJPv3sIVsb9Y1ahPUe47WT76OUYg/viewform?usp=publish-editor'}
+                      href="https://docs.google.com/forms/d/e/1FAIpQLSd8CtXbeQ-NhxOK5xV_wphW-K1am_dVK7pji6z_Itr0w1mM3w/viewform?usp=publish-editor"
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-[#B22222] hover:bg-[#961c1c] text-white font-bold text-xs rounded-lg shadow-xs cursor-pointer"
+                      className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-lg shadow-xs cursor-pointer"
                     >
                       <ExternalLink className="w-3.5 h-3.5" />
-                      Open Payment Upload Google Form →
+                      Open Paper Presentation Google Form
                     </a>
                   </div>
                 </div>
               </div>
+            )}
 
-              {/* Strict Required Form & Submit Button 1 */}
-              <form onSubmit={handleUpiSubmit} className="space-y-5 pt-4 border-t border-stone-200">
-                <div>
-                  <label className="block text-stone-900 font-bold text-xs mb-1">
-                    Enter UPI Transaction Reference (UTR / Ref ID): <span className="text-red-600">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={upiReference}
-                    onChange={(e) => setUpiReference(e.target.value)}
-                    placeholder="e.g. 4289xxxxxxxx (12-digit UTR)"
-                    className="w-full px-3.5 py-2.5 border border-stone-300 rounded-lg text-xs text-stone-900 font-mono outline-none focus:ring-1 focus:ring-[#B22222]"
-                  />
-                  <span className="text-[11px] text-stone-500 mt-1 block">
-                    Mandatory: Found in your Google Pay, PhonePe, Paytm, or Bank app transaction details.
+            {/* Google Form Payment Upload Callout & Required Confirmation */}
+            <div className="mb-6 p-4 bg-red-50/70 border border-red-200 rounded-xl">
+              <div className="flex items-start gap-3">
+                <ExternalLink className="w-5 h-5 text-[#B22222] shrink-0 mt-0.5" />
+                <div className="space-y-2">
+                  <span className="text-xs font-bold text-stone-900 block">
+                    Official Payment Screenshot Google Form <span className="text-red-600">*</span>
                   </span>
+                  <p className="text-xs text-stone-700 leading-relaxed">
+                    Please submit your payment screenshot and details via our official Google Form before entering your UTR below.
+                  </p>
+                  <a
+                    href={settings.participantFormUrl || 'https://docs.google.com/forms/d/e/1FAIpQLSdXYq3Pfeb_2w5jPtdjqeLJPv3sIVsb9Y1ahPUe47WT76OUYg/viewform?usp=publish-editor'}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-[#B22222] hover:bg-[#961c1c] text-white font-bold text-xs rounded-lg shadow-xs cursor-pointer"
+                  >
+                    <ExternalLink className="w-3.5 h-3.5" />
+                    Open Payment Upload Google Form →
+                  </a>
                 </div>
-
-                <div>
-                  <label className="block text-stone-900 font-bold text-xs mb-1">
-                    Official Payment Screenshot Drive Folder Confirmation: <span className="text-red-600">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={screenshotDriveProof}
-                    onChange={(e) => setScreenshotDriveProof(e.target.value)}
-                    placeholder="e.g. Uploaded to Drive Folder as Anandh_9876543210.png"
-                    className="w-full px-3.5 py-2.5 border border-stone-300 rounded-lg text-xs text-stone-900 outline-none focus:ring-1 focus:ring-[#B22222]"
-                  />
-                  <span className="text-[11px] text-stone-500 mt-1 block">
-                    Mandatory: Provide your uploaded filename or confirmation that you successfully uploaded to the Drive folder.
-                  </span>
-                </div>
-
-                <button
-                  type="submit"
-                  id="submit-manual-upi-btn"
-                  disabled={isProcessing}
-                  className="w-full py-3.5 px-4 bg-[#B22222] hover:bg-[#961c1c] active:bg-[#7e1717] text-white font-bold text-xs sm:text-sm rounded-xl shadow-md cursor-pointer flex items-center justify-center gap-2 transition-colors"
-                >
-                  <CheckCircle2 className="w-4 h-4" />
-                  {isProcessing ? 'Submitting & Syncing to Spreadsheet...' : 'Submit Manual UPI & Complete Registration'}
-                </button>
-              </form>
+              </div>
             </div>
-          )}
 
-          {/* RAZORPAY PAGE (Shown if paymentMode === 'razorpay' and Razorpay enabled) */}
-          {settings.razorpayEnabled !== false && paymentMode === 'razorpay' && (
-            <div className="max-w-xl mx-auto bg-white border border-stone-200 rounded-2xl p-6 sm:p-8 shadow-xs">
-              <div className="flex items-center justify-between mb-6 border-b border-stone-100 pb-4">
-                <div>
-                  <span className="text-xs font-bold text-[#B22222] uppercase tracking-wider block mb-1">
-                    Razorpay Online Checkout Page
-                  </span>
-                  <h3 className="text-lg font-extrabold text-stone-900">
-                    Instant Secure Payment Gateway
-                  </h3>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setPaymentMode('choice')}
-                  className="text-xs text-stone-600 hover:text-stone-900 underline font-medium cursor-pointer"
-                >
-                  ← Back to Payment Options
-                </button>
+            {/* Strict Required Form & Submit Button 1 */}
+            <form onSubmit={handleUpiSubmit} className="space-y-5 pt-4 border-t border-stone-200">
+              <div>
+                <label className="block text-stone-900 font-bold text-xs mb-1">
+                  Enter UPI Transaction Reference (UTR / Ref ID): <span className="text-red-600">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={upiReference}
+                  onChange={(e) => setUpiReference(e.target.value)}
+                  placeholder="e.g. 4289xxxxxxxx (12-digit UTR)"
+                  className="w-full px-3.5 py-2.5 border border-stone-300 rounded-lg text-xs text-stone-900 font-mono outline-none focus:ring-1 focus:ring-[#B22222]"
+                />
+                <span className="text-[11px] text-stone-500 mt-1 block">
+                  Mandatory: Found in your Google Pay, PhonePe, Paytm, or Bank app transaction details.
+                </span>
               </div>
 
-              <div className="p-4 bg-stone-50 rounded-xl border border-stone-200 text-xs space-y-3 mb-6 text-stone-700">
-                <div className="flex items-center justify-between">
-                  <span>Payable Amount:</span>
-                  <span className="font-extrabold text-stone-900 text-base">₹{totalAmount}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span>Team Leader / Attendee:</span>
-                  <span className="font-semibold text-stone-900">{participants[0].fullName}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span>Gateway Mode:</span>
-                  <span className="font-semibold text-stone-900">
-                    {settings.appEnv === 'development' ? 'Development (Real Test Mode)' : 'Production (Live)'}
-                  </span>
-                </div>
+              <div>
+                <label className="block text-stone-900 font-bold text-xs mb-1">
+                  Official Payment Screenshot Drive Folder Confirmation: <span className="text-red-600">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={screenshotDriveProof}
+                  onChange={(e) => setScreenshotDriveProof(e.target.value)}
+                  placeholder="e.g. Uploaded to Drive Folder as Anandh_9876543210.png"
+                  className="w-full px-3.5 py-2.5 border border-stone-300 rounded-lg text-xs text-stone-900 outline-none focus:ring-1 focus:ring-[#B22222]"
+                />
+                <span className="text-[11px] text-stone-500 mt-1 block">
+                  Mandatory: Provide your uploaded filename or confirmation that you successfully uploaded to the Drive folder.
+                </span>
               </div>
 
-              {/* Submit Button 2: Razorpay Pay */}
               <button
-                type="button"
-                id="btn-razorpay-checkout-page"
+                type="submit"
+                id="submit-manual-upi-btn"
                 disabled={isProcessing}
-                onClick={handleRazorpayCheckout}
-                className="w-full py-3.5 px-4 bg-[#B22222] hover:bg-[#961c1c] active:bg-[#7e1717] text-white font-bold text-xs sm:text-sm rounded-xl shadow-md cursor-pointer flex items-center justify-center gap-2"
+                className="w-full py-3.5 px-4 bg-[#B22222] hover:bg-[#961c1c] active:bg-[#7e1717] text-white font-bold text-xs sm:text-sm rounded-xl shadow-md cursor-pointer flex items-center justify-center gap-2 transition-colors"
               >
-                <CreditCard className="w-4 h-4" />
-                {isProcessing ? 'Launching Razorpay Gateway...' : `Pay ₹${totalAmount} Securely with Razorpay`}
+                <CheckCircle2 className="w-4 h-4" />
+                {isProcessing ? 'Submitting & Syncing to Spreadsheet...' : 'Submit Manual UPI & Complete Registration'}
               </button>
-            </div>
-          )}
+            </form>
+          </div>
         </div>
       )}
     </div>
