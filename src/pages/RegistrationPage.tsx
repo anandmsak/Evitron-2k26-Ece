@@ -16,6 +16,8 @@ import {
   ArrowLeft,
   Check,
   Ticket,
+  UserPlus,
+  Trash2,
 } from 'lucide-react';
 import { EventItem, Participant, RegistrationRecord, SiteSettings } from '../types';
 import { defaultSettings } from '../data/defaultSettings';
@@ -42,9 +44,8 @@ export const RegistrationPage: React.FC<RegistrationPageProps> = ({ events, sett
   const [selectedNonTechnicalIds, setSelectedNonTechnicalIds] = useState<string[]>([]);
 
   // Participants form state
-  // Workshop: 1 participant. Technical: strictly 3 participants (Leader, Member 2, Member 3)
+  // Workshop: 1 participant. Technical: 2 to 4 participants (Leader + Member 2 compulsory, up to 4 total)
   const [participants, setParticipants] = useState<Participant[]>([
-    { fullName: '', email: '', phone: '', college: '', department: '', year: '' },
     { fullName: '', email: '', phone: '', college: '', department: '', year: '' },
     { fullName: '', email: '', phone: '', college: '', department: '', year: '' },
   ]);
@@ -99,7 +100,7 @@ export const RegistrationPage: React.FC<RegistrationPageProps> = ({ events, sett
   // ----------------------------------------------------
   // EVENT SELECTION LOGIC (STRICT RULE ENFORCEMENT)
   // 1. Workshop: strictly 1 workshop only. No tech, no non-tech. (Individual pass: 1 person).
-  // 2. Technical: strictly 1 technical event only (Team of 3).
+  // 2. Technical: strictly 1 technical event only (Team of 2 to 4 members).
   // 3. Non-Technical: strictly at most 1 non-technical event, ONLY IF 1 technical event is selected.
   //    Non-technical alone can NEVER be selected.
   // ----------------------------------------------------
@@ -150,12 +151,13 @@ export const RegistrationPage: React.FC<RegistrationPageProps> = ({ events, sett
     }
   };
 
-  // Fee Calculation
+  // Dynamic Fee Calculation
   let totalAmount = 0;
   if (chosenTrack === 'workshop' && selectedWorkshopId) {
     totalAmount = 350; // 1 person
   } else if (chosenTrack === 'technical' && selectedTechnicalIds.length > 0) {
-    totalAmount = 1050; // Team of exactly 3 = 3 x ₹350
+    const memberCount = Math.max(2, Math.min(participants.length, 4));
+    totalAmount = memberCount * 350; // ₹350 per member (2 to 4 members)
   }
 
   // Validate step 1 (Event Selection)
@@ -204,14 +206,54 @@ export const RegistrationPage: React.FC<RegistrationPageProps> = ({ events, sett
     setParticipants(next);
   };
 
+  // Add / remove team members for technical events (min 2 compulsory, up to 4 total)
+  const addParticipant = () => {
+    if (participants.length < 4) {
+      setParticipants([
+        ...participants,
+        {
+          fullName: '',
+          email: '',
+          phone: '',
+          college: participants[0]?.college || '',
+          department: participants[0]?.department || '',
+          year: '',
+        },
+      ]);
+    }
+  };
+
+  const removeParticipant = (indexToRemove: number) => {
+    if (participants.length > 2) {
+      setParticipants(participants.filter((_, idx) => idx !== indexToRemove));
+    }
+  };
+
   // Validate step 2 (Participant details)
   const validateParticipantForm = (): boolean => {
     setErrorMsg(null);
-    const activeParticipants = chosenTrack === 'workshop' ? [participants[0]] : participants.slice(0, 3);
+    const activeParticipants =
+      chosenTrack === 'workshop' ? [participants[0]] : participants.slice(0, 4);
+
+    if (chosenTrack === 'technical') {
+      if (activeParticipants.length < 2) {
+        setErrorMsg('Technical events require a minimum of 2 compulsory participants (Team Leader + at least 1 Member).');
+        return false;
+      }
+      if (activeParticipants.length > 4) {
+        setErrorMsg('Technical events allow a maximum of 4 participants total including Team Leader.');
+        return false;
+      }
+    }
 
     for (let i = 0; i < activeParticipants.length; i++) {
       const p = activeParticipants[i];
-      const role = i === 0 ? (chosenTrack === 'workshop' ? 'Participant' : 'Team Leader') : `Member ${i + 1}`;
+      const role =
+        chosenTrack === 'workshop'
+          ? 'Participant'
+          : i === 0
+          ? 'Team Leader'
+          : `Team Member ${i + 1}`;
       if (!p.fullName.trim()) {
         setErrorMsg(`Please enter the Full Name for ${role}.`);
         return false;
@@ -266,7 +308,7 @@ export const RegistrationPage: React.FC<RegistrationPageProps> = ({ events, sett
   // Package payload for backend
   const getRegistrationPayload = () => {
     const activeParticipants =
-      chosenTrack === 'workshop' ? [participants[0]] : participants.slice(0, 3);
+      chosenTrack === 'workshop' ? [participants[0]] : participants.slice(0, 4);
 
     return {
       registrationType: chosenTrack,
@@ -743,20 +785,20 @@ export const RegistrationPage: React.FC<RegistrationPageProps> = ({ events, sett
                 <div>
                   <h2 className="text-lg font-extrabold text-stone-900">Track B: Technical Symposium Track</h2>
                   <span className="text-[11px] text-stone-500 font-medium">
-                    Team of Exactly 3 Participants • ₹1050 per team
+                    Team of 2 to 4 Participants (min 2 compulsory) • ₹350 per member
                   </span>
                 </div>
               </div>
 
               <span className="text-[11px] font-bold px-2.5 py-1 bg-stone-100 text-stone-700 rounded">
-                Exactly 3 Members Required
+                2 to 4 Members (Min 2 Compulsory)
               </span>
             </div>
 
             <div className="p-3 bg-stone-50 rounded-lg text-xs text-stone-600 mb-4 border border-stone-100">
               <span className="font-bold text-stone-900">Mandatory Rules:</span>
               <ul className="list-disc list-inside mt-1 space-y-0.5 text-[11px]">
-                <li>Every technical symposium team requires exactly 3 participants (₹1050 flat fee).</li>
+                <li>Technical event teams require a minimum of 2 compulsory members, and can extend up to 4 members total including Team Leader (₹350 per member).</li>
                 <li><strong>Strictly 1 Technical Event</strong> can be selected.</li>
                 <li><strong>Optional:</strong> You may choose <strong>at most 1 Non-Technical Event</strong>, but ONLY when 1 technical event is selected. Non-technical events can never be selected alone.</li>
               </ul>
@@ -880,9 +922,9 @@ export const RegistrationPage: React.FC<RegistrationPageProps> = ({ events, sett
               </div>
               <p className="text-[11px] text-stone-300 mt-0.5">
                 {chosenTrack === 'workshop'
-                  ? '1 Participant (Individual Workshop Pass)'
+                  ? '1 Participant (Individual Workshop Pass • ₹350)'
                   : chosenTrack === 'technical'
-                  ? 'Team of 3 Participants (₹1050 flat for the entire team)'
+                  ? `${participants.length} Participants (₹350 / member • Min 2, Max 4 members)`
                   : 'Select an event to view fee'}
               </p>
             </div>
@@ -904,7 +946,7 @@ export const RegistrationPage: React.FC<RegistrationPageProps> = ({ events, sett
       )}
 
       {/* ----------------------------------------------------
-          STEP 2: PARTICIPANTS FORM (EXACTLY 3 FOR TECH, 1 FOR WORKSHOP)
+          STEP 2: PARTICIPANTS FORM (2 TO 4 FOR TECH, 1 FOR WORKSHOP)
           ---------------------------------------------------- */}
       {step === 'form' && (
         <div className="space-y-6">
@@ -916,7 +958,7 @@ export const RegistrationPage: React.FC<RegistrationPageProps> = ({ events, sett
               <p className="text-xs text-stone-500 mt-0.5">
                 {chosenTrack === 'workshop'
                   ? 'Workshop registration is individual (1 participant).'
-                  : 'Technical events require exactly 3 participants (1 Team Leader + 2 Members).'}
+                  : `Technical events require 2 to 4 participants (min 2 compulsory, up to 4 total) • ₹350/member • Currently ${participants.length} members (₹${totalAmount})`}
               </p>
             </div>
 
@@ -929,30 +971,46 @@ export const RegistrationPage: React.FC<RegistrationPageProps> = ({ events, sett
           </div>
 
           {/* Form cards */}
-          {(chosenTrack === 'workshop' ? [0] : [0, 1, 2]).map((idx) => {
+          {(chosenTrack === 'workshop' ? [0] : participants.map((_, i) => i)).map((idx) => {
             const roleTitle =
               chosenTrack === 'workshop'
                 ? 'Participant'
                 : idx === 0
-                ? 'Team Leader (Paying Member)'
-                : `Team Member ${idx + 1}`;
+                ? 'Team Leader (Paying Member / Primary Contact)'
+                : idx === 1
+                ? 'Team Member 2 (Compulsory)'
+                : `Team Member ${idx + 1} (Optional)`;
 
             const p = participants[idx];
 
             return (
               <div key={idx} className="bg-white border border-stone-200 rounded-xl p-5 sm:p-6 shadow-xs">
                 <div className="flex items-center justify-between mb-4 border-b border-stone-100 pb-2">
-                  <span className="font-extrabold text-stone-900 text-sm flex items-center gap-2">
-                    <span className="w-6 h-6 rounded-full bg-stone-100 text-stone-800 flex items-center justify-center text-xs">
+                  <div className="flex items-center gap-2">
+                    <span className="w-6 h-6 rounded-full bg-stone-100 text-stone-800 flex items-center justify-center text-xs font-bold">
                       {idx + 1}
                     </span>
-                    {roleTitle}
-                  </span>
-                  {idx === 0 && chosenTrack === 'technical' && (
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-[#B22222] bg-red-50 px-2 py-0.5 rounded">
-                      Primary Contact
+                    <span className="font-extrabold text-stone-900 text-sm">
+                      {roleTitle}
                     </span>
-                  )}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {idx === 0 && chosenTrack === 'technical' && (
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-[#B22222] bg-red-50 px-2 py-0.5 rounded">
+                        Primary Contact
+                      </span>
+                    )}
+                    {idx >= 2 && chosenTrack === 'technical' && (
+                      <button
+                        type="button"
+                        onClick={() => removeParticipant(idx)}
+                        className="text-xs text-red-600 hover:text-red-800 font-semibold flex items-center gap-1 cursor-pointer transition-colors px-2.5 py-1 rounded hover:bg-red-50"
+                        title="Remove this optional team member"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" /> Remove Member
+                      </button>
+                    )}
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
@@ -1037,6 +1095,24 @@ export const RegistrationPage: React.FC<RegistrationPageProps> = ({ events, sett
               </div>
             );
           })}
+
+          {/* Add Team Member button (Min 2 compulsory, up to 4 total) */}
+          {chosenTrack === 'technical' && participants.length < 4 && (
+            <div className="bg-stone-50 border-2 border-dashed border-stone-200 rounded-xl p-5 text-center">
+              <button
+                type="button"
+                id="add-team-member-btn"
+                onClick={addParticipant}
+                className="px-5 py-2.5 bg-white hover:bg-stone-100 text-stone-900 border border-stone-300 font-bold text-xs rounded-lg shadow-xs inline-flex items-center gap-2 cursor-pointer transition-all hover:border-stone-400"
+              >
+                <UserPlus className="w-4 h-4 text-[#B22222]" />
+                <span>+ Add Team Member ({participants.length + 1} of 4)</span>
+              </button>
+              <p className="text-[11px] text-stone-500 mt-2">
+                Minimum 2 compulsory members, up to 4 total members including Team Leader (₹350 per member • Current Total: ₹{totalAmount}).
+              </p>
+            </div>
+          )}
 
           <div className="flex flex-wrap items-center justify-between gap-4 pt-4 border-t border-stone-200">
             <button
