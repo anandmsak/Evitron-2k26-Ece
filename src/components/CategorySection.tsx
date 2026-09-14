@@ -118,7 +118,7 @@ export const CategorySection: React.FC<CategorySectionProps> = ({ events, onNavi
               </div>
 
               <div className="bg-stone-50 rounded-lg p-3 text-xs text-stone-600 mb-6 border border-stone-100">
-                <span className="font-semibold text-stone-800">Fee:</span> ₹1050 per 3-person team (₹350/person).
+                <span className="font-semibold text-stone-800">Fee:</span> ₹350 per participant (Team of 2 to 4 members).
                 <div className="text-[11px] text-emerald-700 mt-1 font-medium">
                   Perk: Also qualifies team to enter Non-Technical events!
                 </div>
