@@ -97,7 +97,7 @@ export const CategorySection: React.FC<CategorySectionProps> = ({ events, onNavi
               <div className="flex items-center justify-between mb-1">
                 <h3 className="text-xl font-extrabold text-stone-900 tracking-tight">TECHNICAL EVENTS</h3>
                 <span className="text-[11px] font-bold px-2 py-0.5 bg-stone-100 text-stone-700 rounded">
-                  Team of Exactly 3
+                  Team of 2 to 4
                 </span>
               </div>
               <p className="text-xs text-stone-500 font-medium mb-4">
