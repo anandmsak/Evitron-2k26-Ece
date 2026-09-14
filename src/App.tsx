@@ -3,7 +3,7 @@ import { EventItem, SiteSettings } from './types';
 import { defaultSettings } from './data/defaultSettings';
 import { defaultEvents } from './data/defaultEvents';
 import { fetchPublicEvents, fetchPublicSettings } from './services/api';
-import { useAppRoute } from './utils/router';
+import { useAppRoute } from '../utils/router';
 import { Navbar } from './components/Navbar';
 import { Footer } from './components/Footer';
 import { HomePage } from './pages/HomePage';
