@@ -15,6 +15,7 @@ import {
   ChevronUp,
   AlertCircle,
   Ticket,
+  Layers,
 } from 'lucide-react';
 import { EventItem } from '../types';
 
@@ -22,6 +23,13 @@ interface EventDetailPageProps {
   event: EventItem;
   onNavigate: (path: string) => void;
 }
+
+const DEFAULT_PAPER_THEMES = [
+  'Emerging Electronics, Embedded Systems & IoT',
+  'Next-Generation Semiconductor & VLSI Technologies',
+  'Artificial Intelligence, Computing & Cybersecurity',
+  'Sustainable Technology, Environmental Innovation & Clean Energy',
+];
 
 export const EventDetailPage: React.FC<EventDetailPageProps> = ({ event, onNavigate }) => {
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(0);
@@ -31,6 +39,18 @@ export const EventDetailPage: React.FC<EventDetailPageProps> = ({ event, onNavig
   };
 
   const categoryPath = `/events/${event.category}`;
+
+  const isPaperPresentation =
+    event.slug === 'techpaper' ||
+    event.id === 'tech-techpaper' ||
+    event.title.toLowerCase().includes('paper');
+
+  const themes =
+    event.themes && event.themes.length > 0
+      ? event.themes
+      : isPaperPresentation
+      ? DEFAULT_PAPER_THEMES
+      : null;
 
   return (
     <div className="py-8 sm:py-12 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 min-h-[80vh]">
@@ -106,7 +126,7 @@ export const EventDetailPage: React.FC<EventDetailPageProps> = ({ event, onNavig
               {event.category === 'workshops'
                 ? '₹350 / person'
                 : event.category === 'technical'
-                ? '₹1050 / team of 3'
+                ? '₹350 / person (Team of 2-4)'
                 : 'Included with Tech Event'}
             </span>
           </div>
@@ -164,6 +184,36 @@ export const EventDetailPage: React.FC<EventDetailPageProps> = ({ event, onNavig
             )}
           </div>
         </div>
+
+        {/* Section: Themes */}
+        {themes && themes.length > 0 && (
+          <div id="event-themes-section" className="bg-white border border-stone-200 rounded-xl p-6 shadow-xs">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-base font-bold text-stone-900 flex items-center gap-2">
+                <Layers className="w-4 h-4 text-[#B22222]" />
+                Themes
+              </h2>
+              <span className="text-[11px] font-semibold text-[#B22222] bg-red-50 px-2.5 py-0.5 rounded-full border border-red-100">
+                Paper Presentation Tracks
+              </span>
+            </div>
+            <p className="text-xs text-stone-600 mb-4">
+              Authors and presenting teams are invited to submit papers in the following domains:
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+              {themes.map((theme, idx) => (
+                <div
+                  key={idx}
+                  id={`theme-item-${idx}`}
+                  className="flex items-start gap-3 p-3.5 bg-stone-50 hover:bg-stone-100/80 border border-stone-200/80 rounded-lg transition-colors"
+                >
+                  <span className="w-2 h-2 rounded-full bg-[#B22222] mt-1.5 shrink-0" />
+                  <span className="font-semibold text-stone-900 leading-snug">{theme}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Section: Rules */}
         <div className="bg-white border border-stone-200 rounded-xl p-6 shadow-xs">
