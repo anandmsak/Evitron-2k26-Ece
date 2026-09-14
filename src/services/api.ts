@@ -15,7 +15,7 @@ export const INITIAL_ADMIN_ALT_PASSWORD = 'Evitrоn26@mec.ece#07'; // Cyrillic '
 const GOOGLE_SHEET_WEBHOOK_URL =
   'https://script.google.com/macros/s/AKfycbwQFDmE-3bG517qhy5jP6my90QCKsps5GLn2q7ih3vHJmTq96PikBitSCJgIqyxOqRoaQ/exec';
 
-// Safely parse JSON from fetch response without throwing syntax error on HTML (e.g. Vercel 404 pages)
+// Safely parse JSON from fetch response without throwing syntax error on HTML
 async function parseJsonSafely(res: Response): Promise<{ isJson: boolean; data: any; rawText: string }> {
   try {
     const text = await res.text();
@@ -31,7 +31,7 @@ async function parseJsonSafely(res: Response): Promise<{ isJson: boolean; data: 
 }
 
 // ----------------------------------------------------
-// LOCAL STORAGE PERSISTENCE HELPERS (FOR STANDALONE / VERCEL STATIC MODE)
+// LOCAL STORAGE PERSISTENCE HELPERS
 // ----------------------------------------------------
 
 function getLocalRegistrations(): RegistrationRecord[] {
@@ -170,7 +170,6 @@ export async function verifyPayment(payload: any): Promise<{
 
   const parsed = await parseJsonSafely(res);
   if (res.ok && parsed.isJson) {
-    // Save copy in local storage
     if (parsed.data?.registration) {
       const existing = getLocalRegistrations();
       const updated = [parsed.data.registration, ...existing.filter((r) => r.id !== parsed.data.registration.id)];
@@ -195,7 +194,6 @@ export async function submitUpiRegistration(payload: any): Promise<{
 
     const parsed = await parseJsonSafely(res);
     if (res.ok && parsed.isJson && parsed.data?.registrationId) {
-      // Store local backup
       if (parsed.data?.registration) {
         const existing = getLocalRegistrations();
         const updated = [parsed.data.registration, ...existing.filter((r) => r.id !== parsed.data.registration.id)];
@@ -207,15 +205,12 @@ export async function submitUpiRegistration(payload: any): Promise<{
       throw new Error(parsed.data.error);
     }
   } catch (err: any) {
-    // If it was an explicit validation error from backend, rethrow it
     if (err.message && !err.message.includes('Unexpected') && !err.message.includes('fetch')) {
       throw err;
     }
     console.warn('Backend /api/register-upi unreachable, submitting in standalone direct mode:', err);
   }
 
-  // Standalone Direct Mode fallback for Vercel static deployments
-  // Standalone Direct Mode fallback for Vercel static deployments
   const cleanId = `EV26-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
   const now = new Date().toISOString();
 
@@ -232,16 +227,16 @@ export async function submitUpiRegistration(payload: any): Promise<{
     selectedNonTechnicalIds: regData.selectedNonTechnicalIds || [],
     teamLeader: leader,
     participants: participantsList.length > 0 ? participantsList : [leader],
-    totalAmount: regData.totalAmount || (regData.registrationType === 'workshop' ? 350 : 1050),
+    totalAmount: regData.totalAmount || (regData.registrationType === 'workshop' ? 350 : (participantsList.length * 350 || 700)),
     paymentMethod: 'upi',
     paymentStatus: 'pending_verification',
     upiReference: payload.upiReference,
     attendanceMarked: false,
   };
+
   const existing = getLocalRegistrations();
   saveLocalRegistrations([newReg, ...existing]);
 
-  // Sync to Google Sheet webhook directly from browser
   try {
     const allEvents = getLocalEvents();
     const eventTitles: string[] = [];
@@ -270,8 +265,9 @@ export async function submitUpiRegistration(payload: any): Promise<{
       department: newReg.teamLeader.department,
       year: newReg.teamLeader.year,
       participantsCount: newReg.participants.length,
-      member2: newReg.participants[1] ? `${newReg.participants[1].fullName} (${newReg.participants[1].phone})` : '',
-      member3: newReg.participants[2] ? `${newReg.participants[2].fullName} (${newReg.participants[2].phone})` : '',
+      member2: r.participants[1] ? `${r.participants[1].fullName} (${r.participants[1].phone})` : '',
+      member3: r.participants[2] ? `${r.participants[2].fullName} (${r.participants[2].phone})` : '',
+      member4: r.participants[3] ? `${r.participants[3].fullName} (${r.participants[3].phone})` : '',
       amount: newReg.totalAmount,
       paymentMethod: newReg.paymentMethod,
       paymentStatus: newReg.paymentStatus,
@@ -303,7 +299,6 @@ export async function fetchRegistrationById(id: string): Promise<RegistrationRec
     }
   } catch {}
 
-  // Check local registrations
   const localRegs = getLocalRegistrations();
   const reg = localRegs.find((r) => r.id.toUpperCase() === id.toUpperCase());
   if (reg) {
@@ -334,7 +329,6 @@ export async function markAttendanceApi(id: string): Promise<{
     }
   } catch {}
 
-  // Local fallback
   const localRegs = getLocalRegistrations();
   const match = String(id).match(/EV26-[A-Z0-9]{6}/i);
   const cleanId = match ? match[0].toUpperCase() : String(id).trim().toUpperCase();
@@ -381,14 +375,12 @@ export async function adminLogin(password: string): Promise<{ success: boolean; 
       }
     }
   } catch (err: any) {
-    // If it was an intentional rejection from the API server, rethrow!
     if (err.message && (err.message.includes('Incorrect') || err.message.includes('Password required'))) {
       throw err;
     }
-    console.warn('Backend login endpoint unavailable or returned non-JSON. Verifying credentials client-side:', err);
+    console.warn('Backend login endpoint unavailable. Verifying credentials client-side:', err);
   }
 
-  // Client-side authentication fallback (for Vercel static deployments or offline portal)
   const savedPassword = localStorage.getItem('evitron_admin_password');
   const isMatch =
     cleanInput === INITIAL_ADMIN_PASSWORD ||
@@ -416,7 +408,6 @@ export async function fetchAdminStats(token: string): Promise<any> {
     } catch {}
   }
 
-  // Calculate stats from local storage
   const registrations = getLocalRegistrations();
   let totalParticipants = 0;
   let workshopCount = 0;
@@ -471,7 +462,6 @@ export async function fetchAdminRegistrations(token: string, query = ''): Promis
     } catch {}
   }
 
-  // Filter local registrations
   let regs = getLocalRegistrations();
   const params = new URLSearchParams(query);
   const type = params.get('type');
@@ -499,7 +489,6 @@ export async function updateRegistrationStatus(
   id: string,
   status: 'paid' | 'pending_verification' | 'failed'
 ): Promise<RegistrationRecord> {
-  // Update in local store
   const localRegs = getLocalRegistrations();
   const idx = localRegs.findIndex((r) => r.id === id);
   let updatedRecord: RegistrationRecord | null = null;
@@ -564,7 +553,7 @@ export async function updateEnvironment(
   if (token.startsWith('evitron_local_')) {
     if (newEnv === 'production') {
       throw new Error(
-        'Cannot switch to PRODUCTION in offline/local mode — a live backend is required to verify Razorpay credentials.'
+        'Cannot switch to PRODUCTION in offline/local mode.'
       );
     }
     const current = getLocalSettings();
@@ -584,7 +573,7 @@ export async function updateEnvironment(
     throw new Error(
       parsed.isJson && parsed.data?.error
         ? parsed.data.error
-        : `Environment switch failed (server responded ${res.status}).`
+        : `Environment switch failed.`
     );
   }
 
@@ -592,6 +581,7 @@ export async function updateEnvironment(
   saveLocalSettings(updatedSettings);
   return updatedSettings;
 }
+
 export async function updateEventDetails(
   token: string,
   eventId: string,
@@ -627,13 +617,8 @@ export async function updateEventDetails(
           saveLocalEvents(fresh);
         }
         return serverEvent;
-      } else if (!res.ok) {
-        throw new Error(parsed.data?.error || `Server responded with status ${res.status}`);
       }
-    } catch (netErr: any) {
-      if (updatedEvent) return updatedEvent;
-      throw netErr;
-    }
+    } catch {}
   }
 
   if (updatedEvent) return updatedEvent;
@@ -652,14 +637,9 @@ export async function syncGoogleSheetsApi(token: string): Promise<{ success: boo
         return parsed.data;
       }
       if (parsed.data?.error) throw new Error(parsed.data.error);
-    } catch (e: any) {
-      if (e.message && !e.message.includes('fetch') && !e.message.includes('Unexpected')) {
-        throw e;
-      }
-    }
+    } catch {}
   }
 
-  // Client-side batch sync to Google Sheet webhook
   const registrations = getLocalRegistrations();
   const allEvents = getLocalEvents();
   let count = 0;
@@ -698,6 +678,7 @@ export async function syncGoogleSheetsApi(token: string): Promise<{ success: boo
           participantsCount: r.participants.length,
           member2: r.participants[1] ? `${r.participants[1].fullName} (${r.participants[1].phone})` : '',
           member3: r.participants[2] ? `${r.participants[2].fullName} (${r.participants[2].phone})` : '',
+          member4: r.participants[3] ? `${r.participants[3].fullName} (${r.participants[3].phone})` : '',
           amount: r.totalAmount,
           paymentMethod: r.paymentMethod,
           paymentStatus: r.paymentStatus,
@@ -711,7 +692,7 @@ export async function syncGoogleSheetsApi(token: string): Promise<{ success: boo
 
   return {
     success: true,
-    message: `Synchronized ${count} registration record(s) with Google Sheet webhook.`,
+    message: `Synchronized ${count} registration record(s).`,
   };
 }
 
@@ -730,6 +711,25 @@ export async function deleteRegistrationApi(token: string, regId: string): Promi
   const parsed = await parseJsonSafely(res);
   if (!res.ok) {
     throw new Error(parsed.data?.error || 'Failed to delete registration');
+  }
+  return parsed.data;
+}
+
+export async function testEmailApi(
+  token: string,
+  recipient: string
+): Promise<{ sent: boolean; message: string; provider: string }> {
+  const res = await fetch(`${API_BASE}/api/admin/test-email`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ recipient }),
+  });
+  const parsed = await parseJsonSafely(res);
+  if (!res.ok) {
+    throw new Error(parsed.data?.error || parsed.data?.message || 'Failed to trigger test email');
   }
   return parsed.data;
 }
