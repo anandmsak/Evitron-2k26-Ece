@@ -322,16 +322,26 @@
       "teamSizeLabel": "Team of 2 to 4 Participants",
       "feePerPerson": 350,
       "rules": [
-        "Team must have between 2 and 4 members (minimum 2 compulsory, up to 4 total including team lead).",
-        "The robot must be completely autonomous; no manual remote controls allowed.",
-        "Arena will have black lines (3cm width) on white background with 90-degree bends and speed sections.",
-        "Max dimensions: 25cm x 25cm x 20cm; max weight: 3kg.",
-        "[EVENT RULES WILL BE UPDATED]"
+        "Autonomous robot only — The robot must be completely autonomous; no manual remote controls allowed.",
+        "Maximum robot size: 25 x 25 x 20 cm.",
+        "Maximum robot weight: 1.5 kg.",
+        "Battery powered only (no external power line during runs).",
+        "Start at START line and finish at FINISH line on the track.",
+        "Fastest valid completion time wins.",
+        "The judge's and referee's decision during a race is final and binding.",
+        "Safety rules must always be followed strictly by all participants.",
+        "Teams must arrive at the venue before their designated reporting time.",
+        "Participants are fully responsible for their own robot, components, batteries, and tools.",
+        "The organizers are not responsible for any damage caused by improper construction or operation of a robot.",
+        "Teams must not intentionally interfere with another team's robot or setup.",
+        "Only registered team members are allowed to work on the robot.",
+        "Any rule violation will result in an immediate penalty or disqualification."
       ],
       "procedure": [
-        "Round 1: Calibration and qualifying time trial.",
-        "Round 2: Knockout obstacle track with checkpoints.",
-        "Fastest clean run with least penalties wins."
+        "ROUND 1 — TECHNICAL INSPECTION: Officials will inspect robot dimensions, weight, battery, electronics, autonomous operation, safety, and rule compliance. Robots failing inspection can correct issues before the deadline.",
+        "ROUND 2 — PRACTICE ROUND: Teams get a practice opportunity to test sensors, adjust positions, tune controllers, check motor performance, and understand the track. Practice runs do not count toward rankings.",
+        "ROUND 3 — QUALIFYING ROUND: Each team receives two official attempts. The better valid time is used. The fastest 8/12/16 teams qualify for the finals.",
+        "ROUND 4 — FINAL ROUND: Finalists compete on the official final track. Each team receives up to two attempts, and the fastest valid completion time determines the final ranking."
       ],
       "perks": [
         "Championship Cash Prize & Robotics Trophy",
@@ -343,7 +353,7 @@
       ],
       "certificates": "Winner Cash Awards + Medals; Certificates of Technical Participation.",
       "importantInstructions": [
-        "Carry spare batteries and soldering kit if required for pit-lane repairs."
+        "Participants are highly recommended to bring: Fully assembled robot, Spare battery, Battery charger, USB cable, Laptop (for coding/re-programming), Spare motors, Spare wheels, Sensor modules, Jumper wires, Screwdriver set, Soldering equipment (if permitted), Tape & mechanical spare parts, and Microcontroller programming cable."
       ],
       "faqs": [
         {
