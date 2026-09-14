@@ -312,11 +312,11 @@ async function validateRegistrationRules(body: {
     if (selectedWorkshopId) {
       return { valid: false, status: 400, error: 'Cannot mix workshop and technical symposium registration.' };
     }
-    if (participants.length !== 3) {
+    if (participants.length < 2 || participants.length > 4) {
       return {
         valid: false,
         status: 400,
-        error: `Every technical symposium registration requires exactly 3 participants per team. You provided ${participants.length}.`,
+        error: `Technical symposium registration requires 2 to 4 participants per team (minimum 2 compulsory, maximum 4 total including team lead). You provided ${participants.length}.`,
       };
     }
 
@@ -332,7 +332,10 @@ async function validateRegistrationRules(body: {
       }
     }
 
-    return { valid: true, expectedAmount: technical.price, events };
+    const perPersonPrice = Number(technical.price || 350);
+    const expectedAmount = perPersonPrice * participants.length;
+
+    return { valid: true, expectedAmount, events };
   }
 
   return { valid: false, status: 400, error: 'Invalid registration category.' };
