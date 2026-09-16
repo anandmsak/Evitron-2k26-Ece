@@ -162,13 +162,21 @@ export const Footer: React.FC<FooterProps> = ({ settings, onNavigate }) => {
                   <span>{currentSettings.contactEmail}</span>
                 </a>
                 <a
-                  href={`https://instagram.com/${currentSettings.instagramHandle}`}
+                  href={
+                    currentSettings.instagramHandle && currentSettings.instagramHandle.includes('instagram.com')
+                      ? currentSettings.instagramHandle
+                      : `https://instagram.com/${currentSettings.instagramHandle || 'velocity_ece_mec'}`
+                  }
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center gap-1.5 text-stone-300 hover:text-white"
                 >
                   <Instagram className="w-3.5 h-3.5 text-[#B22222]" />
-                  <span>@{currentSettings.instagramHandle}</span>
+                  <span>
+                    @{currentSettings.instagramHandle && currentSettings.instagramHandle.includes('instagram.com')
+                      ? 'velocity_ece_mec'
+                      : (currentSettings.instagramHandle || 'velocity_ece_mec')}
+                  </span>
                 </a>
               </div>
             </div>

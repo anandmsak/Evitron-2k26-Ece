@@ -75,19 +75,23 @@ export default {
           return jsonResponse({ error: 'Invalid participants list' }, 400);
         }
 
-        let amount = 350;
+        const checkDate = new Date();
+        const deadline = new Date('2026-09-25T23:59:59+05:30');
+        const isEarlyBird = checkDate.getTime() <= deadline.getTime();
+
+        let amount = isEarlyBird ? 250 : 350;
         if (registrationType === 'workshop') {
           if (!selectedWorkshopId) return jsonResponse({ error: 'Please select a workshop' }, 400);
           if (participants.length !== 1) return jsonResponse({ error: 'Workshop requires exactly 1 participant' }, 400);
-          amount = 350;
+          amount = isEarlyBird ? 300 : 350;
         } else if (registrationType === 'technical') {
           if (selectedTechnicalIds.length === 0) {
             return jsonResponse({ error: 'Please select at least one technical event before choosing a non-technical event' }, 400);
           }
-          if (participants.length !== 3) {
-            return jsonResponse({ error: 'Technical symposium registration requires exactly 3 team members' }, 400);
+          if (participants.length < 2 || participants.length > 4) {
+            return jsonResponse({ error: 'Technical symposium registration requires 2 to 4 team members' }, 400);
           }
-          amount = 1050;
+          amount = (isEarlyBird ? 250 : 350) * participants.length;
         } else {
           return jsonResponse({ error: 'Invalid registration type' }, 400);
         }

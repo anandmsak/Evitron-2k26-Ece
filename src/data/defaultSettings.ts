@@ -1,4 +1,5 @@
-import { SiteSettings } from '../types';
+import { SiteSettings } from '../types.js';
+import { getPricePerPerson } from '../utils/pricing.js';
 
 export const initialSiteSettings: SiteSettings = {
   symposiumTitle: 'EVITRON 2K26',
@@ -12,24 +13,24 @@ export const initialSiteSettings: SiteSettings = {
   paperSubmissionDeadline: '27/09/2026',
   isRegistrationOpen: true,
   closedReason: 'Registrations are currently closed. Please contact event coordinators for further inquiries.',
-  upiId: 'evitron144031.rzp@rxairtel',
-  upiPayeeName: 'Evitron',
+  upiId: '6383109049@upi',
+  upiPayeeName: 'EVITRON 2K26 - MEC ECE',
   upiQrImageUrl: '',
-  workshopUpiId: 'evitron144031.rzp@rxairtel',
+  workshopUpiId: '6383109049@upi',
   workshopUpiPayeeName: 'Evitron Workshop',
   workshopUpiQrImageUrl: '',
-  techUpiId: 'evitron144031.rzp@rxairtel',
+  techUpiId: '6383109049@upi',
   techUpiPayeeName: 'Evitron Technical',
   techUpiQrImageUrl: '',
   razorpayEnabled: true,
   driveUploadUrl: 'https://docs.google.com/forms/d/1R1VhrsHfC9GYo-j_npPZv8fDXXhlUOPbfYtNUBy1Vh0/edit?ts=6aa4f3ae',
   participantFormUrl: 'https://docs.google.com/forms/d/e/1FAIpQLSdXYq3Pfeb_2w5jPtdjqeLJPv3sIVsb9Y1ahPUe47WT76OUYg/viewform?usp=publish-editor',
   contactEmail: 'evitron26@gmail.com',
-  instagramHandle: 'velocityecemec',
+  instagramHandle: 'https://www.instagram.com/velocity_ece_mec?stkn=dWV5ejA4ZW5hOWkz',
   venue: 'Mahendhirapuri, Mallasamudram (M), Namakkal (Dt), Tamil Nadu - 637 503',
   announcementText: 'Registrations are now live! Paper abstract submission deadline is 27/09/2026. Cash prizes, welcome kits, food and refreshments included.',
   announcementActive: true,
-  feePerPerson: 350,
+  feePerPerson: getPricePerPerson('technical'),
   appEnv: 'development',
   showRazorpayPayment: true,
   googleSheetWebhookUrl: 'https://script.google.com/macros/s/AKfycbwQFDmE-3bG517qhy5jP6my90QCKsps5GLn2q7ih3vHJmTq96PikBitSCJgIqyxOqRoaQ/exec',

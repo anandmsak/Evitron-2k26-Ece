@@ -67,9 +67,9 @@ export const CategorySection: React.FC<CategorySectionProps> = ({ events, onNavi
               </div>
 
               <div className="bg-stone-50 rounded-lg p-3 text-xs text-stone-600 mb-6 border border-stone-100">
-                <span className="font-semibold text-stone-800">Fee:</span> ₹350 per person • Certificate, Food & Kit included.
+                <span className="font-semibold text-stone-800">Early Bird Fee:</span> <span className="font-extrabold text-[#B22222]">₹300</span> per person <span className="text-stone-400 font-normal line-through">₹350</span> • Certificate, Food & Kit included.
                 <div className="text-[11px] text-amber-700 mt-1 font-medium">
-                  Note: Participant can register for ONE workshop only.
+                  Note: Valid up to 25/09/2026. Participant can register for ONE workshop only.
                 </div>
               </div>
             </div>
@@ -97,7 +97,7 @@ export const CategorySection: React.FC<CategorySectionProps> = ({ events, onNavi
               <div className="flex items-center justify-between mb-1">
                 <h3 className="text-xl font-extrabold text-stone-900 tracking-tight">TECHNICAL EVENTS</h3>
                 <span className="text-[11px] font-bold px-2 py-0.5 bg-stone-100 text-stone-700 rounded">
-                  Team of Exactly 3
+                  Team of 2 to 4
                 </span>
               </div>
               <p className="text-xs text-stone-500 font-medium mb-4">
@@ -118,9 +118,9 @@ export const CategorySection: React.FC<CategorySectionProps> = ({ events, onNavi
               </div>
 
               <div className="bg-stone-50 rounded-lg p-3 text-xs text-stone-600 mb-6 border border-stone-100">
-                <span className="font-semibold text-stone-800">Fee:</span> ₹1050 per 3-person team (₹350/person).
+                <span className="font-semibold text-stone-800">Early Bird Fee:</span> <span className="font-extrabold text-[#B22222]">₹250</span> per participant <span className="text-stone-400 font-normal line-through">₹350</span> (Team of 2 to 4 members).
                 <div className="text-[11px] text-emerald-700 mt-1 font-medium">
-                  Perk: Also qualifies team to enter Non-Technical events!
+                  Note: Valid up to 25/09/2026. Qualifies team to enter Non-Technical events!
                 </div>
               </div>
             </div>

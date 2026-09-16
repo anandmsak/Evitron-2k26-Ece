@@ -34,6 +34,7 @@ import {
   markAttendanceApi,
   syncGoogleSheetsApi,
   deleteRegistrationApi,
+  testEmailApi,
 } from '../services/api';
 
 interface AdminDashboardProps {
@@ -105,6 +106,30 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       loadDashboardData().catch(() => {});
     } catch (err: any) {
       setDeletePasswordError(err.message || 'Failed to delete registration.');
+    }
+  };
+
+  const [testEmailAddress, setTestEmailAddress] = useState('evitron26@gmail.com');
+  const [testingEmail, setTestingEmail] = useState(false);
+  const [testEmailResult, setTestEmailResult] = useState<{ sent: boolean; message: string } | null>(null);
+
+  const handleSendTestEmail = async () => {
+    if (!token) return;
+    setTestingEmail(true);
+    setTestEmailResult(null);
+    try {
+      const res = await testEmailApi(token, testEmailAddress.trim() || 'evitron26@gmail.com');
+      setTestEmailResult({ sent: res.sent, message: res.message });
+      if (res.sent) {
+        showNotification('Live test email dispatched successfully!', 'success');
+      } else {
+        showNotification(`Test email failed: ${res.message}`, 'error');
+      }
+    } catch (err: any) {
+      setTestEmailResult({ sent: false, message: err.message || 'Failed to trigger test email.' });
+      showNotification(`Test email error: ${err.message}`, 'error');
+    } finally {
+      setTestingEmail(false);
     }
   };
 
@@ -414,6 +439,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       'Leader Year',
       'Participant 2',
       'Participant 3',
+      'Participant 4',
       'Amount',
       'Method',
       'Payment Status',
@@ -449,6 +475,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         `"${r.teamLeader.year || ''}"`,
         r.participants[1] ? `"${r.participants[1].fullName} (${r.participants[1].phone} - ${r.participants[1].college})"` : 'N/A',
         r.participants[2] ? `"${r.participants[2].fullName} (${r.participants[2].phone} - ${r.participants[2].college})"` : 'N/A',
+        r.participants[3] ? `"${r.participants[3].fullName} (${r.participants[3].phone} - ${r.participants[3].college})"` : 'N/A',
         r.totalAmount,
         r.paymentMethod,
         r.paymentStatus,
@@ -1339,6 +1366,63 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     >
                       Add Admin Email
                     </button>
+                  </div>
+
+                  {/* Live SMTP Diagnostics & Test Tool */}
+                  <div className="mt-4 p-4 bg-stone-50 border border-stone-200 rounded-lg">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                        <span className="font-bold text-stone-900 text-xs uppercase tracking-wider">
+                          Live SMTP & Vercel Email Diagnostics
+                        </span>
+                      </div>
+                      <span className="text-[10px] bg-stone-200 text-stone-700 px-2 py-0.5 rounded font-mono font-semibold">
+                        evitron26@gmail.com
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-stone-500 mb-3">
+                      Verify if your Vercel deployment can reach Google's SMTP servers and dispatch real emails. Enter any recipient email address and test.
+                    </p>
+                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                      <input
+                        type="email"
+                        value={testEmailAddress}
+                        onChange={(e) => setTestEmailAddress(e.target.value)}
+                        placeholder="Recipient email (e.g. evitron26@gmail.com)"
+                        className="flex-1 px-3 py-2 border border-stone-300 rounded-md text-xs font-mono outline-none focus:ring-1 focus:ring-[#B22222] bg-white"
+                      />
+                      <button
+                        type="button"
+                        onClick={handleSendTestEmail}
+                        disabled={testingEmail}
+                        className="px-4 py-2 bg-[#B22222] hover:bg-[#961c1c] disabled:opacity-50 text-white font-bold text-xs rounded-md cursor-pointer transition-colors whitespace-nowrap flex items-center justify-center gap-1.5"
+                      >
+                        {testingEmail ? (
+                          <>
+                            <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                            <span>Testing Connection...</span>
+                          </>
+                        ) : (
+                          <span>Send Test Email</span>
+                        )}
+                      </button>
+                    </div>
+
+                    {testEmailResult && (
+                      <div
+                        className={`mt-3 p-3 rounded-md text-xs border ${
+                          testEmailResult.sent
+                            ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
+                            : 'bg-rose-50 border-rose-200 text-rose-800'
+                        }`}
+                      >
+                        <div className="font-bold mb-0.5">
+                          {testEmailResult.sent ? '✓ Email Dispatch Successful' : '✗ Email Dispatch Failed'}
+                        </div>
+                        <div className="font-mono text-[11px] break-all">{testEmailResult.message}</div>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>

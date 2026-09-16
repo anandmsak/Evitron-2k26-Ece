@@ -114,6 +114,19 @@ export const HomePage: React.FC<HomePageProps> = ({ settings: propSettings, even
               <span>REGISTER NOW</span>
             </button>
           </div>
+
+          {/* Early Bird Promotional Alert */}
+          <div className="mt-8 max-w-lg mx-auto bg-amber-50/80 border border-amber-200/90 rounded-xl p-4 text-center shadow-2xs">
+            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 text-[10px] font-bold tracking-wider uppercase mb-1.5">
+              🔥 Early Bird Special
+            </span>
+            <p className="text-xs font-bold text-amber-950">
+              Workshops at <span className="text-sm font-extrabold text-[#B22222]">₹300</span> & Technical Events at <span className="text-sm font-extrabold text-[#B22222]">₹250</span>!
+            </p>
+            <p className="text-[10px] text-amber-800/80 mt-1 font-semibold">
+              Early Bird discount is valid only up to <span className="underline font-bold">25/09/2026</span>. Registration prices return to ₹350 afterwards.
+            </p>
+          </div>
         </div>
 
         {/* Live Countdown Timer */}
@@ -130,8 +143,9 @@ export const HomePage: React.FC<HomePageProps> = ({ settings: propSettings, even
               <Ticket className="w-5 h-5" />
             </div>
             <div>
-              <span className="text-[11px] font-bold text-stone-500 block uppercase">Registration</span>
-              <span className="text-sm font-extrabold text-stone-900">₹350 / Person</span>
+              <span className="text-[11px] font-bold text-stone-500 block uppercase">Early Bird Pricing</span>
+              <span className="text-sm font-extrabold text-stone-900">₹250 (Tech) • ₹300 (WS)</span>
+              <span className="text-[10px] font-bold text-[#B22222] block">Upto 25/09/2026</span>
             </div>
           </div>
 
@@ -183,7 +197,7 @@ export const HomePage: React.FC<HomePageProps> = ({ settings: propSettings, even
               What Every Participant Receives
             </h2>
             <p className="text-xs text-stone-500 mt-1">
-              Included with your ₹350 registration fee
+              Included with your registration fee (Early Bird: ₹250 Technical / ₹300 Workshop)
             </p>
           </div>
 

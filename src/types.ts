@@ -16,7 +16,9 @@ export interface EventItem {
   time: string;
   date: string;
   eligibility: string;
-  teamSize: number; // 1 for workshops, 3 for technical, 3 for non-technical team
+  teamSize: number; // 1 for workshops, up to 4 for technical
+  minTeamSize?: number; // 1 for workshops, 2 for technical
+  maxTeamSize?: number; // 1 for workshops, 4 for technical
   teamSizeLabel: string;
   feePerPerson: number;
   rules: string[];
@@ -25,6 +27,7 @@ export interface EventItem {
   outcomes: string[];
   certificates: string;
   importantInstructions: string[];
+  themes?: string[];
   faqs: FAQItem[];
   coordinatorName: string;
   coordinatorPhone: string;
@@ -48,7 +51,7 @@ export interface RegistrationRecord {
   selectedWorkshopId?: string;
   selectedTechnicalIds: string[];
   selectedNonTechnicalIds: string[];
-  participants: Participant[]; // 1 for workshop, exactly 3 for technical
+  participants: Participant[]; // 1 for workshop, 2 to 4 for technical
   teamLeader: Participant;
   totalAmount: number;
   paymentMethod: 'razorpay' | 'upi';

@@ -3,7 +3,7 @@ import 'dotenv/config';
 import express from 'express';
 import path from 'path';
 import crypto from 'crypto';
-import * as repository from './server/repository';
+import * as repository from './server/repository.js';
 import {
   createOrder,
   verifyPaymentHmacSignature,
@@ -14,10 +14,16 @@ import {
   getRazorpayKeySecret,
   isRazorpayLiveKey,
   getAppEnv,
-} from './server/razorpay';
-import { generateQrDataUrl, buildUpiUri, buildAttendeeQrText } from './server/qr';
-import { sendRegistrationConfirmationEmail, sendAdminNewRegistrationNotification, emailAuditLog } from './server/email';
-import { Participant, RegistrationRecord } from './src/types';
+} from './server/razorpay.js';
+import { generateQrDataUrl, buildUpiUri, buildAttendeeQrText } from './server/qr.js';
+import {
+  sendRegistrationConfirmationEmail,
+  sendAdminNewRegistrationNotification,
+  sendTestEmail,
+  emailAuditLog,
+} from './server/email.js';
+import { Participant, RegistrationRecord } from './src/types.js';
+import { getPricePerPerson, isEarlyBirdActive } from './server/pricing.js';
 
 const PORT = 3000;
 const app = express();
@@ -294,7 +300,8 @@ async function validateRegistrationRules(body: {
       return { valid: false, status: 400, error: 'Selected workshop was not found or is invalid.' };
     }
 
-    return { valid: true, expectedAmount: workshop.price, events };
+    const perPersonPrice = getPricePerPerson('workshop');
+    return { valid: true, expectedAmount: perPersonPrice, events };
   }
 
   if (registrationType === 'technical') {
@@ -307,11 +314,11 @@ async function validateRegistrationRules(body: {
     if (selectedWorkshopId) {
       return { valid: false, status: 400, error: 'Cannot mix workshop and technical symposium registration.' };
     }
-    if (participants.length !== 3) {
+    if (participants.length < 2 || participants.length > 4) {
       return {
         valid: false,
         status: 400,
-        error: `Every technical symposium registration requires exactly 3 participants per team. You provided ${participants.length}.`,
+        error: `Technical symposium registration requires 2 to 4 participants per team (minimum 2 compulsory, maximum 4 total including team lead). You provided ${participants.length}.`,
       };
     }
 
@@ -327,7 +334,10 @@ async function validateRegistrationRules(body: {
       }
     }
 
-    return { valid: true, expectedAmount: technical.price, events };
+    const perPersonPrice = getPricePerPerson('technical');
+    const expectedAmount = perPersonPrice * participants.length;
+
+    return { valid: true, expectedAmount, events };
   }
 
   return { valid: false, status: 400, error: 'Invalid registration category.' };
@@ -343,7 +353,7 @@ app.post('/api/create-order', async (req, res) => {
 
     const settings = await repository.getSiteSettings();
     const currentEnv = getAppEnv(settings.appEnv);
-    const amount = validation.expectedAmount || 350;
+    const amount = validation.expectedAmount || (req.body.registrationType === 'workshop' ? getPricePerPerson('workshop') : getPricePerPerson('technical') * (req.body.participants?.length || 1));
 
     const registrationUuid = await repository.createPendingRazorpayRegistration({
       registrationType: req.body.registrationType,
@@ -407,7 +417,7 @@ app.post('/api/verify-payment', async (req, res) => {
       return res.status(validation.status || 400).json({ error: validation.error });
     }
 
-    const expectedAmount = validation.expectedAmount || 350;
+    const expectedAmount = validation.expectedAmount || (registrationData.registrationType === 'workshop' ? getPricePerPerson('workshop') : getPricePerPerson('technical') * (registrationData.participants?.length || 1));
     const settings = await repository.getSiteSettings();
     const currentEnv = getAppEnv(settings.appEnv);
 
@@ -442,12 +452,10 @@ app.post('/api/verify-payment', async (req, res) => {
           if (n) eventTitles.push(n.title);
         }
 
-        sendRegistrationConfirmationEmail(reloaded, eventTitles).catch((err) =>
-          console.log('[NOTIFICATION] Async email dispatch status:', err?.message || err)
-        );
-        syncToGoogleSheetWebhook(reloaded, eventTitles).catch((err) =>
-          console.log('[NOTIFICATION] Async sheets sync status:', err?.message || err)
-        );
+        await Promise.allSettled([
+          sendRegistrationConfirmationEmail(reloaded, eventTitles),
+          syncToGoogleSheetWebhook(reloaded, eventTitles),
+        ]);
 
         return res.json({ success: true, registrationId: reloaded.id, registration: reloaded });
       }
@@ -481,17 +489,15 @@ app.post('/api/verify-payment', async (req, res) => {
       if (n) eventTitles.push(n.title);
     }
 
-    sendRegistrationConfirmationEmail(newRecord, eventTitles).catch((err) =>
-      console.log('[NOTIFICATION] Async email dispatch status:', err?.message || err)
-    );
     const adminSettings = await repository.getSiteSettings();
     const adminEmails = adminSettings.adminNotificationEmails?.length ? adminSettings.adminNotificationEmails : ['evitron26@gmail.com'];
-    sendAdminNewRegistrationNotification(newRecord, eventTitles, adminEmails).catch((err) =>
-      console.log('[NOTIFICATION] Admin new registration email dispatch error:', err)
-    );
-    syncToGoogleSheetWebhook(newRecord, eventTitles).catch((err) =>
-      console.log('[NOTIFICATION] Async sheets sync status:', err?.message || err)
-    );
+
+    // In serverless / Vercel, must await async tasks before res.json terminates runtime
+    await Promise.allSettled([
+      sendRegistrationConfirmationEmail(newRecord, eventTitles),
+      sendAdminNewRegistrationNotification(newRecord, eventTitles, adminEmails),
+      syncToGoogleSheetWebhook(newRecord, eventTitles),
+    ]);
 
     res.json({
       success: true,
@@ -527,7 +533,7 @@ app.post('/api/register-upi', async (req, res) => {
       selectedTechnicalIds: registrationData.selectedTechnicalIds || [],
       selectedNonTechnicalIds: registrationData.selectedNonTechnicalIds || [],
       participants: registrationData.participants,
-      totalAmount: validation.expectedAmount || 350,
+      totalAmount: validation.expectedAmount || (registrationData.registrationType === 'workshop' ? getPricePerPerson('workshop') : getPricePerPerson('technical') * (registrationData.participants?.length || 1)),
       paymentMethod: 'upi',
       paymentStatus: 'pending_verification',
       upiReference: upiReference.trim(),
@@ -551,12 +557,13 @@ app.post('/api/register-upi', async (req, res) => {
 
     const settings = await repository.getSiteSettings();
     const adminEmails = settings.adminNotificationEmails?.length ? settings.adminNotificationEmails : ['evitron26@gmail.com'];
-    sendAdminNewRegistrationNotification(newRecord, eventTitles, adminEmails).catch((err) =>
-      console.log('[NOTIFICATION] Admin new registration email dispatch error:', err)
-    );
-    syncToGoogleSheetWebhook(newRecord, eventTitles).catch((err) =>
-      console.log('[NOTIFICATION] Async sheets sync status:', err?.message || err)
-    );
+
+    // In serverless / Vercel: send Admin alert, Participant confirmation pass, and sync Google Sheets before responding
+    await Promise.allSettled([
+      sendAdminNewRegistrationNotification(newRecord, eventTitles, adminEmails),
+      sendRegistrationConfirmationEmail(newRecord, eventTitles),
+      syncToGoogleSheetWebhook(newRecord, eventTitles),
+    ]);
 
     res.json({
       success: true,
@@ -744,15 +751,27 @@ app.patch('/api/admin/registrations/:id/status', requireAdmin, async (req, res) 
       if (n) eventTitles.push(n.title);
     }
 
-    sendRegistrationConfirmationEmail(updated, eventTitles).catch((err) =>
-      console.log('[NOTIFICATION] Admin manual approval email dispatch status:', err?.message || err)
-    );
-    syncToGoogleSheetWebhook(updated, eventTitles).catch((err) =>
-      console.log('[NOTIFICATION] Admin manual approval sheets sync status:', err?.message || err)
-    );
+    await Promise.allSettled([
+      sendRegistrationConfirmationEmail(updated, eventTitles),
+      syncToGoogleSheetWebhook(updated, eventTitles),
+    ]);
   }
 
   res.json(updated);
+});
+
+app.post('/api/admin/test-email', requireAdmin, async (req, res) => {
+  try {
+    const { recipient } = req.body;
+    const target = recipient || 'evitron26@gmail.com';
+    const result = await sendTestEmail(target);
+    res.json(result);
+  } catch (err: any) {
+    res.status(500).json({
+      sent: false,
+      message: err.message || 'Internal test email error',
+    });
+  }
 });
 
 app.delete('/api/admin/registrations/:id', requireAdmin, async (req, res) => {
