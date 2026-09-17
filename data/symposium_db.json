@@ -29,7 +29,7 @@
     "announcementText": "Registrations are now live! Paper abstract submission deadline is 27/09/2026. Cash prizes, welcome kits, food and refreshments included.",
     "announcementTextActive": true,
     "announcementActive": true,
-    "feePerPerson": 350,
+    "feePerPerson": 250,
     "appEnv": "development",
     "showRazorpayPayment": true,
     "googleSheetWebhookUrl": "https://script.google.com/macros/s/AKfycbwQFDmE-3bG517qhy5jP6my90QCKsps5GLn2q7ih3vHJmTq96PikBitSCJgIqyxOqRoaQ/exec",
@@ -51,7 +51,7 @@
       "eligibility": "All Engineering UG / PG students and Diploma scholars from ECE, EEE, EIE, and related branches.",
       "teamSize": 1,
       "teamSizeLabel": "Individual (1 Participant)",
-      "feePerPerson": 350,
+      "feePerPerson": 300,
       "rules": [
         "Participants must bring their college ID card for verification.",
         "Participants are advised to bring their own laptops with charger; lab systems will also be provided on availability.",
@@ -107,7 +107,7 @@
       "eligibility": "Engineering & Diploma students interested in Embedded hardware and firmware.",
       "teamSize": 1,
       "teamSizeLabel": "Individual (1 Participant)",
-      "feePerPerson": 350,
+      "feePerPerson": 300,
       "rules": [
         "College ID card is compulsory.",
         "Hardware kits will be provided for hands-on sessions during the workshop hours.",
@@ -156,7 +156,7 @@
       "eligibility": "All Engineering UG / PG students of Circuit branches (ECE, EEE, EIE, Mechatronics).",
       "teamSize": 1,
       "teamSizeLabel": "Individual (1 Participant)",
-      "feePerPerson": 350,
+      "feePerPerson": 300,
       "rules": [
         "Valid college identification required.",
         "Participants must actively complete all four module exercises to receive certificates.",
@@ -207,7 +207,7 @@
       "minTeamSize": 2,
       "maxTeamSize": 4,
       "teamSizeLabel": "Team of 2 to 4 Participants",
-      "feePerPerson": 350,
+      "feePerPerson": 250,
       "rules": [
         "Every team must have between 2 and 4 participants (1 Team Leader + 1 to 3 Team Members; minimum 2 compulsory).",
         "Paper abstract must be submitted on or before 27/09/2026 via Google form provided in website itself.",
@@ -270,7 +270,7 @@
       "minTeamSize": 2,
       "maxTeamSize": 4,
       "teamSizeLabel": "Team of 2 to 4 Participants",
-      "feePerPerson": 350,
+      "feePerPerson": 250,
       "rules": [
         "Every team must consist of 2 to 4 members (minimum 2 compulsory, up to 4 total including team lead).",
         "Teams must bring their working prototype/hardware demonstration.",
@@ -320,7 +320,7 @@
       "minTeamSize": 2,
       "maxTeamSize": 4,
       "teamSizeLabel": "Team of 2 to 4 Participants",
-      "feePerPerson": 350,
+      "feePerPerson": 250,
       "rules": [
         "Autonomous robot only — The robot must be completely autonomous; no manual remote controls allowed.",
         "Maximum robot size: 25 x 25 x 20 cm.",
@@ -559,98 +559,7 @@
       "isActive": true
     }
   ],
-  "registrations": [
-    {
-      "id": "EV26-LCD8G8",
-      "createdAt": "2026-09-12T20:25:28.403Z",
-      "registrationType": "workshop",
-      "selectedWorkshopId": "ws-silicon-2-gds",
-      "selectedTechnicalIds": [],
-      "selectedNonTechnicalIds": [],
-      "participants": [
-        {
-          "fullName": "as",
-          "email": "anandmsak27@gmail.com",
-          "phone": "6383109049",
-          "college": "Mahendra Engineering College",
-          "department": "ECE",
-          "year": "III"
-        }
-      ],
-      "teamLeader": {
-        "fullName": "as",
-        "email": "anandmsak27@gmail.com",
-        "phone": "6383109049",
-        "college": "Mahendra Engineering College",
-        "department": "ECE",
-        "year": "III"
-      },
-      "totalAmount": 350,
-      "paymentMethod": "upi",
-      "paymentStatus": "pending_verification",
-      "upiReference": "123456789012"
-    },
-    {
-      "id": "EV26-2XY8BA",
-      "createdAt": "2026-09-12T20:30:45.123Z",
-      "registrationType": "workshop",
-      "selectedWorkshopId": "ws-silicon-2-gds",
-      "selectedTechnicalIds": [],
-      "selectedNonTechnicalIds": [],
-      "participants": [
-        {
-          "fullName": "Sow",
-          "email": "anandhperumal27@gmail.com",
-          "phone": "6383109049",
-          "college": "Mahendra Engineering College",
-          "department": "ECE",
-          "year": "III"
-        }
-      ],
-      "teamLeader": {
-        "fullName": "Sow",
-        "email": "anandhperumal27@gmail.com",
-        "phone": "6383109049",
-        "college": "Mahendra Engineering College",
-        "department": "ECE",
-        "year": "III"
-      },
-      "totalAmount": 350,
-      "paymentMethod": "upi",
-      "paymentStatus": "pending_verification",
-      "upiReference": "098765432109"
-    },
-    {
-      "id": "EV26-PSJMY8",
-      "createdAt": "2026-09-12T20:35:12.456Z",
-      "registrationType": "workshop",
-      "selectedWorkshopId": "ws-virtual-instrumentation",
-      "selectedTechnicalIds": [],
-      "selectedNonTechnicalIds": [],
-      "participants": [
-        {
-          "fullName": "mr ak",
-          "email": "anandmsak27@gmail.com",
-          "phone": "6383109049",
-          "college": "Mahendra Engineering College",
-          "department": "ECE",
-          "year": "III"
-        }
-      ],
-      "teamLeader": {
-        "fullName": "mr ak",
-        "email": "anandmsak27@gmail.com",
-        "phone": "6383109049",
-        "college": "Mahendra Engineering College",
-        "department": "ECE",
-        "year": "III"
-      },
-      "totalAmount": 350,
-      "paymentMethod": "upi",
-      "paymentStatus": "pending_verification",
-      "upiReference": "567890123456"
-    }
-  ],
+  "registrations": [],
   "adminPasswordHash": "cc545a21a77e6b3aae3db8914a297cc12449a48a26f161bf113d0df752871457",
   "adminSalt": "evitron26_salt"
 }

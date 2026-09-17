@@ -18,7 +18,7 @@ export const Footer: React.FC<FooterProps> = ({ settings, onNavigate }) => {
           <div className="space-y-3">
             <div className="flex items-center gap-2.5">
               <img
-                src="/emblem.png"
+                src="/emblem.jpeg"
                 alt="EVITRON 2K26 Reactor Emblem"
                 className="w-9 h-9 rounded-lg object-contain shadow-sm"
                 referrerPolicy="no-referrer"

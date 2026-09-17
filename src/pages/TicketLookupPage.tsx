@@ -96,7 +96,7 @@ export const TicketLookupPage: React.FC<TicketLookupPageProps> = ({ initialRegId
           <div className="bg-[#B22222] text-white p-6 flex flex-wrap items-center justify-between gap-4">
             <div className="flex items-center gap-3">
               <img
-                src="/emblem.png"
+                src="/emblem.jpeg"
                 alt="EVITRON 2K26 Emblem"
                 className="w-11 h-11 rounded-xl bg-white/10 p-1 border border-white/20 object-contain shrink-0"
                 referrerPolicy="no-referrer"

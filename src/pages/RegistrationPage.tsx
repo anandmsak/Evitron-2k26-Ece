@@ -489,7 +489,7 @@ export const RegistrationPage: React.FC<RegistrationPageProps> = ({ events, sett
           <div className="bg-[#B22222] text-white p-6 sm:p-8 flex flex-wrap items-center justify-between gap-4">
             <div className="flex items-center gap-4">
               <img
-                src="/emblem.png"
+                src="/emblem.jpeg"
                 alt="EVITRON 2K26 Emblem"
                 className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl bg-white/10 p-1 border border-white/20 object-contain shrink-0 shadow-xs"
                 referrerPolicy="no-referrer"

@@ -15,6 +15,17 @@ interface LoadingScreenProps {
 export const LoadingScreen: React.FC<LoadingScreenProps> = ({ isAppReady, onFinished }) => {
   const [shouldExit, setShouldExit] = useState(false);
   const [isRendered, setIsRendered] = useState(true);
+  const [emblemSrc, setEmblemSrc] = useState('/emblem.jpeg');
+  const [emblemIndex, setEmblemIndex] = useState(0);
+
+  const emblemFallbacks = ['/emblem.jpg', '/emblem.png', '/site_logo.jpeg', '/logo.png'];
+
+  const handleEmblemError = () => {
+    if (emblemIndex < emblemFallbacks.length) {
+      setEmblemSrc(emblemFallbacks[emblemIndex]);
+      setEmblemIndex(prev => prev + 1);
+    }
+  };
 
   useEffect(() => {
     // Lock scrolling on mount
@@ -80,7 +91,7 @@ export const LoadingScreen: React.FC<LoadingScreenProps> = ({ isAppReady, onFini
     >
       <div className="w-full max-w-sm px-6 flex flex-col items-center text-center">
         {/* Circuit Board & Central Emblem */}
-        <div className="relative w-28 h-28 sm:w-32 sm:h-32 mb-5 flex items-center justify-center">
+        <div className="relative w-28 h-28 sm:w-32 sm:h-32 mb-2 flex items-center justify-center">
           {/* Subtle PCB Background Grid Dots */}
           <svg
             className="absolute inset-0 w-full h-full text-stone-300/60"
@@ -171,20 +182,21 @@ export const LoadingScreen: React.FC<LoadingScreenProps> = ({ isAppReady, onFini
           {/* Central Reactor Core Emblem */}
           <div className="relative z-10 w-14 h-14 sm:w-16 sm:h-16 rounded-xl bg-white border border-stone-200 shadow-sm flex items-center justify-center p-1">
             <img
-              src="/emblem.png"
+              src={emblemSrc}
               alt="EVITRON Reactor Core Emblem"
               className="w-full h-full object-contain rounded-lg"
               referrerPolicy="no-referrer"
+              onError={handleEmblemError}
             />
           </div>
         </div>
 
         {/* Symposium Official Logo */}
-        <div className="flex items-center justify-center my-1">
+        <div className="flex items-center justify-center -mt-6 -mb-6 sm:-mt-10 sm:-mb-10 relative z-20">
           <img
             src="/logo.png"
             alt="EVITRON 2K26"
-            className="h-9 sm:h-11 w-auto object-contain drop-shadow-sm"
+            className="h-20 sm:h-32 md:h-38 w-auto max-w-[280px] sm:max-w-[450px] md:max-w-[540px] object-contain drop-shadow-sm"
             referrerPolicy="no-referrer"
           />
         </div>
@@ -195,7 +207,7 @@ export const LoadingScreen: React.FC<LoadingScreenProps> = ({ isAppReady, onFini
         </p>
 
         {/* Required Tagline */}
-        <div className="flex items-center justify-center gap-1.5 mt-3 text-[11px] sm:text-xs font-bold tracking-[0.2em] text-stone-700 uppercase">
+        <div className="flex items-center justify-center gap-1.5 mt-2 text-[11px] sm:text-xs font-bold tracking-[0.2em] text-stone-700 uppercase">
           <span>CREATE</span>
           <span className="text-[#B22222] font-black">•</span>
           <span>INNOVATE</span>
@@ -204,12 +216,12 @@ export const LoadingScreen: React.FC<LoadingScreenProps> = ({ isAppReady, onFini
         </div>
 
         {/* Minimal Animated Loading Progress Line */}
-        <div className="w-44 sm:w-52 h-[2.5px] bg-stone-200/80 rounded-full overflow-hidden mt-5 relative">
+        <div className="w-44 sm:w-52 h-[2.5px] bg-stone-200/80 rounded-full overflow-hidden mt-3.5 relative">
           <div className="evitron-progress-bar h-full bg-[#B22222] rounded-full" />
         </div>
 
         {/* Required Status Text */}
-        <p className="text-[11px] font-mono tracking-wider text-stone-400 mt-2.5">
+        <p className="text-[11px] font-mono tracking-wider text-stone-400 mt-1.5">
           Initializing EVITRON 2K26...
         </p>
       </div>

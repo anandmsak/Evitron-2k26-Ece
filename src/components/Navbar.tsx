@@ -10,6 +10,17 @@ interface NavbarProps {
 
 export const Navbar: React.FC<NavbarProps> = ({ settings, currentPath, onNavigate }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [logoSrc, setLogoSrc] = useState('/emblem.jpeg');
+  const [logoIndex, setLogoIndex] = useState(0);
+
+  const logoFallbacks = ['/emblem.jpg', '/emblem.png', '/site_logo.jpeg', '/logo.png'];
+
+  const handleLogoError = () => {
+    if (logoIndex < logoFallbacks.length) {
+      setLogoSrc(logoFallbacks[logoIndex]);
+      setLogoIndex(prev => prev + 1);
+    }
+  };
 
   const handleNav = (path: string) => {
     onNavigate(path);
@@ -73,10 +84,11 @@ export const Navbar: React.FC<NavbarProps> = ({ settings, currentPath, onNavigat
             {/* College Seal in rounded square card */}
             <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-xl bg-white border border-stone-200 shadow-xs flex items-center justify-center p-1 shrink-0 overflow-hidden group-hover:border-stone-300 transition-colors">
               <img
-                src="/emblem.png"
+                src={logoSrc}
                 alt="Mahendra Engineering College"
                 className="w-full h-full object-contain"
                 referrerPolicy="no-referrer"
+                onError={handleLogoError}
               />
             </div>
 

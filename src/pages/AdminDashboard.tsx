@@ -502,7 +502,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         <div className="w-full bg-white border border-stone-200 rounded-xl p-6 sm:p-8 shadow-sm">
           <div className="text-center mb-6">
             <img
-              src="/emblem.png"
+              src="/emblem.jpeg"
               alt="EVITRON 2K26 Emblem"
               className="w-14 h-14 object-contain mx-auto mb-3 drop-shadow-xs"
               onError={(e) => {

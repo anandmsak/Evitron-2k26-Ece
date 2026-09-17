@@ -32,7 +32,7 @@ export const EvitronLogo: React.FC<EvitronLogoProps> = ({
     return (
       <div className={`inline-flex items-center justify-center shrink-0 ${className}`}>
         <img
-          src="/emblem.png"
+          src="/emblem.jpeg"
           alt="EVITRON 2K26 Core Mark"
           className={`${sizeClasses[size]} w-auto aspect-square object-contain drop-shadow-sm`}
           referrerPolicy="no-referrer"

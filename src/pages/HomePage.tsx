@@ -47,33 +47,33 @@ export const HomePage: React.FC<HomePageProps> = ({ settings: propSettings, even
       )}
 
       {/* Hero Section */}
-      <section className="pt-6 sm:pt-8 pb-4 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <section className="pt-2 sm:pt-4 pb-2 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="max-w-3xl mx-auto text-center">
           {/* Department & College Badge */}
-          <div className="inline-flex items-center gap-2 sm:gap-3 px-4 sm:px-6 py-2 rounded-full bg-stone-50 border border-stone-200 text-stone-700 text-xs sm:text-sm font-bold tracking-wide uppercase shadow-2xs mb-6 sm:mb-7">
+          <div className="inline-flex items-center gap-2 sm:gap-3 px-4 sm:px-6 py-2 rounded-full bg-stone-50 border border-stone-200 text-stone-700 text-xs sm:text-sm font-bold tracking-wide uppercase shadow-2xs mb-2 sm:mb-3">
             <span>DEPT. OF ECE • MAHENDRA ENGINEERING COLLEGE</span>
             <span className="text-stone-300">|</span>
             <span className="text-[#B22222]">VELOCITY & IEEE</span>
           </div>
 
           {/* Official Symposium Logo */}
-          <div className="flex justify-center items-center mb-4 sm:mb-5">
+          <div className="flex justify-center items-center -mt-8 -mb-10 sm:-mt-14 sm:-mb-16 md:-mt-16 md:-mb-20 relative z-10">
             <img
               src="/logo.png"
               alt="EVITRON 2K26 Official Logo"
-              className="w-full max-w-[320px] sm:max-w-[400px] md:max-w-[440px] h-auto object-contain drop-shadow-sm"
+              className="w-full max-w-[420px] sm:max-w-[580px] md:max-w-[680px] lg:max-w-[760px] h-auto object-contain drop-shadow-sm transition-transform duration-300 hover:scale-[1.02]"
               referrerPolicy="no-referrer"
               loading="eager"
             />
           </div>
 
           {/* Title */}
-          <h1 className="text-xl sm:text-2xl md:text-3xl font-black text-stone-900 tracking-tight uppercase mb-1.5 sm:mb-2">
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-black text-stone-900 tracking-tight uppercase mb-1">
             A NATIONAL LEVEL TECHNICAL SYMPOSIUM
           </h1>
 
           {/* Motto */}
-          <p className="text-xs sm:text-sm font-semibold tracking-wide text-stone-500 mb-6 sm:mb-8">
+          <p className="text-xs sm:text-sm font-semibold tracking-wide text-stone-500 mb-4 sm:mb-5">
             Motto: <span className="text-stone-900 font-extrabold tracking-widest uppercase">CREATE • INNOVATE • ELEVATE</span>
           </p>
 
