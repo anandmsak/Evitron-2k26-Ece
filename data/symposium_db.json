@@ -1,0 +1,1790 @@
+{
+  "settings": {
+    "symposiumTitle": "EVITRON 2K26",
+    "subTitle": "National Level Technical Symposium",
+    "department": "Department of Electronics and Communication Engineering",
+    "college": "Mahendra Engineering College (Autonomous)",
+    "associations": "VELOCITY & IEEE",
+    "eventDate": "08/10/2026",
+    "countdownTarget": "2026-10-08T09:00:00",
+    "registrationDeadline": "05/10/2026",
+    "paperSubmissionDeadline": "27/09/2026",
+    "isRegistrationOpen": true,
+    "closedReason": "Registrations are currently closed. Please contact event coordinators for further inquiries.",
+    "upiId": "6383109049@upi",
+    "upiPayeeName": "EVITRON 2K26 - MEC ECE",
+    "upiQrImageUrl": "",
+    "workshopUpiId": "6383109049@upi",
+    "workshopUpiPayeeName": "Evitron Workshop",
+    "workshopUpiQrImageUrl": "",
+    "techUpiId": "6383109049@upi",
+    "techUpiPayeeName": "Evitron Technical",
+    "techUpiQrImageUrl": "",
+    "razorpayEnabled": true,
+    "driveUploadUrl": "https://docs.google.com/forms/d/1R1VhrsHfC9GYo-j_npPZv8fDXXhlUOPbfYtNUBy1Vh0/edit?ts=6aa4f3ae",
+    "participantFormUrl": "https://docs.google.com/forms/d/e/1FAIpQLSdXYq3Pfeb_2w5jPtdjqeLJPv3sIVsb9Y1ahPUe47WT76OUYg/viewform?usp=publish-editor",
+    "contactEmail": "evitron26@gmail.com",
+    "instagramHandle": "https://www.instagram.com/velocity_ece_mec?stkn=dWV5ejA4ZW5hOWkz",
+    "venue": "Mahendhirapuri, Mallasamudram (M), Namakkal (Dt), Tamil Nadu - 637 503",
+    "announcementText": "Registrations are now live! Paper abstract submission deadline is 27/09/2026. Cash prizes, welcome kits, food and refreshments included.",
+    "announcementActive": true,
+    "feePerPerson": 250,
+    "appEnv": "development",
+    "showRazorpayPayment": true,
+    "googleSheetWebhookUrl": "https://script.google.com/macros/s/AKfycbwQFDmE-3bG517qhy5jP6my90QCKsps5GLn2q7ih3vHJmTq96PikBitSCJgIqyxOqRoaQ/exec",
+    "adminNotificationEmails": [
+      "evitron26@gmail.com"
+    ],
+    "forceEarlyBird": true,
+    "earlyBirdDeadline": "2026-10-05T23:59:59+05:30",
+    "announcementTextActive": true
+  },
+  "events": [
+    {
+      "id": "ws-silicon-2-gds",
+      "slug": "silicon-2-gds",
+      "title": "SILICON 2 GDS",
+      "tagline": "VLSI Design Using Cadence",
+      "category": "workshops",
+      "description": "Hands-on workshop exploring the complete ASIC design flow from RTL synthesis to GDSII layout generation using industry-standard Cadence EDA tools.",
+      "venue": "TLC 2",
+      "time": "09:30 AM - 04:00 PM",
+      "date": "08/10/2026",
+      "eligibility": "All Engineering UG / PG students and Diploma scholars from ECE, EEE, EIE, and related branches.",
+      "teamSize": 1,
+      "teamSizeLabel": "Individual (1 Participant)",
+      "feePerPerson": 300,
+      "rules": [
+        "Participants must bring their college ID card for verification.",
+        "Participants are advised to bring their own laptops with charger; lab systems will also be provided on availability.",
+        "Strict attendance during both morning and afternoon sessions is mandatory for certificate entitlement.",
+        "[EVENT RULES WILL BE UPDATED]"
+      ],
+      "procedure": [
+        "Session 1: Introduction to RTL design, Verilog coding, and simulation verification.",
+        "Session 2: Synthesis with Cadence Genus, timing analysis, and constraints.",
+        "Session 3: Physical design, Floorplanning, Placement & Routing with Innovus.",
+        "Session 4: DRC, LVS checks and final GDSII export."
+      ],
+      "perks": [
+        "Welcome Kit & Notepad",
+        "Delicious Food & Refreshments",
+        "Hands-on EDA Tool Lab Access",
+        "Authorized Participation Certificate"
+      ],
+      "outcomes": [
+        "Understand complete ASIC front-end to back-end flow.",
+        "Familiarity with industry-grade Cadence digital implementation toolchain."
+      ],
+      "certificates": "Government-recognized Hardcopy Certificate of Workshop Participation will be awarded at the valedictory session.",
+      "importantInstructions": [
+        "Reporting time at registration desk is 08:30 AM sharp.",
+        "Workshop participants cannot take part in other technical/non-technical events due to parallel full-day schedule."
+      ],
+      "faqs": [
+        {
+          "q": "Do I need prior experience with Cadence tools?",
+          "a": "Basic knowledge of digital logic and Verilog is sufficient. The resource persons will guide you through the tool step-by-step."
+        },
+        {
+          "q": "Can I also attend technical events if I join this workshop?",
+          "a": "No. Workshops run parallel full-day sessions, so workshop participants are restricted to this single workshop."
+        }
+      ],
+      "coordinatorName": "Mr.Moneswar",
+      "coordinatorPhone": "+91 6369033324",
+      "coordinatorEmail": "evitron26@gmail.com",
+      "isActive": true
+    },
+    {
+      "id": "ws-embedded-system",
+      "slug": "embedded-system",
+      "title": "Embedded System",
+      "tagline": "Hands-on Embedded Systems & Microcontrollers",
+      "category": "workshops",
+      "description": "Comprehensive practical training on modern embedded architecture, peripheral interfacing, sensor integration, and real-time firmware development.",
+      "venue": "MEC - DSP Lab",
+      "time": "09:30 AM - 04:00 PM",
+      "date": "08/10/2026",
+      "eligibility": "Engineering & Diploma students interested in Embedded hardware and firmware.",
+      "teamSize": 1,
+      "teamSizeLabel": "Individual (1 Participant)",
+      "feePerPerson": 300,
+      "rules": [
+        "College ID card is compulsory.",
+        "Hardware kits will be provided for hands-on sessions during the workshop hours.",
+        "[EVENT RULES WILL BE UPDATED]"
+      ],
+      "procedure": [
+        "Session 1: Architecture overview of ARM Cortex & RISC-V microcontrollers.",
+        "Session 2: GPIO, Timers, ADC, and Interrupt handling in C.",
+        "Session 3: Interfacing communication protocols (I2C, SPI, UART).",
+        "Session 4: Mini practical project demonstration."
+      ],
+      "perks": [
+        "Welcome Kit & Conference Materials",
+        "Lunch & Refreshments",
+        "Hardware Development Kit Access",
+        "Official Certificate of Completion"
+      ],
+      "outcomes": [
+        "Solid grasp of real-time embedded programming and hardware-software co-design."
+      ],
+      "certificates": "Official Certificate of Workshop Completion from Mahendra Engineering College.",
+      "importantInstructions": [
+        "Bring your own laptop with Keil / Arduino IDE pre-installed if possible."
+      ],
+      "faqs": [
+        {
+          "q": "Will hardware kits be provided?",
+          "a": "Yes, demonstration boards and sensor kits will be provided for lab exercises."
+        }
+      ],
+      "coordinatorName": "Mr.Manigandan S",
+      "coordinatorPhone": "+91 8248171977",
+      "coordinatorEmail": "evitron26@gmail.com",
+      "isActive": true
+    },
+    {
+      "id": "ws-virtual-instrumentation",
+      "slug": "virtual-instrumentation",
+      "title": "Virtual Instrumentation",
+      "tagline": "LabVIEW Workshop & Data Acquisition",
+      "category": "workshops",
+      "description": "Practical training on Graphical System Design, Virtual Instrumentation principles, signal acquisition, and automated test bench design using LabVIEW.",
+      "venue": "TLC 1",
+      "time": "09:30 AM - 04:00 PM",
+      "date": "08/10/2026",
+      "eligibility": "All Engineering UG / PG students of Circuit branches (ECE, EEE, EIE, Mechatronics).",
+      "teamSize": 1,
+      "teamSizeLabel": "Individual (1 Participant)",
+      "feePerPerson": 300,
+      "rules": [
+        "Valid college identification required.",
+        "Participants must actively complete all four module exercises to receive certificates.",
+        "[EVENT RULES WILL BE UPDATED]"
+      ],
+      "procedure": [
+        "Module 1: Graphical programming fundamentals in LabVIEW (VIs, Front Panel, Block Diagram).",
+        "Module 2: Loops, Structures, Arrays, and Clusters.",
+        "Module 3: Data Acquisition (DAQ) hardware interfacing and signal conditioning.",
+        "Module 4: Real-time waveform display and instrument control."
+      ],
+      "perks": [
+        "Welcome Kit & Notepad",
+        "Food & Refreshments",
+        "LabVIEW Hands-on Lab Environment",
+        "Accredited Certificate"
+      ],
+      "outcomes": [
+        "Proficiency in building automated measurement and control Virtual Instruments."
+      ],
+      "certificates": "Accredited Hardcopy Workshop Certificate issued by ECE Department & VELOCITY Association.",
+      "importantInstructions": [
+        "Full attendance is required across both sessions."
+      ],
+      "faqs": [
+        {
+          "q": "Are computer systems provided?",
+          "a": "Yes, configured desktop systems with LabVIEW are provided in the department laboratory."
+        }
+      ],
+      "coordinatorName": "Ms.Lakshana M",
+      "coordinatorPhone": "+91 6385777167",
+      "coordinatorEmail": "evitron26@gmail.com",
+      "isActive": true
+    },
+    {
+      "id": "tech-techpaper",
+      "slug": "techpaper",
+      "title": "TECHPAPER",
+      "tagline": "Paper Presentation",
+      "category": "technical",
+      "description": "Platform to present innovative research papers in emerging domains including VLSI, Embedded Systems, IoT, Wireless Communication, AI/ML in signal processing, and Renewable Energy.",
+      "venue": "MEC - Classroom No: 208, 209, 210, 302",
+      "time": "10:00 AM - 01:00 PM",
+      "date": "08/10/2026",
+      "eligibility": "UG / PG Engineering students. Teams must contain 2 to 4 members (min 2 compulsory).",
+      "teamSize": 4,
+      "minTeamSize": 2,
+      "maxTeamSize": 4,
+      "teamSizeLabel": "Team of 2 to 4 Participants",
+      "feePerPerson": 250,
+      "rules": [
+        "Every team must have between 2 and 4 participants (1 Team Leader + 1 to 3 Team Members; minimum 2 compulsory).",
+        "Paper abstract must be submitted on or before 27/09/2026 via Google form provided in website itself.",
+        "Presentation time: 8 minutes for presentation + 2 minutes for Q&A by jury.",
+        "Slides should not exceed 10 slides. Standard IEEE paper format preferred.",
+        "[EVENT RULES WILL BE UPDATED]"
+      ],
+      "procedure": [
+        "Step 1: Submit abstract by 27/09/2026.",
+        "Step 2: Intimation of selected papers will be sent via email.",
+        "Step 3: Present before the panel on event day 08/10/2026.",
+        "Step 4: Evaluation based on novelty, technical depth, and presentation clarity."
+      ],
+      "perks": [
+        "Attractive Cash Prizes for Top 3 Teams",
+        "Welcome Kits & Mementos",
+        "Delicious Lunch & Snacks",
+        "Presentation Certificates to all team members"
+      ],
+      "outcomes": [
+        "Peer-reviewed feedback from veteran academicians and industry researchers."
+      ],
+      "certificates": "Cash Prize with Winner Shields for Top Teams; Certificate of Presentation for all participants.",
+      "importantInstructions": [
+        "carry softcopy in a pen drive."
+      ],
+      "themes": [
+        "Emerging Electronics, Embedded Systems & IoT",
+        "Next-Generation Semiconductor & VLSI Technologies",
+        "Artificial Intelligence, Computing & Cybersecurity",
+        "Sustainable Technology, Environmental Innovation & Clean Energy"
+      ],
+      "faqs": [
+        {
+          "q": "Can members be from different colleges?",
+          "a": "Yes, inter-college team members are allowed. Team size must be 2 to 4 participants (min 2 compulsory)."
+        },
+        {
+          "q": "What is the abstract deadline?",
+          "a": "Abstract submission deadline is 27/09/2026."
+        }
+      ],
+      "coordinatorName": "Ms.Gopika G",
+      "coordinatorPhone": "+91 6374791671",
+      "coordinatorEmail": "evitron26@gmail.com",
+      "isActive": true
+    },
+    {
+      "id": "tech-evolvex",
+      "slug": "evolvex",
+      "title": "EVOLVEX",
+      "tagline": "Project Presentation",
+      "category": "technical",
+      "description": "Showcase your working engineering projects, prototypes, IoT gadgets, and embedded hardware solutions to eminent judges and innovators.",
+      "venue": "MEC - EDC lab, MPMC lab",
+      "time": "10:00 AM - 01:30 PM",
+      "date": "08/10/2026",
+      "eligibility": "Engineering UG/PG students. 2 to 4 members per team (min 2 compulsory).",
+      "teamSize": 4,
+      "minTeamSize": 2,
+      "maxTeamSize": 4,
+      "teamSizeLabel": "Team of 2 to 4 Participants",
+      "feePerPerson": 250,
+      "rules": [
+        "Every team must consist of 2 to 4 members (minimum 2 compulsory, up to 4 total including team lead).",
+        "Teams must bring their working prototype/hardware demonstration.",
+        "Standard 230V AC power supply and test benches will be provided.",
+        "Software/simulation only projects are Not allowed, Allowed Only for Hardware Based"
+      ],
+      "procedure": [
+        "Display project hardware on assigned project booth.",
+        "Live demonstration to the judging committee followed by technical cross-examination."
+      ],
+      "perks": [
+        "Substantial Cash Prizes & Innovation Trophies",
+        "Welcome Kit & Refreshments",
+        "Incubation & Mentorship guidance for standout projects",
+        "Project Presentation Certificates"
+      ],
+      "outcomes": [
+        "Validate prototype viability and connect with innovation leaders."
+      ],
+      "certificates": "Winner Cash Prize + Certificate of Excellence; Participation Certificates for all registered members.",
+      "importantInstructions": [
+        "Bring all required extension cords, batteries and connectors for your setup."
+      ],
+      "faqs": [
+        {
+          "q": "Will power supply be arranged?",
+          "a": "Yes, 230V AC standard sockets are available at the demonstration stalls."
+        }
+      ],
+      "coordinatorName": "Mr.Dharanish S",
+      "coordinatorPhone": "+91 6379374763",
+      "coordinatorEmail": "evitron26@gmail.com",
+      "isActive": true
+    },
+    {
+      "id": "tech-tracktron",
+      "slug": "tracktron",
+      "title": "TRACKTRON",
+      "tagline": "Line Follower Race",
+      "category": "technical",
+      "description": "High-speed autonomous line follower robotics challenge. Build and tune your robot to navigate tight curves, intersections, and speed checkpoints in record time.",
+      "venue": "MEC-VOC Arangam",
+      "time": "11:00 AM - 02:00 PM",
+      "date": "08/10/2026",
+      "eligibility": "Open to all Engineering students. Team size: 2 to 4 participants (min 2 compulsory).",
+      "teamSize": 4,
+      "minTeamSize": 2,
+      "maxTeamSize": 4,
+      "teamSizeLabel": "Team of 2 to 4 Participants",
+      "feePerPerson": 250,
+      "rules": [
+        "Autonomous robot only — The robot must be completely autonomous; no manual remote controls allowed.",
+        "Maximum robot size: 25 x 25 x 20 cm.",
+        "Maximum robot weight: 1.5 kg.",
+        "Battery powered only (no external power line during runs).",
+        "Start at START line and finish at FINISH line on the track.",
+        "Fastest valid completion time wins.",
+        "The judge's and referee's decision during a race is final and binding.",
+        "Safety rules must always be followed strictly by all participants.",
+        "Teams must arrive at the venue before their designated reporting time.",
+        "Participants are fully responsible for their own robot, components, batteries, and tools.",
+        "The organizers are not responsible for any damage caused by improper construction or operation of a robot.",
+        "Teams must not intentionally interfere with another team's robot or setup.",
+        "Only registered team members are allowed to work on the robot.",
+        "Any rule violation will result in an immediate penalty or disqualification."
+      ],
+      "procedure": [
+        "ROUND 1 — TECHNICAL INSPECTION: Officials will inspect robot dimensions, weight, battery, electronics, autonomous operation, safety, and rule compliance. Robots failing inspection can correct issues before the deadline.",
+        "ROUND 2 — PRACTICE ROUND: Teams get a practice opportunity to test sensors, adjust positions, tune controllers, check motor performance, and understand the track. Practice runs do not count toward rankings.",
+        "ROUND 3 — QUALIFYING ROUND: Each team receives two official attempts. The better valid time is used. The fastest 8/12/16 teams qualify for the finals.",
+        "ROUND 4 — FINAL ROUND: Finalists compete on the official final track. Each team receives up to two attempts, and the fastest valid completion time determines the final ranking."
+      ],
+      "perks": [
+        "Championship Cash Prize & Robotics Trophy",
+        "Food & Hospitality Kits",
+        "Robotics Performance Certificates"
+      ],
+      "outcomes": [
+        "Gain real-time robotics calibration, PID tuning, and sensor optimization skills."
+      ],
+      "certificates": "Winner Cash Awards + Medals; Certificates of Technical Participation.",
+      "importantInstructions": [
+        "Participants are highly recommended to bring: Fully assembled robot, Spare battery, Battery charger, USB cable, Laptop (for coding/re-programming), Spare motors, Spare wheels, Sensor modules, Jumper wires, Screwdriver set, Soldering equipment (if permitted), Tape & mechanical spare parts, and Microcontroller programming cable."
+      ],
+      "faqs": [
+        {
+          "q": "Can we modify robot code between runs?",
+          "a": "Yes, during designated pit time before your official turn."
+        }
+      ],
+      "coordinatorName": "Mr.Aadhitya K",
+      "coordinatorPhone": "+91 9384464856",
+      "coordinatorEmail": "evitron26@gmail.com",
+      "isActive": true
+    },
+    {
+      "id": "non-mind-maze",
+      "slug": "mind-maze",
+      "title": "MIND MAZE",
+      "tagline": "Spin. Stumble. Solve",
+      "category": "non-technical",
+      "description": "A fun-filled non-technical event where participants spin around an object and then attempt to solve a puzzle in a dizzy state, testing their focus and mental stability.",
+      "venue": "MEC - Classroom No: G-19",
+      "time": "02:00 PM - 03:30 PM",
+      "date": "08/10/2026",
+      "eligibility": "Must be registered for at least one Technical Event with your team (2 to 4 members).",
+      "teamSize": 4,
+      "minTeamSize": 2,
+      "maxTeamSize": 4,
+      "teamSizeLabel": "Same Team (2 to 4 Members)",
+      "feePerPerson": 0,
+      "rules": [
+        "Available only to participants who registered for a technical event.",
+        "The registered team (2 to 4 members) competes together.",
+        "Use of mobile phones or internet search during the rounds is strictly prohibited.",
+        "[EVENT RULES WILL BE UPDATED]"
+      ],
+      "procedure": [
+        "Round 1: Circle the water can 5 times, run back and solve a simple picture puzzle in 60 seconds.",
+        "Round 2: Circle 10 times with an obstacle walk and solve a tougher jumbled puzzle while dizzy.",
+        "Round 3: 10 fast spins, zig-zag run and solve the final complex puzzle to become the Mind Maze Champion."
+      ],
+      "perks": [
+        "Exciting Cash Prizes",
+        "Official Winner Certificates",
+        "Fun & Refreshments"
+      ],
+      "outcomes": [
+        "Improves focus, balance and quick thinking under pressure while having fun."
+      ],
+      "certificates": "Winner Shields & Certificates of Achievement.",
+      "importantInstructions": [
+        "Report to the venue 15 minutes prior to scheduled start."
+      ],
+      "faqs": [
+        {
+          "q": "Can I register for Mind Maze without registering for a technical event?",
+          "a": "No. As per symposium regulations, non-technical events can only be chosen in conjunction with at least one technical event."
+        }
+      ],
+      "coordinatorName": "Ms.Varshini.V",
+      "coordinatorPhone": "+91 6384778040",
+      "coordinatorEmail": "evitron26@gmail.com",
+      "isActive": true
+    },
+    {
+      "id": "non-promptify",
+      "slug": "promptify",
+      "title": "PROMPTIFY",
+      "tagline": "AI Prompt Engineering & Creative Challenge",
+      "category": "non-technical",
+      "description": "Put your generative AI skills to the test. Craft precision prompts to generate specific design assets, solve riddles, and produce target imagery.",
+      "venue": "MEC - Classroom No: 303",
+      "time": "02:00 PM - 03:30 PM",
+      "date": "08/10/2026",
+      "eligibility": "Must be registered for at least one Technical Event with your team (2 to 4 members).",
+      "teamSize": 4,
+      "minTeamSize": 2,
+      "maxTeamSize": 4,
+      "teamSizeLabel": "Same Team (2 to 4 Members)",
+      "feePerPerson": 0,
+      "rules": [
+        "Available only for technical event registrants.",
+        "Teams will be provided specified challenges and must craft prompts using given AI models.",
+        "[EVENT RULES WILL BE UPDATED]"
+      ],
+      "procedure": [
+        "Challenge 1: Target image recreation through prompt refinement.",
+        "Challenge 2: Creative AI storyboarding and prompt efficiency."
+      ],
+      "perks": [
+        "Cash Prizes for Winners",
+        "Special AI Excellence Badges"
+      ],
+      "outcomes": [
+        "Master prompt engineering and generative workflow heuristics."
+      ],
+      "certificates": "Winner Certificates & Badges.",
+      "importantInstructions": [
+        "Participants must do on their mobiles or laptop, systems will not be provided."
+      ],
+      "faqs": [
+        {
+          "q": "Which AI platforms will be used?",
+          "a": "Standard open/accessible generative interfaces such as ChatGPT, Gemini and more."
+        }
+      ],
+      "coordinatorName": "Mr.Madhan M",
+      "coordinatorPhone": "+91 6382409516",
+      "coordinatorEmail": "evitron26@gmail.com",
+      "isActive": true
+    },
+    {
+      "id": "non-memix",
+      "slug": "memix",
+      "title": "MEMIX",
+      "tagline": "Tech Meme & Creative Media Contest",
+      "category": "non-technical",
+      "description": "Showcase your wit and humor. Design relatable, laugh-out-loud engineering and college life memes based on spontaneous on-spot themes.",
+      "venue": "MEC - Classroom No: G-18",
+      "time": "02:00 PM - 03:30 PM",
+      "date": "08/10/2026",
+      "eligibility": "Must be registered for at least one Technical Event with your team.",
+      "teamSize": 1,
+      "teamSizeLabel": "Individual (From Registered Tech Team)",
+      "feePerPerson": 0,
+      "rules": [
+        "Available only to technical event participants.",
+        "Content must be respectful, free from vulgarity or hate speech.",
+        "Memes must be original and created during the event time.",
+        "[EVENT RULES WILL BE UPDATED]"
+      ],
+      "procedure": [
+        "Topic release on spot.",
+        "10 minutes design & crafting time.",
+        "Presentation and jury voting."
+      ],
+      "perks": [
+        "Cash Prizes & Viral Creator Awards",
+        "Certificates"
+      ],
+      "outcomes": [
+        "Creative expression and humor in technical culture."
+      ],
+      "certificates": "Winner Shields & Certificates.",
+      "importantInstructions": [
+        "Bring laptops or smartphones with graphic editors on your own."
+      ],
+      "faqs": [
+        {
+          "q": "Can templates be used?",
+          "a": "Standard meme templates are permitted; captions must be 100% original."
+        }
+      ],
+      "coordinatorName": "Mr.Harendra R",
+      "coordinatorPhone": "+91 9514876965",
+      "coordinatorEmail": "evitron26@gmail.com",
+      "isActive": true
+    },
+    {
+      "id": "non-detective-404",
+      "slug": "detective-404",
+      "title": "DETECTIVE 404",
+      "tagline": "Circuit Bug Hunting & Mystery Puzzle",
+      "category": "non-technical",
+      "description": "Step into the shoes of a cyber and hardware detective. Unravel clues, debug sabotaged breadboards, and solve the tech escape mystery.",
+      "venue": "MEC - Communications Lab",
+      "time": "02:30 PM - 04:00 PM",
+      "date": "08/10/2026",
+      "eligibility": "Must be registered for at least one Technical Event with your team (2 to 4 members).",
+      "teamSize": 4,
+      "minTeamSize": 2,
+      "maxTeamSize": 4,
+      "teamSizeLabel": "Same Team (2 to 4 Members)",
+      "feePerPerson": 0,
+      "rules": [
+        "Team must already be enrolled in a technical event.",
+        "Follow clues sequentially; Systems will not be provided.",
+        "[EVENT RULES WILL BE UPDATED]"
+      ],
+      "procedure": [
+        "Stage 1: Decode cryptographic coordinates on campus.",
+        "Stage 2: Fix deliberate wiring faults on test circuit.",
+        "Stage 3: Unlock final mystery safe."
+      ],
+      "perks": [
+        "Cash Prizes for Top Detectives",
+        "Event Certificates"
+      ],
+      "outcomes": [
+        "Teamwork, diagnostic troubleshooting, and lateral deduction."
+      ],
+      "certificates": "Master Detective Trophy & Certificates of Merit.",
+      "importantInstructions": [
+        "Follow all safety rules in the laboratory arena."
+      ],
+      "faqs": [
+        {
+          "q": "Is it physical or digital?",
+          "a": "digital puzzle decoding!"
+        }
+      ],
+      "coordinatorName": "Mr.Jeevanesh S",
+      "coordinatorPhone": "+91 8015272452",
+      "coordinatorEmail": "evitron26@gmail.com",
+      "isActive": true
+    }
+  ],
+  "registrations": [
+    {
+      "id": "EV26-PMTKTS",
+      "createdAt": "2026-09-26T09:56:36.000Z",
+      "registrationType": "workshop",
+      "eventsText": "SILICON 2 GDS",
+      "selectedWorkshopId": "ws-silicon-2-gds",
+      "selectedTechnicalIds": [],
+      "selectedNonTechnicalIds": [],
+      "teamLeader": {
+        "fullName": "Janani Thangaraj",
+        "email": "jananithangaraj50@gmail.com",
+        "phone": "9342587910",
+        "college": "PSNA College of engineering and technology",
+        "department": "ECE",
+        "year": "III YEAR"
+      },
+      "participants": [
+        {
+          "fullName": "Janani Thangaraj",
+          "email": "jananithangaraj50@gmail.com",
+          "phone": "9342587910",
+          "college": "PSNA College of engineering and technology",
+          "department": "ECE",
+          "year": "III YEAR"
+        }
+      ],
+      "totalAmount": 300,
+      "paymentMethod": "UPI",
+      "paymentStatus": "paid",
+      "paymentId": "663546156128",
+      "upiReference": "663546156128",
+      "paymentProofUrl": "https://drive.google.com/file/d/1j441xUULHRznSdQXRoDnUi4mtTr0_4Ob/view?usp=drivesdk",
+      "attendanceMarked": false
+    },
+    {
+      "id": "EV26-5F5A9P",
+      "createdAt": "2026-09-26T05:59:27.000Z",
+      "registrationType": "workshop",
+      "eventsText": "Workshop",
+      "selectedTechnicalIds": [],
+      "selectedNonTechnicalIds": [],
+      "teamLeader": {
+        "fullName": "Monisha.M",
+        "email": "manickammonisha710@gmail.com",
+        "phone": "9363646981",
+        "college": "Paavai Engineering College",
+        "department": "BME",
+        "year": "||| Year"
+      },
+      "participants": [
+        {
+          "fullName": "Monisha.M",
+          "email": "manickammonisha710@gmail.com",
+          "phone": "9363646981",
+          "college": "Paavai Engineering College",
+          "department": "BME",
+          "year": "||| Year"
+        }
+      ],
+      "totalAmount": 300,
+      "paymentMethod": "UPI",
+      "paymentStatus": "paid",
+      "paymentId": "663554757030",
+      "upiReference": "663554757030",
+      "paymentProofUrl": "https://drive.google.com/file/d/1tz9nIUBRgqgThnK4Uo8h91vr-aqv0I_3/view?usp=drivesdk",
+      "attendanceMarked": false
+    },
+    {
+      "id": "EV26-YJPL55",
+      "createdAt": "2026-09-25T17:27:25.000Z",
+      "registrationType": "technical",
+      "eventsText": "EVOLVEX, PROMPTIFY",
+      "selectedTechnicalIds": [
+        "evolvex",
+        "tech-evolvex"
+      ],
+      "selectedNonTechnicalIds": [
+        "promptify",
+        "non-promptify"
+      ],
+      "teamLeader": {
+        "fullName": "KAVIN KUMAR L",
+        "email": "kavinkumarkumar184@gmail.com",
+        "phone": "7339602973",
+        "college": "Government College Of Engineering, Salem",
+        "department": "CSE",
+        "year": "2 nd year"
+      },
+      "participants": [
+        {
+          "fullName": "KAVIN KUMAR L",
+          "email": "kavinkumarkumar184@gmail.com",
+          "phone": "7339602973",
+          "college": "Government College Of Engineering, Salem",
+          "department": "CSE",
+          "year": "2 nd year"
+        },
+        {
+          "fullName": "Iftkhar Anjum",
+          "email": "",
+          "phone": "7810039822",
+          "college": "Government College Of Engineering, Salem",
+          "department": "CSE",
+          "year": "2 nd year"
+        }
+      ],
+      "totalAmount": 500,
+      "paymentMethod": "UPI",
+      "paymentStatus": "paid",
+      "paymentId": "200261131722",
+      "upiReference": "200261131722",
+      "paymentProofUrl": "https://drive.google.com/file/d/1hi33hXDbXIOw5A5ce9OxSCamePrhvS8i/view?usp=drivesdk",
+      "attendanceMarked": false
+    },
+    {
+      "id": "EV26-5F4JJ9",
+      "createdAt": "2026-09-25T17:03:25.000Z",
+      "registrationType": "workshop",
+      "eventsText": "Workshop",
+      "selectedTechnicalIds": [],
+      "selectedNonTechnicalIds": [],
+      "teamLeader": {
+        "fullName": "M.Madhuvarshini",
+        "email": "madhuvarshini934@gmail.com",
+        "phone": "9080274757",
+        "college": "Mahendra Engineering college,Namakkal",
+        "department": "Ece",
+        "year": "1"
+      },
+      "participants": [
+        {
+          "fullName": "M.Madhuvarshini",
+          "email": "madhuvarshini934@gmail.com",
+          "phone": "9080274757",
+          "college": "Mahendra Engineering college,Namakkal",
+          "department": "Ece",
+          "year": "1"
+        }
+      ],
+      "totalAmount": 300,
+      "paymentMethod": "UPI",
+      "paymentStatus": "paid",
+      "paymentId": "663424905691",
+      "upiReference": "663424905691",
+      "paymentProofUrl": "https://drive.google.com/file/d/1-b3QvYjTsZ3I1uUAPYnD-dqZYM096nr7/view?usp=drivesdk",
+      "attendanceMarked": false
+    },
+    {
+      "id": "EV26-FWDRSL",
+      "createdAt": "2026-09-25T16:39:00.000Z",
+      "registrationType": "workshop",
+      "eventsText": "Workshop",
+      "selectedTechnicalIds": [],
+      "selectedNonTechnicalIds": [],
+      "teamLeader": {
+        "fullName": "Jeeva S",
+        "email": "jeevajeevas2008@gmail.com",
+        "phone": "6379629737",
+        "college": "Dhanalakshmi Srinivasan University perambalur",
+        "department": "Computer Science and Engineering",
+        "year": "II year"
+      },
+      "participants": [
+        {
+          "fullName": "Jeeva S",
+          "email": "jeevajeevas2008@gmail.com",
+          "phone": "6379629737",
+          "college": "Dhanalakshmi Srinivasan University perambalur",
+          "department": "Computer Science and Engineering",
+          "year": "II year"
+        }
+      ],
+      "totalAmount": 300,
+      "paymentMethod": "UPI",
+      "paymentStatus": "paid",
+      "paymentId": "jeevajeevas2008@okhdfcbank",
+      "upiReference": "jeevajeevas2008@okhdfcbank",
+      "paymentProofUrl": "https://drive.google.com/file/d/1KgOPRBLP4miu3vzEBpcOtsrBahlhr-vj/view?usp=drivesdk",
+      "attendanceMarked": false
+    },
+    {
+      "id": "EV26-ZNHM57",
+      "createdAt": "2026-09-25T16:38:04.000Z",
+      "registrationType": "workshop",
+      "eventsText": "Workshop",
+      "selectedTechnicalIds": [],
+      "selectedNonTechnicalIds": [],
+      "teamLeader": {
+        "fullName": "Hema",
+        "email": "hjayakumar791@gmail.com",
+        "phone": "6374411399",
+        "college": "Dhanalakshmi Srinivasan university",
+        "department": "Ece",
+        "year": "II year"
+      },
+      "participants": [
+        {
+          "fullName": "Hema",
+          "email": "hjayakumar791@gmail.com",
+          "phone": "6374411399",
+          "college": "Dhanalakshmi Srinivasan university",
+          "department": "Ece",
+          "year": "II year"
+        }
+      ],
+      "totalAmount": 300,
+      "paymentMethod": "UPI",
+      "paymentStatus": "paid",
+      "paymentId": "hjayakumar791@okicici",
+      "upiReference": "hjayakumar791@okicici",
+      "paymentProofUrl": "https://drive.google.com/file/d/1vqFkoCLK9LkXVOS1ugg5PQNPeceQdg-8/view?usp=drivesdk",
+      "attendanceMarked": false
+    },
+    {
+      "id": "EV26-83NG9S",
+      "createdAt": "2026-09-25T16:31:17.000Z",
+      "registrationType": "workshop",
+      "eventsText": "Workshop",
+      "selectedTechnicalIds": [],
+      "selectedNonTechnicalIds": [],
+      "teamLeader": {
+        "fullName": "Divya",
+        "email": "dhivyadhinesh783@gmail.Com",
+        "phone": "9655513391",
+        "college": "Dhanalakshmi Srinivasan university",
+        "department": "Cse",
+        "year": "II year"
+      },
+      "participants": [
+        {
+          "fullName": "Divya",
+          "email": "dhivyadhinesh783@gmail.Com",
+          "phone": "9655513391",
+          "college": "Dhanalakshmi Srinivasan university",
+          "department": "Cse",
+          "year": "II year"
+        }
+      ],
+      "totalAmount": 300,
+      "paymentMethod": "UPI",
+      "paymentStatus": "paid",
+      "paymentId": "rs.dhinesh4494@okaxis",
+      "upiReference": "rs.dhinesh4494@okaxis",
+      "paymentProofUrl": "https://drive.google.com/file/d/1D9rMoD8Q9uFeYleG2GbxE9Li2fFVjEo6/view?usp=drivesdk",
+      "attendanceMarked": false
+    },
+    {
+      "id": "EV26-CDAWT8",
+      "createdAt": "2026-09-25T16:11:02.000Z",
+      "registrationType": "workshop",
+      "eventsText": "Embedded System",
+      "selectedWorkshopId": "ws-embedded-system",
+      "selectedTechnicalIds": [],
+      "selectedNonTechnicalIds": [],
+      "teamLeader": {
+        "fullName": "Nivetha V",
+        "email": "nivet4007@gmail.com",
+        "phone": "+91 80722 97249",
+        "college": "Dhanalakshmi Srinivasan university Perambalur",
+        "department": "CSE with IOT",
+        "year": "2nd year"
+      },
+      "participants": [
+        {
+          "fullName": "Nivetha V",
+          "email": "nivet4007@gmail.com",
+          "phone": "+91 80722 97249",
+          "college": "Dhanalakshmi Srinivasan university Perambalur",
+          "department": "CSE with IOT",
+          "year": "2nd year"
+        }
+      ],
+      "totalAmount": 300,
+      "paymentMethod": "UPI",
+      "paymentStatus": "paid",
+      "paymentId": "663424325830",
+      "upiReference": "663424325830",
+      "paymentProofUrl": "https://drive.google.com/file/d/1qYun_tKRNaYi4ru_ZQT2RRh978Pn2A6A/view?usp=drivesdk",
+      "attendanceMarked": false
+    },
+    {
+      "id": "EV26-YNA5Y5",
+      "createdAt": "2026-09-25T15:32:04.000Z",
+      "registrationType": "technical",
+      "eventsText": "TECHPAPER",
+      "selectedTechnicalIds": [
+        "techpaper",
+        "tech-techpaper"
+      ],
+      "selectedNonTechnicalIds": [],
+      "teamLeader": {
+        "fullName": "Indhuja.M",
+        "email": "Induhujamuthukumar@gmail.com",
+        "phone": "+91 90258 82008",
+        "college": "Muthayammal Engineering College, Rasipuram",
+        "department": "ECE",
+        "year": "III"
+      },
+      "participants": [
+        {
+          "fullName": "Indhuja.M",
+          "email": "Induhujamuthukumar@gmail.com",
+          "phone": "+91 90258 82008",
+          "college": "Muthayammal Engineering College, Rasipuram",
+          "department": "ECE",
+          "year": "III"
+        },
+        {
+          "fullName": "Kaviya.D",
+          "email": "",
+          "phone": "9789117768",
+          "college": "Muthayammal Engineering College, Rasipuram",
+          "department": "ECE",
+          "year": "III"
+        },
+        {
+          "fullName": "Kokila.D",
+          "email": "",
+          "phone": "+91 74189 19407",
+          "college": "Muthayammal Engineering College, Rasipuram",
+          "department": "ECE",
+          "year": "III"
+        }
+      ],
+      "totalAmount": 750,
+      "paymentMethod": "UPI",
+      "paymentStatus": "paid",
+      "paymentId": "9789117768@ptyes",
+      "upiReference": "9789117768@ptyes",
+      "paymentProofUrl": "https://drive.google.com/file/d/19rQtMXZH2kBO5036WExyCp2dtJDUoGBH/view?usp=drivesdk",
+      "attendanceMarked": false
+    },
+    {
+      "id": "EV26-AXGLQ9",
+      "createdAt": "2026-09-25T15:27:50.000Z",
+      "registrationType": "workshop",
+      "eventsText": "Workshop",
+      "selectedTechnicalIds": [],
+      "selectedNonTechnicalIds": [],
+      "teamLeader": {
+        "fullName": "V.Priyadharshini",
+        "email": "priyadharshini.v7143@gmail.com",
+        "phone": "9080346355",
+        "college": "Dhanalakshmi Srinivasan university",
+        "department": "Btech CSE with IOT",
+        "year": "II nd year"
+      },
+      "participants": [
+        {
+          "fullName": "V.Priyadharshini",
+          "email": "priyadharshini.v7143@gmail.com",
+          "phone": "9080346355",
+          "college": "Dhanalakshmi Srinivasan university",
+          "department": "Btech CSE with IOT",
+          "year": "II nd year"
+        }
+      ],
+      "totalAmount": 300,
+      "paymentMethod": "UPI",
+      "paymentStatus": "paid",
+      "paymentId": "663434915330",
+      "upiReference": "663434915330",
+      "paymentProofUrl": "https://drive.google.com/file/d/1eqrbqJAnpbS_PB4h3txvQYGF2AToTwxu/view?usp=drivesdk",
+      "attendanceMarked": false
+    },
+    {
+      "id": "EV26-6L7NUH",
+      "createdAt": "2026-09-25T15:22:17.000Z",
+      "registrationType": "technical",
+      "eventsText": "TRACKTRON, DETECTIVE 404",
+      "selectedTechnicalIds": [
+        "tracktron",
+        "tech-tracktron"
+      ],
+      "selectedNonTechnicalIds": [
+        "detective-404",
+        "non-detective-404"
+      ],
+      "teamLeader": {
+        "fullName": "GAPILARASU S",
+        "email": "mahagapil_bec29@mepcoeng.ac.in",
+        "phone": "8110043117",
+        "college": "MEPCO SCHLENK ENGINEERING COLLEGE",
+        "department": "ECE",
+        "year": "II"
+      },
+      "participants": [
+        {
+          "fullName": "GAPILARASU S",
+          "email": "mahagapil_bec29@mepcoeng.ac.in",
+          "phone": "8110043117",
+          "college": "MEPCO SCHLENK ENGINEERING COLLEGE",
+          "department": "ECE",
+          "year": "II"
+        },
+        {
+          "fullName": "MAATHAV N",
+          "email": "",
+          "phone": "7418634965",
+          "college": "MEPCO SCHLENK ENGINEERING COLLEGE",
+          "department": "ECE",
+          "year": "II"
+        },
+        {
+          "fullName": "G VISHNU VARTHAN",
+          "email": "",
+          "phone": "6374113026",
+          "college": "MEPCO SCHLENK ENGINEERING COLLEGE",
+          "department": "ECE",
+          "year": "II"
+        },
+        {
+          "fullName": "NAVADEEP M",
+          "email": "",
+          "phone": "7418457768",
+          "college": "MEPCO SCHLENK ENGINEERING COLLEGE",
+          "department": "ECE",
+          "year": "II"
+        }
+      ],
+      "totalAmount": 1000,
+      "paymentMethod": "UPI",
+      "paymentStatus": "paid",
+      "paymentId": "204847158693",
+      "upiReference": "204847158693",
+      "paymentProofUrl": "https://drive.google.com/file/d/1SQZ6_Ket383BnrtcaEvIxsoDLivieshi/view?usp=drivesdk",
+      "attendanceMarked": false
+    },
+    {
+      "id": "EV26-LBP38F",
+      "createdAt": "2026-09-25T15:20:27.000Z",
+      "registrationType": "workshop",
+      "eventsText": "Embedded System",
+      "selectedWorkshopId": "ws-embedded-system",
+      "selectedTechnicalIds": [],
+      "selectedNonTechnicalIds": [],
+      "teamLeader": {
+        "fullName": "YOGESHWARAN.S",
+        "email": "jegayoga1983@gmail.com",
+        "phone": "9442994802",
+        "college": "PKIET",
+        "department": "ECE",
+        "year": "Final year"
+      },
+      "participants": [
+        {
+          "fullName": "YOGESHWARAN.S",
+          "email": "jegayoga1983@gmail.com",
+          "phone": "9442994802",
+          "college": "PKIET",
+          "department": "ECE",
+          "year": "Final year"
+        }
+      ],
+      "totalAmount": 300,
+      "paymentMethod": "UPI",
+      "paymentStatus": "paid",
+      "paymentId": "663433312360",
+      "upiReference": "663433312360",
+      "paymentProofUrl": "https://drive.google.com/file/d/1Yp7OylBwUNp5yZJP1IrdLs9OiSeVOscs/view?usp=drivesdk",
+      "attendanceMarked": false
+    },
+    {
+      "id": "EV26-WUNPRL",
+      "createdAt": "2026-09-25T15:00:52.000Z",
+      "registrationType": "workshop",
+      "eventsText": "Embedded System",
+      "selectedWorkshopId": "ws-embedded-system",
+      "selectedTechnicalIds": [],
+      "selectedNonTechnicalIds": [],
+      "teamLeader": {
+        "fullName": "VIGNESH.M",
+        "email": "moonlightvignesh@gmail.com",
+        "phone": "9385494540",
+        "college": "PKIET",
+        "department": "ECE",
+        "year": "Final year"
+      },
+      "participants": [
+        {
+          "fullName": "VIGNESH.M",
+          "email": "moonlightvignesh@gmail.com",
+          "phone": "9385494540",
+          "college": "PKIET",
+          "department": "ECE",
+          "year": "Final year"
+        }
+      ],
+      "totalAmount": 300,
+      "paymentMethod": "UPI",
+      "paymentStatus": "paid",
+      "paymentId": "663471726553",
+      "upiReference": "663471726553",
+      "paymentProofUrl": "https://drive.google.com/file/d/1L1hMtwPDrQXWGWfdGm87QENGqSrDuQdP/view?usp=drivesdk",
+      "attendanceMarked": false
+    },
+    {
+      "id": "EV26-NJM2RL",
+      "createdAt": "2026-09-25T14:47:08.000Z",
+      "registrationType": "workshop",
+      "eventsText": "Embedded System",
+      "selectedWorkshopId": "ws-embedded-system",
+      "selectedTechnicalIds": [],
+      "selectedNonTechnicalIds": [],
+      "teamLeader": {
+        "fullName": "VIGNESH.B",
+        "email": "vigneshvicky27022006@gmail.com",
+        "phone": "7904190641",
+        "college": "PKIET",
+        "department": "ECE",
+        "year": "Final year"
+      },
+      "participants": [
+        {
+          "fullName": "VIGNESH.B",
+          "email": "vigneshvicky27022006@gmail.com",
+          "phone": "7904190641",
+          "college": "PKIET",
+          "department": "ECE",
+          "year": "Final year"
+        }
+      ],
+      "totalAmount": 300,
+      "paymentMethod": "UPI",
+      "paymentStatus": "paid",
+      "paymentId": "663469420924",
+      "upiReference": "663469420924",
+      "paymentProofUrl": "https://drive.google.com/file/d/1Kzm-rPXJ8s92cOHcB-b3rrLdWsHVqxVn/view?usp=drivesdk",
+      "attendanceMarked": false
+    },
+    {
+      "id": "EV26-J8Y2WA",
+      "createdAt": "2026-09-25T14:33:50.000Z",
+      "registrationType": "workshop",
+      "eventsText": "Embedded System",
+      "selectedWorkshopId": "ws-embedded-system",
+      "selectedTechnicalIds": [],
+      "selectedNonTechnicalIds": [],
+      "teamLeader": {
+        "fullName": "Sameera. I",
+        "email": "3060samee@gmail.com",
+        "phone": "8248137186",
+        "college": "Dhanalakshmi srinivasan",
+        "department": "Cse with iot",
+        "year": "II year"
+      },
+      "participants": [
+        {
+          "fullName": "Sameera. I",
+          "email": "3060samee@gmail.com",
+          "phone": "8248137186",
+          "college": "Dhanalakshmi srinivasan",
+          "department": "Cse with iot",
+          "year": "II year"
+        }
+      ],
+      "totalAmount": 300,
+      "paymentMethod": "UPI",
+      "paymentStatus": "paid",
+      "paymentId": "6383109049",
+      "upiReference": "6383109049",
+      "paymentProofUrl": "https://drive.google.com/file/d/17bvTirMLieVeY_4peeqba6tfAV_YZ3wk/view?usp=drivesdk",
+      "attendanceMarked": false
+    },
+    {
+      "id": "EV26-EU7TGS",
+      "createdAt": "2026-09-25T14:02:13.000Z",
+      "registrationType": "workshop",
+      "eventsText": "Workshop",
+      "selectedTechnicalIds": [],
+      "selectedNonTechnicalIds": [],
+      "teamLeader": {
+        "fullName": "Sameera",
+        "email": "Sameera.j.sara@gmail.com",
+        "phone": "6380778732",
+        "college": "Dhanalakshmi Srinivasan university",
+        "department": "AIDS",
+        "year": "II year"
+      },
+      "participants": [
+        {
+          "fullName": "Sameera",
+          "email": "Sameera.j.sara@gmail.com",
+          "phone": "6380778732",
+          "college": "Dhanalakshmi Srinivasan university",
+          "department": "AIDS",
+          "year": "II year"
+        }
+      ],
+      "totalAmount": 300,
+      "paymentMethod": "UPI",
+      "paymentStatus": "paid",
+      "paymentId": "sameera.j1908@okaxis",
+      "upiReference": "sameera.j1908@okaxis",
+      "paymentProofUrl": "https://drive.google.com/file/d/1vZq_yWuFA8Bqks_rR_mSOywF0Zk1LI6z/view?usp=drivesdk",
+      "attendanceMarked": false
+    },
+    {
+      "id": "EV26-ZREEM7",
+      "createdAt": "2026-09-25T13:46:25.000Z",
+      "registrationType": "workshop",
+      "eventsText": "Workshop",
+      "selectedTechnicalIds": [],
+      "selectedNonTechnicalIds": [],
+      "teamLeader": {
+        "fullName": "Dharani",
+        "email": "dharaniezhilarasi536@gmail.com",
+        "phone": "7418547899",
+        "college": "Dhanalakshmi Srinivasan university prembalur",
+        "department": "Cse",
+        "year": "II year"
+      },
+      "participants": [
+        {
+          "fullName": "Dharani",
+          "email": "dharaniezhilarasi536@gmail.com",
+          "phone": "7418547899",
+          "college": "Dhanalakshmi Srinivasan university prembalur",
+          "department": "Cse",
+          "year": "II year"
+        }
+      ],
+      "totalAmount": 300,
+      "paymentMethod": "UPI",
+      "paymentStatus": "paid",
+      "paymentId": "dharaniezhilarasi536@okhdfcbank",
+      "upiReference": "dharaniezhilarasi536@okhdfcbank",
+      "paymentProofUrl": "https://drive.google.com/file/d/1LEFttVoOVGlnxKbDb6XGy-c0WWeGavJx/view?usp=drivesdk",
+      "attendanceMarked": false
+    },
+    {
+      "id": "EV26-BDLJRR",
+      "createdAt": "2026-09-25T13:24:23.000Z",
+      "registrationType": "technical",
+      "eventsText": "TECHPAPER, PROMPTIFY",
+      "selectedTechnicalIds": [
+        "techpaper",
+        "tech-techpaper"
+      ],
+      "selectedNonTechnicalIds": [
+        "promptify",
+        "non-promptify"
+      ],
+      "teamLeader": {
+        "fullName": "Anusri Kumar",
+        "email": "anusrikumarak07@gmail.com",
+        "phone": "8072116326",
+        "college": "Vivekananda",
+        "department": "",
+        "year": ""
+      },
+      "participants": [
+        {
+          "fullName": "Anusri Kumar",
+          "email": "anusrikumarak07@gmail.com",
+          "phone": "8072116326",
+          "college": "Vivekananda",
+          "department": "",
+          "year": ""
+        },
+        {
+          "fullName": "J.R. divya dharshini",
+          "email": "",
+          "phone": "7200818761",
+          "college": "Vivekananda",
+          "department": "",
+          "year": ""
+        },
+        {
+          "fullName": "K.priya varshini",
+          "email": "",
+          "phone": "9842769107",
+          "college": "Vivekananda",
+          "department": "",
+          "year": ""
+        }
+      ],
+      "totalAmount": 750,
+      "paymentMethod": "UPI",
+      "paymentStatus": "paid",
+      "paymentId": "anusrikumarak2007@oksbi",
+      "upiReference": "anusrikumarak2007@oksbi",
+      "paymentProofUrl": "https://drive.google.com/file/d/1bVTEHknogztaXF2YW4mKdc-h9c7Hpimp/view?usp=drivesdk",
+      "attendanceMarked": false
+    },
+    {
+      "id": "EV26-AAJEJL",
+      "createdAt": "2026-09-25T13:22:39.000Z",
+      "registrationType": "workshop",
+      "eventsText": "Workshop",
+      "selectedTechnicalIds": [],
+      "selectedNonTechnicalIds": [],
+      "teamLeader": {
+        "fullName": "ROHAN",
+        "email": "rohanchandran777@gmail.com",
+        "phone": "8778188664",
+        "college": "Perunthalaivar kamarajar institute of engineering and technology",
+        "department": "ECE",
+        "year": "IV year"
+      },
+      "participants": [
+        {
+          "fullName": "ROHAN",
+          "email": "rohanchandran777@gmail.com",
+          "phone": "8778188664",
+          "college": "Perunthalaivar kamarajar institute of engineering and technology",
+          "department": "ECE",
+          "year": "IV year"
+        }
+      ],
+      "totalAmount": 300,
+      "paymentMethod": "UPI",
+      "paymentStatus": "paid",
+      "paymentId": "663467504151",
+      "upiReference": "663467504151",
+      "paymentProofUrl": "https://drive.google.com/file/d/1fknhBesYx4njw4OPaXemo-Gy57rUAagb/view?usp=drivesdk",
+      "attendanceMarked": false
+    },
+    {
+      "id": "EV26-GVGACS",
+      "createdAt": "2026-09-25T10:34:51.000Z",
+      "registrationType": "workshop",
+      "eventsText": "Virtual Instrumentation",
+      "selectedTechnicalIds": [],
+      "selectedNonTechnicalIds": [],
+      "teamLeader": {
+        "fullName": "B.S.RANJITH KUMAR",
+        "email": "ranjithkumarsumathi1946@gmail.com",
+        "phone": "9003229274",
+        "college": "Mahendra Engineering college",
+        "department": "Mechanical engineering",
+        "year": "2 year"
+      },
+      "participants": [
+        {
+          "fullName": "B.S.RANJITH KUMAR",
+          "email": "ranjithkumarsumathi1946@gmail.com",
+          "phone": "9003229274",
+          "college": "Mahendra Engineering college",
+          "department": "Mechanical engineering",
+          "year": "2 year"
+        }
+      ],
+      "totalAmount": 300,
+      "paymentMethod": "UPI",
+      "paymentStatus": "paid",
+      "paymentId": "ranjithkumarsumathi1946@okicici",
+      "upiReference": "ranjithkumarsumathi1946@okicici",
+      "paymentProofUrl": "https://drive.google.com/file/d/1dIZ7maplWaDxem_TxlOPwfCzGJfTEu0S/view?usp=drivesdk",
+      "attendanceMarked": false,
+      "selectedWorkshopId": "ws-virtual-instrumentation"
+    },
+    {
+      "id": "EV26-Q86N2M",
+      "createdAt": "2026-09-25T10:23:02.000Z",
+      "registrationType": "workshop",
+      "eventsText": "Virtual Instrumentation",
+      "selectedTechnicalIds": [],
+      "selectedNonTechnicalIds": [],
+      "teamLeader": {
+        "fullName": "M. SANJAY RAJ",
+        "email": "rajsanjay197383@gmail.com",
+        "phone": "8754449964",
+        "college": "MAHENDRA ENGINEERING COLLEGE",
+        "department": "MECHANICAL",
+        "year": "ll - YEAR"
+      },
+      "participants": [
+        {
+          "fullName": "M. SANJAY RAJ",
+          "email": "rajsanjay197383@gmail.com",
+          "phone": "8754449964",
+          "college": "MAHENDRA ENGINEERING COLLEGE",
+          "department": "MECHANICAL",
+          "year": "ll - YEAR"
+        }
+      ],
+      "totalAmount": 300,
+      "paymentMethod": "UPI",
+      "paymentStatus": "paid",
+      "paymentId": "8754449964@upi",
+      "upiReference": "8754449964@upi",
+      "paymentProofUrl": "https://drive.google.com/file/d/1nBfcgQmxOy3Lv726_6fvhd2AwuwXlqW2/view?usp=drivesdk",
+      "attendanceMarked": false,
+      "selectedWorkshopId": "ws-virtual-instrumentation"
+    },
+    {
+      "id": "EV26-MAD6UV",
+      "createdAt": "2026-09-25T09:40:34.000Z",
+      "registrationType": "technical",
+      "eventsText": "TRACKTRON",
+      "selectedTechnicalIds": [
+        "tracktron",
+        "tech-tracktron"
+      ],
+      "selectedNonTechnicalIds": [],
+      "teamLeader": {
+        "fullName": "Aathish Raja RV",
+        "email": "rajaaathish07@gmail.com",
+        "phone": "9751536877",
+        "college": "RVS institution of technology",
+        "department": "BE. MECHANICAL",
+        "year": "2nd"
+      },
+      "participants": [
+        {
+          "fullName": "Aathish Raja RV",
+          "email": "rajaaathish07@gmail.com",
+          "phone": "9751536877",
+          "college": "RVS institution of technology",
+          "department": "BE. MECHANICAL",
+          "year": "2nd"
+        },
+        {
+          "fullName": "Mano bala k",
+          "email": "",
+          "phone": "6383906838",
+          "college": "RVS institution of technology",
+          "department": "BE. MECHANICAL",
+          "year": "2nd"
+        }
+      ],
+      "totalAmount": 500,
+      "paymentMethod": "UPI",
+      "paymentStatus": "paid",
+      "paymentId": "130209073862",
+      "upiReference": "130209073862",
+      "paymentProofUrl": "https://drive.google.com/file/d/1ck_qwjzZ0jUYXzNWnE3WSWVQeOCb1miX/view?usp=drivesdk",
+      "attendanceMarked": false
+    },
+    {
+      "id": "EV26-QHCGSJ",
+      "createdAt": "2026-09-24T12:13:07.000Z",
+      "registrationType": "technical",
+      "eventsText": "TRACKTRON, MIND MAZE",
+      "selectedTechnicalIds": [
+        "tracktron",
+        "tech-tracktron"
+      ],
+      "selectedNonTechnicalIds": [
+        "mind-maze",
+        "non-mind-maze"
+      ],
+      "teamLeader": {
+        "fullName": "AKSHAYA S M",
+        "email": "akshayasm.25eee@kongu.edu",
+        "phone": "6385320769",
+        "college": "KONGU ENGINEERING COLLEGE",
+        "department": "EEE",
+        "year": "II year"
+      },
+      "participants": [
+        {
+          "fullName": "AKSHAYA S M",
+          "email": "akshayasm.25eee@kongu.edu",
+          "phone": "6385320769",
+          "college": "KONGU ENGINEERING COLLEGE",
+          "department": "EEE",
+          "year": "II year"
+        },
+        {
+          "fullName": "DEEPAK K",
+          "email": "",
+          "phone": "96880 06911",
+          "college": "KONGU ENGINEERING COLLEGE",
+          "department": "EEE",
+          "year": "II year"
+        },
+        {
+          "fullName": "KATHIRVEL S",
+          "email": "",
+          "phone": "91509 25100",
+          "college": "KONGU ENGINEERING COLLEGE",
+          "department": "EEE",
+          "year": "II year"
+        }
+      ],
+      "totalAmount": 750,
+      "paymentMethod": "UPI",
+      "paymentStatus": "paid",
+      "paymentId": "663360798783",
+      "upiReference": "663360798783",
+      "paymentProofUrl": "N/A",
+      "attendanceMarked": false
+    },
+    {
+      "id": "EV26-9A8C9T",
+      "createdAt": "2026-09-24T11:46:41.000Z",
+      "registrationType": "technical",
+      "eventsText": "TECHPAPER",
+      "selectedTechnicalIds": [
+        "techpaper",
+        "tech-techpaper"
+      ],
+      "selectedNonTechnicalIds": [],
+      "teamLeader": {
+        "fullName": "K.Rajathi",
+        "email": "25aiml083@vcew.ac.in",
+        "phone": "9003971311",
+        "college": "Vivekanandha College of Engineering for Women",
+        "department": "AI&ML",
+        "year": "II Year"
+      },
+      "participants": [
+        {
+          "fullName": "K.Rajathi",
+          "email": "25aiml083@vcew.ac.in",
+          "phone": "9003971311",
+          "college": "Vivekanandha College of Engineering for Women",
+          "department": "AI&ML",
+          "year": "II Year"
+        },
+        {
+          "fullName": "M.Prinitha",
+          "email": "",
+          "phone": "8807077266",
+          "college": "Vivekanandha College of Engineering for Women",
+          "department": "AI&ML",
+          "year": "II Year"
+        },
+        {
+          "fullName": "P.Nethra",
+          "email": "",
+          "phone": "8428982377",
+          "college": "Vivekanandha College of Engineering for Women",
+          "department": "AI&ML",
+          "year": "II Year"
+        },
+        {
+          "fullName": "V.Vinotha",
+          "email": "",
+          "phone": "9087077843",
+          "college": "Vivekanandha College of Engineering for Women",
+          "department": "AI&ML",
+          "year": "II Year"
+        }
+      ],
+      "totalAmount": 1000,
+      "paymentMethod": "UPI",
+      "paymentStatus": "paid",
+      "paymentId": "663313899405",
+      "upiReference": "663313899405",
+      "paymentProofUrl": "N/A",
+      "attendanceMarked": false
+    },
+    {
+      "id": "EV26-749DXQ",
+      "createdAt": "2026-09-23T17:58:41.000Z",
+      "registrationType": "technical",
+      "eventsText": "TRACKTRON",
+      "selectedTechnicalIds": [
+        "tracktron",
+        "tech-tracktron"
+      ],
+      "selectedNonTechnicalIds": [],
+      "teamLeader": {
+        "fullName": "VADIVELMUTHU A L",
+        "email": "vadivelmuthu777_bec29@mepcoeng.ac.in",
+        "phone": "7339344645",
+        "college": "MEPCO SCHLENK ENGINEERING COLLEGE",
+        "department": "ECE",
+        "year": "II"
+      },
+      "participants": [
+        {
+          "fullName": "VADIVELMUTHU A L",
+          "email": "vadivelmuthu777_bec29@mepcoeng.ac.in",
+          "phone": "7339344645",
+          "college": "MEPCO SCHLENK ENGINEERING COLLEGE",
+          "department": "ECE",
+          "year": "II"
+        },
+        {
+          "fullName": "SRIRAM T",
+          "email": "",
+          "phone": "9344363198",
+          "college": "MEPCO SCHLENK ENGINEERING COLLEGE",
+          "department": "ECE",
+          "year": "II"
+        },
+        {
+          "fullName": "ALANGARAM K",
+          "email": "",
+          "phone": "9342494538",
+          "college": "MEPCO SCHLENK ENGINEERING COLLEGE",
+          "department": "ECE",
+          "year": "II"
+        },
+        {
+          "fullName": "RYAN JASON",
+          "email": "",
+          "phone": "7550149262",
+          "college": "MEPCO SCHLENK ENGINEERING COLLEGE",
+          "department": "ECE",
+          "year": "II"
+        }
+      ],
+      "totalAmount": 1000,
+      "paymentMethod": "UPI",
+      "paymentStatus": "paid",
+      "paymentId": "kathirdk62@oksbi",
+      "upiReference": "kathirdk62@oksbi",
+      "paymentProofUrl": "N/A",
+      "attendanceMarked": false
+    },
+    {
+      "id": "EV26-LAFHGB",
+      "createdAt": "2026-09-23T16:25:55.000Z",
+      "registrationType": "technical",
+      "eventsText": "TECHPAPER, MIND MAZE",
+      "selectedTechnicalIds": [
+        "techpaper",
+        "tech-techpaper"
+      ],
+      "selectedNonTechnicalIds": [
+        "mind-maze",
+        "non-mind-maze"
+      ],
+      "teamLeader": {
+        "fullName": "Jenifer K",
+        "email": "j08422337@gmail.com",
+        "phone": "8778237049",
+        "college": "Nandha engineering college",
+        "department": "ECE",
+        "year": "II year"
+      },
+      "participants": [
+        {
+          "fullName": "Jenifer K",
+          "email": "j08422337@gmail.com",
+          "phone": "8778237049",
+          "college": "Nandha engineering college",
+          "department": "ECE",
+          "year": "II year"
+        },
+        {
+          "fullName": "Geethavarshini K",
+          "email": "",
+          "phone": "93608 68525",
+          "college": "Nandha engineering college",
+          "department": "ECE",
+          "year": "II year"
+        },
+        {
+          "fullName": "Sri Bhuvana S",
+          "email": "",
+          "phone": "8778268822",
+          "college": "Nandha engineering college",
+          "department": "ECE",
+          "year": "II year"
+        }
+      ],
+      "totalAmount": 750,
+      "paymentMethod": "UPI",
+      "paymentStatus": "paid",
+      "paymentId": "geethakaruppasamy24@okhdfcbank",
+      "upiReference": "geethakaruppasamy24@okhdfcbank",
+      "paymentProofUrl": "N/A",
+      "attendanceMarked": false
+    },
+    {
+      "id": "EV26-EQY8G8",
+      "createdAt": "2026-09-23T16:17:24.000Z",
+      "registrationType": "technical",
+      "eventsText": "TECHPAPER, MIND MAZE",
+      "selectedTechnicalIds": [
+        "techpaper",
+        "tech-techpaper"
+      ],
+      "selectedNonTechnicalIds": [
+        "mind-maze",
+        "non-mind-maze"
+      ],
+      "teamLeader": {
+        "fullName": "J Megana",
+        "email": "meganajaganathan@gmail.com",
+        "phone": "97896 98509",
+        "college": "Nandha Engineering college",
+        "department": "Electronics and Communication Engineering",
+        "year": "ll year"
+      },
+      "participants": [
+        {
+          "fullName": "J Megana",
+          "email": "meganajaganathan@gmail.com",
+          "phone": "97896 98509",
+          "college": "Nandha Engineering college",
+          "department": "Electronics and Communication Engineering",
+          "year": "ll year"
+        },
+        {
+          "fullName": "Gaayathiri S",
+          "email": "",
+          "phone": "8778920975",
+          "college": "Nandha Engineering college",
+          "department": "Electronics and Communication Engineering",
+          "year": "ll year"
+        },
+        {
+          "fullName": "Abi P",
+          "email": "",
+          "phone": "89250 95082",
+          "college": "Nandha Engineering college",
+          "department": "Electronics and Communication Engineering",
+          "year": "ll year"
+        },
+        {
+          "fullName": "Amirtha varshini.V",
+          "email": "",
+          "phone": "63819 09597",
+          "college": "Nandha Engineering college",
+          "department": "Electronics and Communication Engineering",
+          "year": "ll year"
+        }
+      ],
+      "totalAmount": 1000,
+      "paymentMethod": "UPI",
+      "paymentStatus": "paid",
+      "paymentId": "663201553746",
+      "upiReference": "663201553746",
+      "paymentProofUrl": "N/A",
+      "attendanceMarked": false
+    },
+    {
+      "id": "EV26-CP9RJY",
+      "createdAt": "2026-09-22T14:16:16.000Z",
+      "registrationType": "technical",
+      "eventsText": "TECHPAPER",
+      "selectedTechnicalIds": [
+        "techpaper",
+        "tech-techpaper"
+      ],
+      "selectedNonTechnicalIds": [],
+      "teamLeader": {
+        "fullName": "Kaviya B",
+        "email": "kaviyakaviya7725@gmail.com",
+        "phone": "6381077725",
+        "college": "Vivekananda College of engineering for women",
+        "department": "IT",
+        "year": "II nd year"
+      },
+      "participants": [
+        {
+          "fullName": "Kaviya B",
+          "email": "kaviyakaviya7725@gmail.com",
+          "phone": "6381077725",
+          "college": "Vivekananda College of engineering for women",
+          "department": "IT",
+          "year": "II nd year"
+        },
+        {
+          "fullName": "G.Ranjani",
+          "email": "",
+          "phone": "8072526663",
+          "college": "Vivekananda College of engineering for women",
+          "department": "IT",
+          "year": "II nd year"
+        },
+        {
+          "fullName": "S.Jayasri",
+          "email": "",
+          "phone": "88071 54036",
+          "college": "Vivekananda College of engineering for women",
+          "department": "IT",
+          "year": "II nd year"
+        }
+      ],
+      "totalAmount": 750,
+      "paymentMethod": "UPI",
+      "paymentStatus": "paid",
+      "paymentId": "400334800014",
+      "upiReference": "400334800014",
+      "paymentProofUrl": "N/A",
+      "attendanceMarked": false
+    },
+    {
+      "id": "EV26-3SYYEH",
+      "createdAt": "2026-09-18T05:37:09.000Z",
+      "registrationType": "technical",
+      "eventsText": "TRACKTRON, DETECTIVE 404",
+      "selectedTechnicalIds": [
+        "tracktron",
+        "tech-tracktron"
+      ],
+      "selectedNonTechnicalIds": [
+        "detective-404",
+        "non-detective-404"
+      ],
+      "teamLeader": {
+        "fullName": "Vidhya Dharan",
+        "email": "j7764138@gmail.com",
+        "phone": "8122348607",
+        "college": "Mahendra engineering college",
+        "department": "Mct",
+        "year": "3rd"
+      },
+      "participants": [
+        {
+          "fullName": "Vidhya Dharan",
+          "email": "j7764138@gmail.com",
+          "phone": "8122348607",
+          "college": "Mahendra engineering college",
+          "department": "Mct",
+          "year": "3rd"
+        },
+        {
+          "fullName": "Sridhar",
+          "email": "",
+          "phone": "7397633994",
+          "college": "Mahendra engineering college",
+          "department": "Mct",
+          "year": "3rd"
+        }
+      ],
+      "totalAmount": 500,
+      "paymentMethod": "UPI",
+      "paymentStatus": "paid",
+      "paymentId": "129796742444",
+      "upiReference": "129796742444",
+      "paymentProofUrl": "N/A",
+      "attendanceMarked": false
+    }
+  ],
+  "adminPasswordHash": "cc545a21a77e6b3aae3db8914a297cc12449a48a26f161bf113d0df752871457",
+  "adminSalt": "evitron26_salt"
+}
