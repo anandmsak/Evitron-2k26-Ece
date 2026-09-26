@@ -177,13 +177,13 @@ const initialEvents: EventItem[] = [
     feePerPerson: 250,
     rules: [
       'Every team must have between 2 and 4 participants (1 Team Leader + 1 to 3 Team Members; minimum 2 compulsory).',
-      'Paper abstract must be submitted on or before 27/09/2026 via Google form provided in website itself.',
+      'Paper abstract must be submitted on or before 03/10/2026 via Google form provided in website itself.',
       'Presentation time: 8 minutes for presentation + 2 minutes for Q&A by jury.',
       'Slides should not exceed 10 slides. Standard IEEE paper format preferred.',
       '[EVENT RULES WILL BE UPDATED]',
     ],
     procedure: [
-      'Step 1: Submit abstract by 27/09/2026.',
+      'Step 1: Submit abstract by 03/10/2026.',
       'Step 2: Intimation of selected papers will be sent via email.',
       'Step 3: Present before the panel on event day 08/10/2026.',
       'Step 4: Evaluation based on novelty, technical depth, and presentation clarity.',
@@ -214,7 +214,7 @@ const initialEvents: EventItem[] = [
       },
       {
         q: 'What is the abstract deadline?',
-        a: 'Abstract submission deadline is 27/09/2026.',
+        a: 'Abstract submission deadline is 03/10/2026.',
       },
     ],
     coordinatorName: 'Ms.Gopika G',

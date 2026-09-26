@@ -8,7 +8,7 @@
     "eventDate": "08/10/2026",
     "countdownTarget": "2026-10-08T09:00:00",
     "registrationDeadline": "05/10/2026",
-    "paperSubmissionDeadline": "27/09/2026",
+    "paperSubmissionDeadline": "03/10/2026",
     "isRegistrationOpen": true,
     "closedReason": "Registrations are currently closed. Please contact event coordinators for further inquiries.",
     "upiId": "6383109049@upi",
@@ -26,7 +26,7 @@
     "contactEmail": "evitron26@gmail.com",
     "instagramHandle": "https://www.instagram.com/velocity_ece_mec?stkn=dWV5ejA4ZW5hOWkz",
     "venue": "Mahendhirapuri, Mallasamudram (M), Namakkal (Dt), Tamil Nadu - 637 503",
-    "announcementText": "Registrations are now live! Paper abstract submission deadline is 27/09/2026. Cash prizes, welcome kits, food and refreshments included.",
+    "announcementText": "Registrations are now live! Last date for registration is 05/10/2026. Paper abstract submission deadline is 03/10/2026. Cash prizes, welcome kits, food and refreshments included.",
     "announcementActive": true,
     "feePerPerson": 250,
     "appEnv": "development",
@@ -212,13 +212,13 @@
       "feePerPerson": 250,
       "rules": [
         "Every team must have between 2 and 4 participants (1 Team Leader + 1 to 3 Team Members; minimum 2 compulsory).",
-        "Paper abstract must be submitted on or before 27/09/2026 via Google form provided in website itself.",
+        "Paper abstract must be submitted on or before 03/10/2026 via Google form provided in website itself.",
         "Presentation time: 8 minutes for presentation + 2 minutes for Q&A by jury.",
         "Slides should not exceed 10 slides. Standard IEEE paper format preferred.",
         "[EVENT RULES WILL BE UPDATED]"
       ],
       "procedure": [
-        "Step 1: Submit abstract by 27/09/2026.",
+        "Step 1: Submit abstract by 03/10/2026.",
         "Step 2: Intimation of selected papers will be sent via email.",
         "Step 3: Present before the panel on event day 08/10/2026.",
         "Step 4: Evaluation based on novelty, technical depth, and presentation clarity."
@@ -249,7 +249,7 @@
         },
         {
           "q": "What is the abstract deadline?",
-          "a": "Abstract submission deadline is 27/09/2026."
+          "a": "Abstract submission deadline is 03/10/2026."
         }
       ],
       "coordinatorName": "Ms.Gopika G",

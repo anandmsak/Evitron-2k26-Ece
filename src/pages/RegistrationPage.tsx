@@ -1577,19 +1577,6 @@ export const RegistrationPage: React.FC<RegistrationPageProps> = ({ events, sett
               </div>
             </div>
 
-            {/* Direct 1-Tap Mobile UPI App Launch */}
-            <div className="mb-6">
-              <a
-                href={`upi://pay?pa=${activeUpiId}&pn=${encodeURIComponent(activePayeeName)}&am=${totalAmount}&cu=INR&tn=${encodeURIComponent('EVITRON 2K26 Registration')}`}
-                className="w-full py-3 px-4 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-extrabold text-xs sm:text-sm rounded-xl shadow-xs flex items-center justify-center gap-2 transition-colors cursor-pointer text-center"
-              >
-                <span>⚡ Pay via any UPI App (GPay / PhonePe / Paytm)</span>
-              </a>
-              <p className="text-[11px] text-stone-500 text-center mt-1.5 font-medium">
-                Tap above to open your UPI app with payment amount pre-filled, or copy the UPI ID below.
-              </p>
-            </div>
-
             {/* UPI ID Copy Field */}
             <div className="mb-6">
               <label className="block text-xs font-bold text-stone-700 mb-1">

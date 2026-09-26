@@ -1912,21 +1912,23 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               </div>
 
               <div>
-                <label className="block font-bold text-stone-700 mb-1">Registration Deadline</label>
+                <label className="block font-bold text-stone-700 mb-1">Registration Last Date</label>
                 <input
                   type="text"
                   value={settingsForm.registrationDeadline}
                   onChange={(e) => setSettingsForm({ ...settingsForm, registrationDeadline: e.target.value })}
+                  placeholder="e.g. 05/10/2026"
                   className="w-full px-3 py-2 border border-stone-300 rounded-md outline-none"
                 />
               </div>
 
               <div>
-                <label className="block font-bold text-stone-700 mb-1">Paper Abstract Deadline</label>
+                <label className="block font-bold text-stone-700 mb-1">Abstract Last Date (Paper Presentation)</label>
                 <input
                   type="text"
                   value={settingsForm.paperSubmissionDeadline}
                   onChange={(e) => setSettingsForm({ ...settingsForm, paperSubmissionDeadline: e.target.value })}
+                  placeholder="e.g. 03/10/2026"
                   className="w-full px-3 py-2 border border-stone-300 rounded-md outline-none"
                 />
               </div>

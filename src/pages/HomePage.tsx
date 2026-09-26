@@ -202,7 +202,7 @@ export const HomePage: React.FC<HomePageProps> = ({ settings: propSettings, even
             </div>
             <div>
               <span className="text-[11px] font-bold text-stone-500 block uppercase">Paper Abstract Due</span>
-              <span className="text-sm font-extrabold text-stone-900">27/09/2026</span>
+              <span className="text-sm font-extrabold text-stone-900">{settings.paperSubmissionDeadline || '03/10/2026'}</span>
             </div>
           </div>
 
