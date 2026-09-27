@@ -107,7 +107,13 @@ class Store {
   }
 
   public getRegistrations(): RegistrationRecord[] {
-    return this.db.registrations;
+    const seen = new Set<string>();
+    return this.db.registrations.filter((r) => {
+      const key = (r.id || '').toUpperCase();
+      if (!key || seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
   }
 
   public getRegistrationById(id: string): RegistrationRecord | undefined {
@@ -119,7 +125,19 @@ class Store {
   }
 
   public addRegistration(registration: RegistrationRecord): RegistrationRecord {
-    this.db.registrations.unshift(registration);
+    const existingIdx = this.db.registrations.findIndex((r) => r.id.toUpperCase() === registration.id.toUpperCase());
+    if (existingIdx !== -1) {
+      this.db.registrations[existingIdx] = { ...this.db.registrations[existingIdx], ...registration };
+    } else {
+      this.db.registrations.unshift(registration);
+    }
+    const seen = new Set<string>();
+    this.db.registrations = this.db.registrations.filter((r) => {
+      const key = (r.id || '').toUpperCase();
+      if (!key || seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
     this.save();
     return registration;
   }

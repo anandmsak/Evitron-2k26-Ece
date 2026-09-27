@@ -1069,9 +1069,14 @@ export async function importRegistrations(registrations: RegistrationRecord[]): 
 
   const allEvents = store.getEvents();
 
-  // Always import into local store fallback
+  const uniqueMap = new Map<string, RegistrationRecord>();
   for (const reg of registrations) {
     if (!reg.id) continue;
+    uniqueMap.set(reg.id.toUpperCase(), reg);
+  }
+
+  // Always import into local store fallback
+  for (const reg of uniqueMap.values()) {
 
     const eventTextLower = String(reg.eventsText || '').toLowerCase();
     const selectedTechnicalIds: string[] = Array.isArray(reg.selectedTechnicalIds) ? [...reg.selectedTechnicalIds] : [];
