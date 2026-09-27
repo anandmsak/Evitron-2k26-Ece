@@ -169,14 +169,68 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     const eventObj = events.find(e => e.id === eventId);
     if (!eventObj) return list;
 
+    const isWorkshopEvent = eventObj.category === 'workshops' || eventObj.category === 'workshop';
+
     registrations.forEach((r) => {
-      const match =
-        r.selectedWorkshopId === eventObj.id ||
-        (r.selectedTechnicalIds || []).includes(eventObj.id) ||
-        (r.selectedNonTechnicalIds || []).includes(eventObj.id) ||
-        r.selectedWorkshopId === eventObj.slug ||
-        (r.selectedTechnicalIds || []).includes(eventObj.slug) ||
-        (r.selectedNonTechnicalIds || []).includes(eventObj.slug);
+      let match = false;
+
+      if (isWorkshopEvent) {
+        if (r.registrationType === 'workshop' || r.selectedWorkshopId || (r.eventsText || '').toLowerCase().includes('workshop')) {
+          const targetSlug = (eventObj.slug || '').toLowerCase().replace(/^ws-/, '').trim();
+          const targetId = (eventObj.id || '').toLowerCase().replace(/^ws-/, '').trim();
+          const targetTitleClean = cleanWorkshopTitle(eventObj.title).toLowerCase();
+
+          const regWsId = (r.selectedWorkshopId || '').toLowerCase().replace(/^ws-/, '').trim();
+          const regEventsClean = cleanWorkshopTitle(r.eventsText || r.selectedWorkshopId).toLowerCase();
+          const rawText = `${r.eventsText || ''} ${r.selectedWorkshopId || ''}`.toLowerCase();
+
+          if (regWsId && (regWsId === targetSlug || regWsId === targetId)) {
+            match = true;
+          } else if (regEventsClean && targetTitleClean && regEventsClean === targetTitleClean) {
+            match = true;
+          } else if (targetSlug.includes('silicon') || targetTitleClean.includes('silicon')) {
+            match = rawText.includes('silicon') || rawText.includes('gds') || rawText.includes('cadence') || rawText.includes('vlsi');
+          } else if (targetSlug.includes('embedded') || targetTitleClean.includes('embedded')) {
+            match = rawText.includes('embedded') || rawText.includes('microcontroller') || rawText.includes('arm');
+          } else if (targetSlug.includes('instrumentation') || targetTitleClean.includes('instrumentation')) {
+            match = rawText.includes('instrumentation') || rawText.includes('labview') || rawText.includes('virtual') || rawText.includes('daq');
+          } else if (!r.selectedWorkshopId && registrations.length === 1) {
+            match = true;
+          }
+        }
+      } else {
+        const eId = (eventObj.id || '').toLowerCase();
+        const eSlug = (eventObj.slug || '').toLowerCase();
+        const eTitle = (eventObj.title || '').toLowerCase();
+        const eIdNorm = eId.replace(/^tech-/, '').replace(/^nontech-/, '');
+        const eSlugNorm = eSlug.replace(/^tech-/, '').replace(/^nontech-/, '');
+
+        const selectedIds = [
+          ...(r.selectedTechnicalIds || []),
+          ...(r.selectedNonTechnicalIds || []),
+        ].map((id) => (id || '').toLowerCase());
+
+        match = selectedIds.some((id) => {
+          const idNorm = id.replace(/^tech-/, '').replace(/^nontech-/, '');
+          return (
+            id === eId ||
+            id === eSlug ||
+            idNorm === eSlugNorm ||
+            idNorm === eIdNorm ||
+            id === `tech-${eSlugNorm}` ||
+            id === `tech-${eIdNorm}`
+          );
+        });
+
+        if (!match && r.eventsText && r.registrationType !== 'workshop') {
+          const textLower = r.eventsText.toLowerCase();
+          if ((eSlugNorm.includes('paper') || eTitle.includes('paper')) && textLower.includes('paper')) match = true;
+          if ((eSlugNorm.includes('evolvex') || eSlugNorm.includes('project') || eTitle.includes('project')) && (textLower.includes('evolvex') || textLower.includes('project'))) match = true;
+          if ((eSlugNorm.includes('tracktron') || eSlugNorm.includes('robot') || eTitle.includes('robot')) && (textLower.includes('tracktron') || textLower.includes('robot'))) match = true;
+          if ((eSlugNorm.includes('circuit') || eTitle.includes('circuit')) && (textLower.includes('circuit') || textLower.includes('debug'))) match = true;
+          if (eSlugNorm && textLower.includes(eSlugNorm)) match = true;
+        }
+      }
       
       if (match) {
         r.participants.forEach((p, idx) => {
