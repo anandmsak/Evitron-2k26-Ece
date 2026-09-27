@@ -67,13 +67,29 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [stats, setStats] = useState<any>(null);
   const [registrations, setRegistrations] = useState<RegistrationRecord[]>(() => {
     try {
-      const cached = localStorage.getItem('evitron_admin_cached_regs');
+      const cached = localStorage.getItem('evitron_gsheet_synced_cache_v3') || localStorage.getItem('evitron_admin_cached_regs');
       if (cached) {
         const parsed = JSON.parse(cached);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const seen = new Set<string>();
+          return parsed.filter((r) => {
+            const key = (r.id || '').toUpperCase();
+            if (!key || seen.has(key)) return false;
+            seen.add(key);
+            return true;
+          });
+        }
       }
     } catch {}
     return [];
+  });
+
+  const [lastSyncedTime, setLastSyncedTime] = useState<string>(() => {
+    try {
+      const t = localStorage.getItem('evitron_gsheet_last_synced_at');
+      if (t) return new Date(Number(t)).toLocaleString();
+    } catch {}
+    return 'Synced via Cache Memory';
   });
 
   const activeStats = useMemo(() => {
@@ -345,17 +361,36 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       }
 
       if (regData.length > 0) {
-        setRegistrations(regData);
+        const seen = new Set<string>();
+        const deduped = regData.filter((r) => {
+          const key = (r.id || '').toUpperCase();
+          if (!key || seen.has(key)) return false;
+          seen.add(key);
+          return true;
+        });
+        setRegistrations(deduped);
         try {
-          localStorage.setItem('evitron_admin_cached_regs', JSON.stringify(regData));
+          const serialized = JSON.stringify(deduped);
+          localStorage.setItem('evitron_gsheet_synced_cache_v3', serialized);
+          localStorage.setItem('evitron_admin_cached_regs', serialized);
+          const now = Date.now();
+          localStorage.setItem('evitron_gsheet_last_synced_at', String(now));
+          setLastSyncedTime(new Date(now).toLocaleString());
         } catch {}
       } else if (!searchTerm && !filterType && !filterStatus) {
-        const cached = localStorage.getItem('evitron_admin_cached_regs');
+        const cached = localStorage.getItem('evitron_gsheet_synced_cache_v3') || localStorage.getItem('evitron_admin_cached_regs');
         if (cached) {
           try {
             const parsed = JSON.parse(cached);
             if (Array.isArray(parsed) && parsed.length > 0) {
-              setRegistrations(parsed);
+              const seen = new Set<string>();
+              const deduped = parsed.filter((r) => {
+                const key = (r.id || '').toUpperCase();
+                if (!key || seen.has(key)) return false;
+                seen.add(key);
+                return true;
+              });
+              setRegistrations(deduped);
             }
           } catch {}
         }
@@ -828,6 +863,26 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           <p className="text-xs text-stone-500">
             ECE Dept, Mahendra Engineering College • VELOCITY & IEEE
           </p>
+        </div>
+
+        {/* Google Sheet Sync Cache Memory Status Bar */}
+        <div className="w-full bg-emerald-50 border border-emerald-200 rounded-xl p-3.5 flex flex-wrap items-center justify-between gap-3 text-xs text-emerald-950 shadow-2xs">
+          <div className="flex items-center gap-2">
+            <RefreshCw className="w-4 h-4 text-emerald-600 shrink-0" />
+            <span>
+              <strong>Google Sheet Cache Memory Active:</strong> Last synced: <span className="font-mono font-bold text-emerald-900">{lastSyncedTime}</span> ({registrations.length} registrations loaded instantly from secure cache).
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleRestoreFromSheets}
+              disabled={isRestoringSheets}
+              className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-bold rounded-lg cursor-pointer shadow-xs transition-colors flex items-center gap-1.5 disabled:opacity-50 text-xs"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${isRestoringSheets ? 'animate-spin' : ''}`} />
+              <span>{isRestoringSheets ? 'Pulling from Sheet...' : 'Sync & Pull Fresh from Sheet'}</span>
+            </button>
+          </div>
         </div>
 
         <div className="flex items-center flex-wrap gap-2">
