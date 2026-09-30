@@ -1,14 +1,16 @@
 import React from 'react';
 import { ArrowLeft, Clock, MapPin, Users, Award, CheckCircle, ArrowRight, ShieldAlert, Sparkles, BookOpen } from 'lucide-react';
-import { EventCategory, EventItem } from '../types';
+import { EventCategory, EventItem, SiteSettings } from '../types';
 
 interface CategoryPageProps {
   category: EventCategory;
   events: EventItem[];
+  settings?: SiteSettings;
   onNavigate: (path: string) => void;
 }
 
-export const CategoryPage: React.FC<CategoryPageProps> = ({ category, events, onNavigate }) => {
+export const CategoryPage: React.FC<CategoryPageProps> = ({ category, events, settings, onNavigate }) => {
+  const regDeadline = settings?.registrationDeadline || '05/10/2026';
   const filteredEvents = events.filter((e) => {
     const ec = (e.category || '').toLowerCase();
     const target = (category || '').toLowerCase();
@@ -28,14 +30,14 @@ export const CategoryPage: React.FC<CategoryPageProps> = ({ category, events, on
     workshops: {
       title: 'Workshops',
       subtitle: 'Intensive Full-Day Practical Training with Industry Software & Hardware',
-      badge: 'Registration Fee: ₹300 / Person (Last Date: 05/10/2026)',
+      badge: `Registration Fee: ₹300 / Person (Last Date: ${regDeadline})`,
       ruleNotice: 'Participants can register for ONE workshop only. Workshop participants cannot take part in technical or non-technical events due to parallel schedules.',
       alertType: 'info',
     },
     technical: {
       title: 'Technical Events',
       subtitle: 'Present Your Research, Working Hardware Prototypes & Autonomous Line Followers',
-      badge: 'Team Size: 2 to 4 Members (Fee: ₹250 / Person • Last Date: 05/10/2026)',
+      badge: `Team Size: 2 to 4 Members (Fee: ₹250 / Person • Last Date: ${regDeadline})`,
       ruleNotice: 'Every technical event requires a team of 2 to 4 participants (min 2 compulsory, up to 4 total). Registering for a technical event also qualifies your team to participate in Non-Technical events!',
       alertType: 'success',
     },

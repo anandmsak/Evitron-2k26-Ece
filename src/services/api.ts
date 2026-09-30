@@ -9,8 +9,8 @@ const API_BASE =
     ? (metaEnv.VITE_API_BASE_URL as string).replace(/\/$/, '')
     : '';
 
-export const INITIAL_ADMIN_PASSWORD = 'Evitron26@mec.ece#07';
-export const INITIAL_ADMIN_ALT_PASSWORD = 'Evitrоn26@mec.ece#07'; // Cyrillic 'о' variant
+export const INITIAL_ADMIN_PASSWORD_HASH = 'e366ab6093f497202e56b5232a90968d4a8a12b7b290d6bb4186a591ab777135';
+export const INITIAL_ADMIN_ALT_PASSWORD_HASH = '36cc3cb78596db27ab553c7a11f9f7b0c4ce85f42e53b496f2657eec9bf52c77';
 
 const GOOGLE_SHEET_WEBHOOK_URL =
   'https://script.google.com/macros/s/AKfycbwQFDmE-3bG517qhy5jP6my90QCKsps5GLn2q7ih3vHJmTq96PikBitSCJgIqyxOqRoaQ/exec';
@@ -224,12 +224,6 @@ export async function verifyPayment(payload: any): Promise<{
 
   const parsed = await parseJsonSafely(res);
   if (res.ok && parsed.isJson) {
-    // Save copy in local storage
-    if (parsed.data?.registration) {
-      const existing = getLocalRegistrations();
-      const updated = [parsed.data.registration, ...existing.filter((r) => r.id !== parsed.data.registration.id)];
-      saveLocalRegistrations(updated);
-    }
     return parsed.data;
   }
   throw new Error(parsed.data?.error || 'Payment verification failed');
@@ -240,113 +234,17 @@ export async function submitUpiRegistration(payload: any): Promise<{
   registrationId: string;
   registration: RegistrationRecord;
 }> {
-  try {
-    const res = await fetch(`${API_BASE}/api/register-upi`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-    });
+  const res = await fetch(`${API_BASE}/api/register-upi`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
 
-    const parsed = await parseJsonSafely(res);
-    if (res.ok && parsed.isJson && parsed.data?.registrationId) {
-      // Store local backup
-      if (parsed.data?.registration) {
-        const existing = getLocalRegistrations();
-        const updated = [parsed.data.registration, ...existing.filter((r) => r.id !== parsed.data.registration.id)];
-        saveLocalRegistrations(updated);
-      }
-      return parsed.data;
-    }
-    if (parsed.isJson && parsed.data?.error) {
-      throw new Error(parsed.data.error);
-    }
-  } catch (err: any) {
-    // If it was an explicit validation error from backend, rethrow it
-    if (err.message && !err.message.includes('Unexpected') && !err.message.includes('fetch')) {
-      throw err;
-    }
-    console.warn('Backend /api/register-upi unreachable, submitting in standalone direct mode:', err);
+  const parsed = await parseJsonSafely(res);
+  if (res.ok && parsed.isJson && parsed.data?.registrationId) {
+    return parsed.data;
   }
-
-  // Standalone Direct Mode fallback for Vercel static deployments
-  const cleanId = `EV26-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
-  const now = new Date().toISOString();
-
-  const regData = payload.registrationData || {};
-  const participantsList = regData.participants || [];
-  const leader = participantsList[0] || { fullName: 'Attendee', email: '', phone: '', college: '' };
-
-  const newReg: RegistrationRecord = {
-    id: cleanId,
-    createdAt: now,
-    registrationType: regData.registrationType || 'technical',
-    selectedWorkshopId: regData.selectedWorkshopId,
-    selectedTechnicalIds: regData.selectedTechnicalIds || [],
-    selectedNonTechnicalIds: regData.selectedNonTechnicalIds || [],
-    teamLeader: leader,
-    participants: participantsList.length > 0 ? participantsList : [leader],
-    totalAmount: regData.totalAmount || (regData.registrationType === 'workshop' ? 300 : (participantsList.length * 250 || 500)),
-    paymentMethod: 'upi',
-    paymentStatus: 'pending_verification',
-    upiReference: payload.upiReference,
-    attendanceMarked: false,
-  };
-
-  const existing = getLocalRegistrations();
-  saveLocalRegistrations([newReg, ...existing]);
-
-  // Sync to Google Sheet webhook directly from browser
-  try {
-    const allEvents = getLocalEvents();
-    const eventTitles: string[] = [];
-    if (newReg.selectedWorkshopId || newReg.registrationType === 'workshop') {
-      const w = newReg.selectedWorkshopId ? findEventByAnyKey(allEvents, newReg.selectedWorkshopId) : null;
-      eventTitles.push(cleanWorkshopTitle(w ? w.title : newReg.selectedWorkshopId));
-    }
-    for (const tid of newReg.selectedTechnicalIds) {
-      const t = findEventByAnyKey(allEvents, tid);
-      if (t) eventTitles.push(t.title);
-    }
-    for (const nid of newReg.selectedNonTechnicalIds) {
-      const n = findEventByAnyKey(allEvents, nid);
-      if (n) eventTitles.push(n.title);
-    }
-
-    const sheetPayload = {
-      regId: newReg.id,
-      createdAt: newReg.createdAt,
-      track: newReg.registrationType,
-      events: eventTitles.join(', '),
-      leaderName: newReg.teamLeader.fullName,
-      leaderEmail: newReg.teamLeader.email,
-      leaderPhone: newReg.teamLeader.phone,
-      college: newReg.teamLeader.college,
-      department: newReg.teamLeader.department,
-      year: newReg.teamLeader.year,
-      participantsCount: newReg.participants.length,
-      member2: newReg.participants[1] ? `${newReg.participants[1].fullName} (${newReg.participants[1].phone})` : '',
-      member3: newReg.participants[2] ? `${newReg.participants[2].fullName} (${newReg.participants[2].phone})` : '',
-      member4: newReg.participants[3] ? `${newReg.participants[3].fullName} (${newReg.participants[3].phone})` : '',
-      amount: newReg.totalAmount,
-      paymentMethod: newReg.paymentMethod,
-      paymentStatus: newReg.paymentStatus,
-      paymentRef: newReg.upiReference || '',
-      attendance: 'Absent',
-    };
-
-    fetch(GOOGLE_SHEET_WEBHOOK_URL, {
-      method: 'POST',
-      mode: 'no-cors',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(sheetPayload),
-    }).catch(() => {});
-  } catch {}
-
-  return {
-    success: true,
-    registrationId: cleanId,
-    registration: newReg,
-  };
+  throw new Error(parsed.data?.error || 'Registration submission failed. Please try again.');
 }
 
 export async function fetchRegistrationById(id: string): Promise<RegistrationRecord & { qrDataUrl: string }> {
@@ -372,22 +270,26 @@ export async function fetchRegistrationById(id: string): Promise<RegistrationRec
   throw new Error('Registration record not found.');
 }
 
-export async function markAttendanceApi(id: string): Promise<{
+export async function markAttendanceApi(token: string, id: string): Promise<{
   success: boolean;
   message: string;
   registration?: RegistrationRecord;
 }> {
-  try {
+  if (!token.startsWith('evitron_local_')) {
     const res = await fetch(`${API_BASE}/api/attendance/mark`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json' 
+      },
       body: JSON.stringify({ registrationId: id }),
     });
     const parsed = await parseJsonSafely(res);
-    if (res.ok && parsed.isJson) {
-      return parsed.data;
+    if (!res.ok) {
+      throw new Error(parsed.data?.error || parsed.data?.message || `Failed to mark attendance (status: ${res.status})`);
     }
-  } catch {}
+    return parsed.data;
+  }
 
   // Local fallback
   const localRegs = getLocalRegistrations();
@@ -445,9 +347,16 @@ export async function adminLogin(password: string): Promise<{ success: boolean; 
 
   // Client-side authentication fallback (for Vercel static deployments or offline portal)
   const savedPassword = localStorage.getItem('evitron_admin_password');
+
+  // Compute SHA-256 of the input
+  const msgUint8 = new TextEncoder().encode(cleanInput);
+  const hashBuffer = await window.crypto.subtle.digest('SHA-256', msgUint8);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  const hashHex = hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
+
   const isMatch =
-    cleanInput === INITIAL_ADMIN_PASSWORD ||
-    cleanInput === INITIAL_ADMIN_ALT_PASSWORD ||
+    hashHex === INITIAL_ADMIN_PASSWORD_HASH ||
+    hashHex === INITIAL_ADMIN_ALT_PASSWORD_HASH ||
     (savedPassword && cleanInput === savedPassword);
 
   if (isMatch) {
@@ -458,21 +367,7 @@ export async function adminLogin(password: string): Promise<{ success: boolean; 
   throw new Error('Incorrect administrator password. Please check your credentials.');
 }
 
-export async function fetchAdminStats(token: string): Promise<any> {
-  if (!token.startsWith('evitron_local_')) {
-    try {
-      const res = await fetch(`${API_BASE}/api/admin/stats`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const parsed = await parseJsonSafely(res);
-      if (res.ok && parsed.isJson) {
-        return parsed.data;
-      }
-    } catch {}
-  }
-
-  // Calculate stats from local storage
-  const registrations = getLocalRegistrations();
+function calculateLocalStats(registrations: RegistrationRecord[]) {
   let totalParticipants = 0;
   let workshopCount = 0;
   let technicalCount = 0;
@@ -513,22 +408,60 @@ export async function fetchAdminStats(token: string): Promise<any> {
   };
 }
 
-export async function fetchAdminRegistrations(token: string, query = ''): Promise<RegistrationRecord[]> {
+export async function fetchAdminStats(token: string, signal?: AbortSignal): Promise<any> {
   if (!token.startsWith('evitron_local_')) {
-    try {
-      const res = await fetch(`${API_BASE}/api/admin/registrations${query ? `?${query}` : ''}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const parsed = await parseJsonSafely(res);
-      if (res.ok && parsed.isJson && Array.isArray(parsed.data)) {
-        return parsed.data;
-      }
-    } catch {}
+    const res = await fetch(`${API_BASE}/api/admin/stats`, {
+      headers: { Authorization: `Bearer ${token}` },
+      signal,
+    });
+    const parsed = await parseJsonSafely(res);
+    if (res.ok && parsed.isJson) {
+      return parsed.data;
+    }
+    const err = new Error(parsed.data?.error || `Failed to fetch admin stats (status: ${res.status})`) as any;
+    err.status = res.status;
+    throw err;
   }
 
-  // Filter local registrations
+  // Calculate stats from local storage
+  const registrations = getLocalRegistrations();
+  return calculateLocalStats(registrations);
+}
+
+export async function fetchAdminRegistrations(
+  token: string,
+  signalOrQuery?: AbortSignal | string,
+  query = ''
+): Promise<{ registrations: RegistrationRecord[]; stats: any }> {
+  const signal = signalOrQuery instanceof AbortSignal ? signalOrQuery : undefined;
+  const q = typeof signalOrQuery === 'string' ? signalOrQuery : query;
+
+  try {
+    const res = await fetch(`${API_BASE}/api/admin/registrations${q ? `?${q}` : ''}`, {
+      headers: { Authorization: `Bearer ${token}` },
+      signal,
+    });
+    const parsed = await parseJsonSafely(res);
+    if (res.ok && parsed.isJson) {
+      return parsed.data;
+    }
+    if (!token.startsWith('evitron_local_') || res.status === 401) {
+      if (res.status === 401) {
+        const err = new Error(parsed.data?.error || 'Unauthorized') as any;
+        err.status = 401;
+        throw err;
+      }
+    }
+  } catch (err: any) {
+    if (err?.status === 401) throw err;
+    if (!token.startsWith('evitron_local_')) {
+      console.warn('Server registrations endpoint unavailable, attempting local fallback:', err);
+    }
+  }
+
+  // Filter local registrations fallback
   let regs = getLocalRegistrations();
-  const params = new URLSearchParams(query);
+  const params = new URLSearchParams(q);
   const type = params.get('type');
   const status = params.get('status');
   const search = params.get('search')?.toLowerCase();
@@ -546,7 +479,8 @@ export async function fetchAdminRegistrations(token: string, query = ''): Promis
     );
   }
 
-  return regs;
+  const localStats = calculateLocalStats(regs);
+  return { registrations: regs, stats: localStats };
 }
 
 export async function updateRegistrationStatus(
@@ -565,20 +499,19 @@ export async function updateRegistrationStatus(
   }
 
   if (!token.startsWith('evitron_local_')) {
-    try {
-      const res = await fetch(`${API_BASE}/api/admin/registrations/${id}/status`, {
-        method: 'PATCH',
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ status }),
-      });
-      const parsed = await parseJsonSafely(res);
-      if (res.ok && parsed.isJson) {
-        return parsed.data;
-      }
-    } catch {}
+    const res = await fetch(`${API_BASE}/api/admin/registrations/${id}/status`, {
+      method: 'PATCH',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ status }),
+    });
+    const parsed = await parseJsonSafely(res);
+    if (!res.ok) {
+      throw new Error(parsed.data?.error || `Failed to update status (status: ${res.status})`);
+    }
+    return parsed.data;
   }
 
   if (updatedRecord) return updatedRecord;
@@ -591,22 +524,21 @@ export async function updateSiteSettings(token: string, updates: Partial<SiteSet
   saveLocalSettings(updated);
 
   if (!token.startsWith('evitron_local_')) {
-    try {
-      const res = await fetch(`${API_BASE}/api/admin/settings`, {
-        method: 'PATCH',
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(updates),
-      });
-      const parsed = await parseJsonSafely(res);
-      if (res.ok && parsed.isJson) {
-        const merged = { ...updated, ...parsed.data };
-        saveLocalSettings(merged);
-        return merged;
-      }
-    } catch {}
+    const res = await fetch(`${API_BASE}/api/admin/settings`, {
+      method: 'PATCH',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(updates),
+    });
+    const parsed = await parseJsonSafely(res);
+    if (!res.ok) {
+      throw new Error(parsed.data?.error || `Failed to update site settings (status: ${res.status})`);
+    }
+    const merged = { ...updated, ...parsed.data };
+    saveLocalSettings(merged);
+    return merged;
   }
 
   return updated;
@@ -663,32 +595,26 @@ export async function updateEventDetails(
   }
 
   if (!token.startsWith('evitron_local_')) {
-    try {
-      const res = await fetch(`${API_BASE}/api/admin/events/${eventId}`, {
-        method: 'PATCH',
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(updates),
-      });
-      const parsed = await parseJsonSafely(res);
-      if (res.ok && parsed.isJson) {
-        const serverEvent = parsed.data;
-        const fresh = getLocalEvents();
-        const fIdx = fresh.findIndex((e) => e.id === eventId);
-        if (fIdx !== -1) {
-          fresh[fIdx] = { ...fresh[fIdx], ...serverEvent };
-          saveLocalEvents(fresh);
-        }
-        return serverEvent;
-      } else if (!res.ok) {
-        throw new Error(parsed.data?.error || `Server responded with status ${res.status}`);
-      }
-    } catch (netErr: any) {
-      if (updatedEvent) return updatedEvent;
-      throw netErr;
+    const res = await fetch(`${API_BASE}/api/admin/events/${eventId}`, {
+      method: 'PATCH',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(updates),
+    });
+    const parsed = await parseJsonSafely(res);
+    if (!res.ok) {
+      throw new Error(parsed.data?.error || `Failed to update event details (status: ${res.status})`);
     }
+    const serverEvent = parsed.data;
+    const fresh = getLocalEvents();
+    const fIdx = fresh.findIndex((e) => e.id === eventId);
+    if (fIdx !== -1) {
+      fresh[fIdx] = { ...fresh[fIdx], ...serverEvent };
+      saveLocalEvents(fresh);
+    }
+    return serverEvent;
   }
 
   if (updatedEvent) return updatedEvent;
@@ -771,23 +697,51 @@ export async function syncGoogleSheetsApi(token: string): Promise<{ success: boo
   };
 }
 
-export async function deleteRegistrationApi(token: string, regId: string): Promise<{ success: boolean; message: string }> {
-  if (token.startsWith('evitron_local_')) {
-    const list = getLocalRegistrations();
-    const filtered = list.filter((r) => r.id.toUpperCase() !== regId.toUpperCase());
-    saveLocalRegistrations(filtered);
-    return { success: true, message: `Registration ${regId} deleted successfully` };
+export async function fetchPaymentProof(token: string, regId: string): Promise<string> {
+  try {
+    const res = await fetch(`${API_BASE}/api/admin/registrations/${regId}/payment-proof`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const parsed = await parseJsonSafely(res);
+    if (res.ok && parsed.data?.paymentProofUrl) {
+      return parsed.data.paymentProofUrl;
+    }
+  } catch (err) {
+    if (!token.startsWith('evitron_local_')) {
+      console.warn('Failed to fetch payment proof from server:', err);
+    }
   }
 
-  const res = await fetch(`${API_BASE}/api/admin/registrations/${regId}`, {
-    method: 'DELETE',
-    headers: { Authorization: `Bearer ${token}` },
-  });
-  const parsed = await parseJsonSafely(res);
-  if (!res.ok) {
-    throw new Error(parsed.data?.error || 'Failed to delete registration');
+  const list = getLocalRegistrations();
+  const found = list.find((r) => r.id === regId);
+  return found?.paymentProofUrl || '';
+}
+
+export async function deleteRegistrationApi(token: string, regId: string, deletePassword?: string): Promise<{ success: boolean; message: string }> {
+  try {
+    const res = await fetch(`${API_BASE}/api/admin/registrations/${regId}`, {
+      method: 'DELETE',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ deletePassword }),
+    });
+    const parsed = await parseJsonSafely(res);
+    if (res.ok && parsed.data) {
+      return parsed.data;
+    }
+    if (!token.startsWith('evitron_local_') || res.status === 401 || res.status === 403) {
+      throw new Error(parsed.data?.error || 'Failed to delete registration');
+    }
+  } catch (err: any) {
+    if (!token.startsWith('evitron_local_')) throw err;
   }
-  return parsed.data;
+
+  const list = getLocalRegistrations();
+  const filtered = list.filter((r) => r.id.toUpperCase() !== regId.toUpperCase());
+  saveLocalRegistrations(filtered);
+  return { success: true, message: `Registration ${regId} deleted successfully` };
 }
 
 export async function testEmailApi(
@@ -809,104 +763,3 @@ export async function testEmailApi(
   return parsed.data;
 }
 
-export async function fetchRegistrationsFromGoogleSheet(webhookUrl: string): Promise<any[]> {
-  const cleanUrl = sanitizeWebhookUrl(webhookUrl);
-  if (!cleanUrl) {
-    throw new Error('Google Sheet Webhook URL is not configured in Admin Settings.');
-  }
-  const fetchUrl = cleanUrl.includes('?')
-    ? `${cleanUrl}&action=getRegistrations`
-    : `${cleanUrl}?action=getRegistrations`;
-
-  let res = await fetch(fetchUrl);
-
-  // Self-healing fallback: if the default action URL fails (e.g. 404), try the clean URL directly
-  if (!res.ok) {
-    res = await fetch(cleanUrl);
-  }
-
-  if (!res.ok) {
-    throw new Error(`Failed to fetch from Google Sheet Webapp. Status: ${res.status}`);
-  }
-  const data = await res.json();
-  if (data && data.error) {
-    throw new Error(data.error);
-  }
-  if (!Array.isArray(data)) {
-    throw new Error('Google Sheet response did not contain a valid registration list array.');
-  }
-
-  // Smart text-to-ID parser on client-side!
-  const parsedRecords = data.map((reg: any) => {
-    const eventTextLower = String(reg.eventsText || '').toLowerCase();
-    const selectedTechnicalIds: string[] = Array.isArray(reg.selectedTechnicalIds) ? [...reg.selectedTechnicalIds] : [];
-    const selectedNonTechnicalIds: string[] = Array.isArray(reg.selectedNonTechnicalIds) ? [...reg.selectedNonTechnicalIds] : [];
-    let selectedWorkshopId: string | undefined = reg.selectedWorkshopId;
-
-    for (const event of defaultEvents) {
-      const titleLower = event.title.toLowerCase();
-      const slugLower = event.slug.toLowerCase();
-
-      if (
-        eventTextLower.includes(titleLower) ||
-        eventTextLower.includes(slugLower) ||
-        eventTextLower.includes(event.id.toLowerCase())
-      ) {
-        if (event.category === 'workshops') {
-          selectedWorkshopId = event.id;
-        } else if (event.category === 'technical') {
-          if (!selectedTechnicalIds.includes(event.id)) {
-            selectedTechnicalIds.push(event.id);
-          }
-        } else if (event.category === 'non-technical') {
-          if (!selectedNonTechnicalIds.includes(event.id)) {
-            selectedNonTechnicalIds.push(event.id);
-          }
-        }
-      }
-    }
-
-    let regType = String(reg.registrationType || '').toLowerCase();
-    if (regType === 'symposium' || regType === 'technical') {
-      regType = 'technical';
-    }
-    if (selectedWorkshopId) {
-      regType = 'workshop';
-    } else if (regType !== 'workshop') {
-      regType = 'technical';
-    }
-
-    return {
-      ...reg,
-      registrationType: regType,
-      selectedWorkshopId,
-      selectedTechnicalIds,
-      selectedNonTechnicalIds,
-    };
-  });
-
-  return parsedRecords;
-}
-
-export async function restoreRegistrationsFromSheetApi(token: string, registrations: any[], webhookUrl?: string): Promise<{ success: boolean; message: string }> {
-  if (!token.startsWith('evitron_local_')) {
-    const res = await fetch(`${API_BASE}/api/admin/restore-from-sheet`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`
-      },
-      body: JSON.stringify({ registrations, webhookUrl }),
-    });
-    const parsed = await parseJsonSafely(res);
-    if (res.ok && parsed.isJson) {
-      return parsed.data;
-    }
-    throw new Error(parsed.data?.error || 'Failed to restore registrations on backend.');
-  }
-
-  // Local fallback
-  const regsToUse = registrations || [];
-  localStorage.setItem('evitron_registrations', JSON.stringify(regsToUse));
-  return { success: true, message: `Successfully restored ${regsToUse.length} registrations to local storage!` };
-}

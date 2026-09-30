@@ -58,7 +58,7 @@ export const HomePage: React.FC<HomePageProps> = ({ settings: propSettings, even
     });
 
     if (closedNames.length === 1) {
-      return `${closedNames[0]} seats are filled, registration is closed,Please checkout remaining events.`;
+      return `${closedNames[0]} seats are filled, registration is closed.`;
     }
     return `${closedNames.join(' & ')} seats are filled, registrations are closed.`;
   };

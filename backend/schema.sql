@@ -25,8 +25,7 @@ CREATE TABLE IF NOT EXISTS site_settings (
   upi_id VARCHAR(255) NOT NULL DEFAULT 'evitron26@mec',
   upi_payee_name VARCHAR(255) NOT NULL DEFAULT 'EVITRON 2K26 - MEC ECE',
   upi_qr_image_url TEXT DEFAULT '',
-  ALTER TABLE site_settings
-  ADD COLUMN IF NOT EXISTS razorpay_enabled BOOLEAN NOT NULL DEFAULT true,
+  razorpay_enabled BOOLEAN NOT NULL DEFAULT true,
   drive_upload_url TEXT NOT NULL DEFAULT 'https://forms.gle/evitron26paymentproof',
   contact_email VARCHAR(255) NOT NULL DEFAULT 'evitron26@gmail.com',
   instagram_handle VARCHAR(255) NOT NULL DEFAULT 'velocityecemec',
@@ -34,6 +33,12 @@ CREATE TABLE IF NOT EXISTS site_settings (
   announcement_text TEXT DEFAULT 'Paper abstract submission deadline is 27/09/2026. Welcome kits, lunch, and cash prizes for all events.',
   announcement_active BOOLEAN DEFAULT true,
   fee_per_person NUMERIC(10, 2) NOT NULL DEFAULT 350.00,
+  closed_workshops TEXT[] DEFAULT '{}'::text[],
+  app_env VARCHAR(50) DEFAULT 'development',
+  admin_notification_emails TEXT[] DEFAULT '{}'::text[],
+  force_early_bird BOOLEAN DEFAULT false,
+  early_bird_deadline TIMESTAMPTZ DEFAULT NOW(),
+  google_sheet_webhook_url TEXT DEFAULT '',
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 

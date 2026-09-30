@@ -25,6 +25,7 @@ import {
 } from 'lucide-react';
 import { EventItem, RegistrationRecord, SiteSettings } from '../types';
 import { defaultSettings } from '../data/defaultSettings';
+import { useAdminLive } from '../hooks/useAdminLive';
 import {
   adminLogin,
   fetchAdminStats,
@@ -34,12 +35,10 @@ import {
   updateEnvironment,
   updateEventDetails,
   markAttendanceApi,
-  syncGoogleSheetsApi,
   deleteRegistrationApi,
   testEmailApi,
-  fetchRegistrationsFromGoogleSheet,
-  restoreRegistrationsFromSheetApi,
   cleanWorkshopTitle,
+  fetchPaymentProof,
 } from '../services/api';
 
 interface AdminDashboardProps {
@@ -63,56 +62,22 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [loginError, setLoginError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'overview' | 'registrations' | 'settings' | 'upi' | 'events' | 'attendance'>('overview');
 
-  // Stats & Registrations
-  const [stats, setStats] = useState<any>(null);
-  const [registrations, setRegistrations] = useState<RegistrationRecord[]>(() => {
-    try {
-      const cached = localStorage.getItem('evitron_gsheet_synced_cache_v3') || localStorage.getItem('evitron_admin_cached_regs');
-      if (cached) {
-        const parsed = JSON.parse(cached);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          const seen = new Set<string>();
-          return parsed.filter((r) => {
-            const key = (r.id || '').toUpperCase();
-            if (!key || seen.has(key)) return false;
-            seen.add(key);
-            return true;
-          });
-        }
-      }
-    } catch {}
-    return [];
-  });
+  // Stats & Registrations loaded via real-time hook
+  const {
+    stats: liveStats,
+    registrations: allRegistrations,
+    status: liveStatus,
+    refresh: refreshLive,
+    error: liveError,
+  } = useAdminLive(token, handleLogout);
 
-  const [lastSyncedTime, setLastSyncedTime] = useState<string>(() => {
-    try {
-      const t = localStorage.getItem('evitron_gsheet_last_synced_at');
-      if (t) return new Date(Number(t)).toLocaleString();
-    } catch {}
-    return 'Synced via Cache Memory';
-  });
-
-  const [connectionError, setConnectionError] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterType, setFilterType] = useState<string>('');
+  const [filterStatus, setFilterStatus] = useState<string>('');
+  const [loading, setLoading] = useState(false);
 
   const activeStats = useMemo(() => {
-    if (stats && stats.totalRegistrations > 0) return stats;
-    if (registrations.length > 0) {
-      const totalRegistrations = registrations.length;
-      const totalParticipants = registrations.reduce((acc, r) => acc + (r.participants?.length || 1), 0);
-      const workshopCount = registrations.filter((r) => r.registrationType === 'workshop').length;
-      const technicalCount = registrations.filter((r) => r.registrationType === 'technical').length;
-      const paidCount = registrations.filter((r) => r.paymentStatus === 'paid').length;
-      const pendingCount = registrations.filter((r) => r.paymentStatus === 'pending_verification' || r.paymentStatus === 'pending').length;
-      return {
-        totalRegistrations,
-        totalParticipants,
-        workshopCount,
-        technicalCount,
-        paidCount,
-        pendingCount,
-      };
-    }
-    return stats || {
+    return liveStats || {
       totalRegistrations: 0,
       totalParticipants: 0,
       workshopCount: 0,
@@ -120,11 +85,36 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       paidCount: 0,
       pendingCount: 0,
     };
-  }, [stats, registrations]);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filterType, setFilterType] = useState<string>('');
-  const [filterStatus, setFilterStatus] = useState<string>('');
-  const [loading, setLoading] = useState(false);
+  }, [liveStats]);
+
+  const filteredRegistrations = useMemo(() => {
+    if (!allRegistrations) return [];
+    let list = allRegistrations;
+    if (filterType) {
+      list = list.filter((r) => r.registrationType === filterType);
+    }
+    if (filterStatus) {
+      list = list.filter((r) => r.paymentStatus === filterStatus);
+    }
+    if (searchTerm) {
+      const needle = searchTerm.toLowerCase();
+      list = list.filter((r) =>
+        [
+          r.id,
+          r.teamLeader?.fullName,
+          r.teamLeader?.email,
+          r.teamLeader?.phone,
+          r.teamLeader?.college,
+          r.upiReference,
+        ]
+          .filter(Boolean)
+          .some((value) => String(value).toLowerCase().includes(needle))
+      );
+    }
+    return list;
+  }, [allRegistrations, filterType, filterStatus, searchTerm]);
+
+  const registrations = filteredRegistrations;
   
   // Notification and confirmation state
   const [actionNotice, setActionNotice] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
@@ -189,7 +179,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
     const isWorkshopEvent = eventObj.category === 'workshops' || eventObj.category === 'workshop';
 
-    registrations.forEach((r) => {
+    (allRegistrations || []).forEach((r) => {
       let match = false;
 
       if (isWorkshopEvent) {
@@ -269,19 +259,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
   const handleDeleteRegistration = async () => {
     if (!deleteConfirmReg || !token) return;
-    if (deletePasswordInput.trim() !== 'evitron@26') {
-      setDeletePasswordError('Incorrect password. Authorization required: evitron@26');
-      return;
-    }
     const targetId = deleteConfirmReg.id;
     try {
-      await deleteRegistrationApi(token, targetId);
-      setRegistrations((prev) => prev.filter((r) => r.id.toUpperCase() !== targetId.toUpperCase()));
-      showNotification(`Registration ${targetId} successfully deleted from admin records and spreadsheet.`, 'success');
+      await deleteRegistrationApi(token, targetId, deletePasswordInput.trim());
+      showNotification(`Registration ${targetId} successfully deleted from admin records.`, 'success');
       setDeleteConfirmReg(null);
       setDeletePasswordInput('');
       setDeletePasswordError('');
-      loadDashboardData().catch(() => {});
+      refreshLive();
     } catch (err: any) {
       setDeletePasswordError(err.message || 'Failed to delete registration.');
     }
@@ -323,79 +308,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   }, [selectedEventId, events]);
 
   useEffect(() => {
-    if (!token) return;
-    loadDashboardData();
-
-    // Direct Supabase real-time change event stream
-    const eventSource = new EventSource(`/api/admin/realtime-stream?token=${encodeURIComponent(token)}`);
-    
-    eventSource.onmessage = (event) => {
-      try {
-        const parsed = JSON.parse(event.data);
-        if (parsed.type === 'change') {
-          console.log('[REAL-TIME] Direct Supabase live change event received! Updating dashboard...');
-          loadDashboardDataSilent();
-        }
-      } catch (e) {
-        console.warn('Real-time message parse error:', e);
-      }
-    };
-
-    eventSource.onerror = () => {
-      setConnectionError('⚠️ Supabase Real-Time stream disconnected. Attempting automatic reconnection...');
-    };
-
-    return () => {
-      eventSource.close();
-    };
-  }, [token, filterType, filterStatus, searchTerm]);
-
-  const loadDashboardDataSilent = async () => {
-    if (!token) return;
-    try {
-      const statsData = await fetchAdminStats(token);
-      setStats(statsData);
-
-      let query = '';
-      if (filterType) query += `type=${filterType}&`;
-      if (filterStatus) query += `status=${filterStatus}&`;
-      if (searchTerm) query += `search=${encodeURIComponent(searchTerm)}&`;
-
-      const regData = await fetchAdminRegistrations(token, query);
-      setRegistrations(regData);
-      setConnectionError(null);
-    } catch (err: any) {
-      console.warn('[Supabase Real-Time Sync Pause]: Unreachable', err);
-      setConnectionError('⚠️ Supabase connection lost. Retrying live connection...');
-    }
-  };
-
-  const loadDashboardData = async () => {
-    if (!token) return;
-    setLoading(true);
-    try {
-      const statsData = await fetchAdminStats(token);
-      setStats(statsData);
-
-      let query = '';
-      if (filterType) query += `type=${filterType}&`;
-      if (filterStatus) query += `status=${filterStatus}&`;
-      if (searchTerm) query += `search=${encodeURIComponent(searchTerm)}&`;
-
-      const regData = await fetchAdminRegistrations(token, query);
-      setRegistrations(regData);
-      setConnectionError(null);
-    } catch (err: any) {
-      console.error(err);
-      if (err.message?.includes('Unauthorized') || err.message?.includes('Invalid')) {
-        handleLogout();
-      } else {
-        setConnectionError('⚠️ Supabase table read error. Verify database connection credentials.');
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
+    // Note: useAdminLive hook handles EventSource stream connection automatically
+  }, [token]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -409,14 +323,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     }
   };
 
-  const handleLogout = () => {
+  function handleLogout() {
     setToken(null);
     setPasswordInput('');
-    setRegistrations([]);
-    setStats(null);
     sessionStorage.removeItem('evitron_admin_token');
     localStorage.removeItem('evitron_admin_token');
-  };
+  }
 
   const showNotification = (msg: string, type: 'success' | 'error' = 'success') => {
     setActionNotice({ message: msg, type });
@@ -611,9 +523,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     if (!token) return;
     try {
       await updateRegistrationStatus(token, regId, newStatus);
-      loadDashboardData();
+      refreshLive();
       if (newStatus === 'paid') {
-        showNotification(`Payment verified for ${regId}! Unique ID, team details & event confirmation email sent, and synced with spreadsheet.`, 'success');
+        showNotification(`Payment verified for ${regId}! Unique ID, team details & event confirmation email sent.`, 'success');
       } else {
         showNotification(`Registration ${regId} marked as ${newStatus.toUpperCase()}`, 'success');
       }
@@ -624,77 +536,20 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
   // Check-in / mark attendance
   const handleMarkAttendance = async () => {
-    if (!attendanceSearchId.trim()) return;
+    if (!attendanceSearchId.trim() || !token) return;
     try {
-      const res = await markAttendanceApi(attendanceSearchId.trim());
+      const res = await markAttendanceApi(token, attendanceSearchId.trim());
       setAttendanceResult(res);
-      loadDashboardData();
+      refreshLive();
     } catch (err: any) {
       setAttendanceResult({ success: false, message: err.message });
     }
   };
 
-  const [isSyncingSheets, setIsSyncingSheets] = useState(false);
-  const [isRestoringSheets, setIsRestoringSheets] = useState(false);
-
-  // Sync to Google Sheet Webhook
-  const handleSyncGoogleSheets = async () => {
-    if (!token) return;
-    setIsSyncingSheets(true);
-    try {
-      const data = await syncGoogleSheetsApi(token);
-      showNotification(data.message || 'Successfully synchronized registrations with Google Sheets!', 'success');
-    } catch (err: any) {
-      showNotification(err.message || 'Error syncing with Google Sheets.', 'error');
-    } finally {
-      setIsSyncingSheets(false);
-    }
-  };
-
-  // Restore/Import from Google Sheets Web App
-  const handleRestoreFromSheets = async () => {
-    if (!token) return;
-    const webhookUrl = settingsForm.googleSheetWebhookUrl || '';
-    if (!webhookUrl) {
-      showNotification('Google Sheet Webhook URL is not configured. Please configure it in Settings below first!', 'error');
-      return;
-    }
-
-    if (!window.confirm('Are you sure you want to pull registrations from your Google Sheet? This will download all registration rows currently stored in your Google Sheet and restore/merge them back into your web dashboard.')) {
-      return;
-    }
-
-    setIsRestoringSheets(true);
-    try {
-      showNotification('Initiating secure connection with Google Sheet... Please wait.', 'success');
-      
-      let response;
-      if (token.startsWith('evitron_local_')) {
-        // Local mode client-side fetch fallback
-        const records = await fetchRegistrationsFromGoogleSheet(webhookUrl);
-        if (records.length === 0) {
-          showNotification('No registration records were found in the Google Sheet.', 'error');
-          return;
-        }
-        showNotification(`Found ${records.length} records in Google Sheet. Restoring into local database...`, 'success');
-        response = await restoreRegistrationsFromSheetApi(token, records);
-      } else {
-        // Production: Server-side fetch bypasses CORS completely!
-        response = await restoreRegistrationsFromSheetApi(token, [], webhookUrl);
-      }
-
-      showNotification(response.message || 'Successfully restored registrations from Google Sheet!', 'success');
-      await loadDashboardData();
-    } catch (err: any) {
-      showNotification(err.message || 'Error pulling registrations from Google Sheets. Make sure your Apps Script contains action=getRegistrations and is published as an updated Web App!', 'error');
-    } finally {
-      setIsRestoringSheets(false);
-    }
-  };
-
   // Export to CSV Spreadsheet
   const exportToCsv = () => {
-    if (registrations.length === 0) return;
+    const list = allRegistrations || [];
+    if (list.length === 0) return;
     const headers = [
       'Registration ID',
       'Created At',
@@ -716,7 +571,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       'Attendance',
     ];
 
-    const rows = registrations.map((r) => {
+    const rows = list.map((r) => {
       const eventTitles: string[] = [];
       if (r.selectedWorkshopId || r.registrationType === 'workshop') {
         const wTitle = getWorkshopDisplayTitle(r);
@@ -837,6 +692,35 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     );
   }
 
+  // Prevent flash-to-zero or partial rendering during initial connection
+  const isFirstLoading = token && (allRegistrations === null || liveStats === null);
+
+  if (isFirstLoading) {
+    return (
+      <div className="py-20 text-center max-w-md mx-auto px-4 min-h-[60vh] flex flex-col items-center justify-center space-y-4">
+        {liveError ? (
+          <>
+            <div className="w-12 h-12 rounded-full bg-rose-100 flex items-center justify-center text-rose-600 font-extrabold text-xl">⚠️</div>
+            <h2 className="text-sm font-extrabold text-stone-900 tracking-wider uppercase">Connection Degraded</h2>
+            <p className="text-xs text-rose-600 font-semibold">{liveError}</p>
+            <button
+              onClick={() => refreshLive()}
+              className="px-4 py-2 bg-stone-900 text-white font-bold text-xs rounded-md hover:bg-stone-800 transition-colors shadow-sm cursor-pointer"
+            >
+              Retry Connection
+            </button>
+          </>
+        ) : (
+          <>
+            <RefreshCw className="w-10 h-10 text-[#B22222] animate-spin" />
+            <h2 className="text-sm font-extrabold text-stone-900 tracking-wider uppercase">Connecting to Database...</h2>
+            <p className="text-xs text-stone-500">Establishing establish real-time subscription channel & fetching latest metrics...</p>
+          </>
+        )}
+      </div>
+    );
+  }
+
   // Logged-in Admin Dashboard
   return (
     <div className="py-6 sm:py-8 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 min-h-[85vh]">
@@ -857,15 +741,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         </div>
 
         {/* Real-time Supabase Connection Status Bar */}
-        <div className={`w-full border rounded-xl p-3.5 flex flex-wrap items-center justify-between gap-3 text-xs shadow-2xs transition-colors duration-300 ${connectionError ? 'bg-rose-50 border-rose-200 text-rose-950' : 'bg-emerald-50 border-emerald-200 text-emerald-950'}`}>
+        <div className={`w-full border rounded-xl p-3.5 flex flex-wrap items-center justify-between gap-3 text-xs shadow-2xs transition-colors duration-300 ${liveStatus === 'reconnecting' ? 'bg-rose-50 border-rose-200 text-rose-950' : 'bg-emerald-50 border-emerald-200 text-emerald-950'}`}>
           <div className="flex items-center gap-2">
-            <span className={`w-2.5 h-2.5 rounded-full ${connectionError ? 'bg-rose-600 animate-ping' : 'bg-emerald-600 animate-pulse'}`} />
+            <span className={`w-2.5 h-2.5 rounded-full ${liveStatus === 'reconnecting' ? 'bg-rose-600 animate-ping' : 'bg-emerald-600 animate-pulse'}`} />
             <span>
-              {connectionError ? (
-                <strong>{connectionError}</strong>
+              {liveStatus === 'reconnecting' ? (
+                <strong>⚠️ Connection Lost. Reconnecting to live Supabase channel... (Displaying cached dashboard values)</strong>
               ) : (
                 <>
-                  <strong>Supabase Real-Time Engine Active:</strong> Secure live PostgreSQL channel is connected ({registrations.length} registrations synced instantly). Updates trigger instantly on table insert/update/delete events.
+                  <strong>Supabase Real-Time Engine Active:</strong> Secure live PostgreSQL channel is connected ({allRegistrations?.length || 0} registrations synced instantly). Updates trigger instantly on table change events.
                 </>
               )}
             </span>
@@ -939,7 +823,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       <div className="flex flex-wrap gap-1 border-b border-stone-200 mb-6 text-xs font-bold">
         {[
           { key: 'overview', label: 'Overview & Metrics' },
-          { key: 'registrations', label: `Registrations (${registrations.length})` },
+          { key: 'registrations', label: `Registrations (${allRegistrations?.length || 0})` },
           { key: 'upi', label: 'UPI & Payment Controls' },
           { key: 'events', label: 'Event Coordinators CMS' },
           { key: 'settings', label: 'Site Settings & Deadlines' },
@@ -1109,7 +993,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 type="text"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && loadDashboardData()}
                 placeholder="Search by ID, name, email, phone, college..."
                 className="w-full text-xs outline-none bg-transparent"
               />
@@ -1142,26 +1025,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 title="Download full registration roster in CSV spreadsheet format"
               >
                 <Download className="w-3.5 h-3.5" /> Export CSV
-              </button>
-
-              <button
-                onClick={handleSyncGoogleSheets}
-                disabled={isSyncingSheets}
-                className="px-3 py-1.5 bg-emerald-700 hover:bg-emerald-800 active:bg-emerald-900 text-white rounded-md flex items-center gap-1.5 font-semibold cursor-pointer shadow-xs disabled:opacity-50"
-                title="Trigger real-time synchronization to Google Sheets webhook"
-              >
-                <RefreshCw className={`w-3.5 h-3.5 ${isSyncingSheets ? 'animate-spin' : ''}`} />
-                {isSyncingSheets ? 'Syncing...' : 'Sync Google Sheet'}
-              </button>
-
-              <button
-                onClick={handleRestoreFromSheets}
-                disabled={isRestoringSheets}
-                className="px-3 py-1.5 bg-blue-700 hover:bg-blue-800 active:bg-blue-900 text-white rounded-md flex items-center gap-1.5 font-semibold cursor-pointer shadow-xs disabled:opacity-50"
-                title="Pull and restore registration records directly from your Google Sheet"
-              >
-                <Download className={`w-3.5 h-3.5 ${isRestoringSheets ? 'animate-bounce' : ''}`} />
-                {isRestoringSheets ? 'Pulling...' : 'Restore from Sheet'}
               </button>
 
               <a
@@ -1314,8 +1177,17 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         {(r as any).paymentProofUrl && (
                           <button
                             type="button"
-                            onClick={() => {
-                              setActiveProofUrl((r as any).paymentProofUrl);
+                            onClick={async () => {
+                              if ((r as any).paymentProofUrl === 'HAS_PROOF') {
+                                try {
+                                  const rawUrl = await fetchPaymentProof(token!, r.id);
+                                  setActiveProofUrl(rawUrl);
+                                } catch (err: any) {
+                                  showNotification(err.message || 'Failed to load payment proof screenshot.', 'error');
+                                }
+                              } else {
+                                setActiveProofUrl((r as any).paymentProofUrl);
+                              }
                               setActiveProofRegId(r.id);
                             }}
                             className="block text-[10px] text-blue-600 hover:underline font-bold mt-1 text-left cursor-pointer"
@@ -1340,7 +1212,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                           <button
                             onClick={() => setVerifyConfirmReg(r)}
                             className="px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[10px] rounded cursor-pointer mr-1.5 flex items-center gap-1 shadow-xs inline-flex"
-                            title="Verify payment, generate ticket, send confirmation email from evitron26@gmail.com, and sync Google Sheet"
+                            title="Verify payment, generate ticket, send confirmation email from evitron26@gmail.com, and update Supabase database"
                           >
                             <ShieldCheck className="w-3.5 h-3.5" /> Verify & Send Email
                           </button>
@@ -1695,25 +1567,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   />
                 </div>
 
-                <div>
-                  <label className="block font-bold text-stone-700 mb-1">Google Sheet Webhook / Apps Script Exec URL</label>
-                  <input
-                    type="url"
-                    value={settingsForm.googleSheetWebhookUrl || ''}
-                    onChange={(e) => setSettingsForm({ ...settingsForm, googleSheetWebhookUrl: e.target.value })}
-                    placeholder="https://script.google.com/macros/s/.../exec"
-                    className="w-full px-3 py-2 border border-stone-300 rounded-md font-mono text-xs outline-none focus:ring-1 focus:ring-[#B22222]"
-                  />
-                  <p className="text-[10px] text-stone-500 mt-1">
-                    Real-time registration data and admin manual verifications will be POSTed to this Google Apps Script Webhook URL.
-                  </p>
-                  <div className="mt-2 text-[10px] bg-blue-50 border border-blue-200 p-2.5 rounded text-blue-900 leading-relaxed font-semibold">
-                    💡 <strong>Cloud Hosting Dynamic Database Notice</strong>:
-                    <br />
-                    Since the website runs in a serverless cloud container, the local memory database gets cleared whenever the site goes idle or restarts. 
-                    However, all of your registrations are permanently preserved in your Google Sheet! 
-                    You can restore all registered students back into the website's active database at any time by clicking the <strong>"Restore from Sheet"</strong> button at the top of the Registrations list.
-                  </div>
+                <div className="mt-2 text-[10px] bg-emerald-50 border border-emerald-200 p-2.5 rounded text-emerald-900 leading-relaxed font-semibold">
+                  💡 <strong>Supabase Live Cloud Database Active</strong>:
+                  <br />
+                  Registrations are permanently preserved in your remote Supabase PostgreSQL database. 
+                  All dashboard metrics and rosters update instantly in real time across all active sessions. Caching, polling, and Google Sheet dependencies are completely disabled.
                 </div>
 
                 <div className="pt-3 border-t border-stone-200">
@@ -2239,7 +2097,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               <ShieldCheck className="w-5 h-5 text-emerald-600" /> Confirm Payment & Email Dispatch
             </h3>
             <p className="text-xs text-stone-600 mb-4 leading-relaxed">
-              Are you sure you want to verify payment for registration <strong>{verifyConfirmReg.id}</strong> ({verifyConfirmReg.teamLeader.fullName})? This will generate the attendee QR pass, send an official confirmation email from <code>evitron26@gmail.com</code>, and immediately sync the record to the Google Sheet.
+              Are you sure you want to verify payment for registration <strong>{verifyConfirmReg.id}</strong> ({verifyConfirmReg.teamLeader.fullName})? This will generate the attendee QR pass, send an official confirmation email from <code>evitron26@gmail.com</code>, and update the record in Supabase.
             </p>
             <div className="flex justify-end gap-2">
               <button
@@ -2274,7 +2132,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               Warning: You are about to permanently delete registration <strong>{deleteConfirmReg.id}</strong> ({deleteConfirmReg.teamLeader.fullName}) from the admin records and spreadsheet.
             </p>
             <div className="mb-4">
-              <label className="block text-xs font-bold text-stone-700 mb-1">Enter Admin Password to Confirm (<code>evitron@26</code>):</label>
+              <label className="block text-xs font-bold text-stone-700 mb-1">Enter Admin Delete Password to Confirm:</label>
               <input
                 type="password"
                 value={deletePasswordInput}

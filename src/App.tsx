@@ -93,6 +93,7 @@ export default function App() {
         <CategoryPage
           category={route.category}
           events={events}
+          settings={settings}
           onNavigate={navigate}
         />
       );
@@ -107,7 +108,7 @@ export default function App() {
       );
 
       if (foundEvent) {
-        return <EventDetailPage event={foundEvent} onNavigate={navigate} />;
+        return <EventDetailPage event={foundEvent} settings={settings} onNavigate={navigate} />;
       }
 
       // Fallback if slug not found
