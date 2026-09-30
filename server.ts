@@ -776,61 +776,13 @@ app.post('/api/admin/login', (req, res) => {
   return res.status(401).json({ error: 'Incorrect administrator password.' });
 });
 
-let lastAutoSyncTime = 0;
-let isAutoSyncingFromSheet = false;
-async function autoSyncFromSheet(force = false) {
-  const now = Date.now();
-  // Only auto-sync at most once every 30 seconds to be extremely performant and rate-limit safe
-  if (!force && now - lastAutoSyncTime < 30000) {
-    return;
-  }
-  if (isAutoSyncingFromSheet) return;
-  isAutoSyncingFromSheet = true;
-  try {
-    const settings = await repository.getSiteSettings();
-    const rawUrl = settings.googleSheetWebhookUrl || process.env.GOOGLE_SHEET_WEBHOOK_URL || DEFAULT_GOOGLE_SHEET_WEBHOOK_URL;
-    const cleanUrl = sanitizeWebhookUrl(rawUrl);
-    if (!cleanUrl) return;
-
-    const fetchUrl = cleanUrl.includes('?') 
-      ? `${cleanUrl}&action=getRegistrations`
-      : `${cleanUrl}?action=getRegistrations`;
-    
-    console.log(`[AUTO-SYNC] Auto-syncing registrations from Google Sheet: ${fetchUrl}`);
-    let res = await fetch(fetchUrl, { redirect: 'follow' });
-    if (!res.ok) {
-      res = await fetch(cleanUrl, { redirect: 'follow' });
-    }
-    if (res.ok) {
-      const data = await res.json();
-      if (Array.isArray(data) && data.length > 0) {
-        console.log(`[AUTO-SYNC] Auto-restored ${data.length} registrations from Google Sheet!`);
-        await repository.importRegistrations(data);
-        lastAutoSyncTime = Date.now();
-      }
-    }
-  } catch (err) {
-    console.warn('[AUTO-SYNC] Error during auto-sync from sheet:', err);
-  } finally {
-    isAutoSyncingFromSheet = false;
-  }
-}
-
 app.get('/api/admin/stats', requireAdmin, async (_req, res) => {
-  // Sync in background to maintain perfectly up-to-date cache
-  autoSyncFromSheet().catch(() => {});
-  
   const stats = await repository.getRegistrationStats();
   res.json(stats);
 });
 
 app.get('/api/admin/registrations', requireAdmin, async (req, res) => {
   const { type, status, search } = req.query as { type?: string; status?: string; search?: string };
-  
-  // Sync in background to maintain perfectly up-to-date cache
-  if (!search && !type && !status) {
-    autoSyncFromSheet().catch(() => {});
-  }
 
   const registrations = await repository.listRegistrations({
     registrationType: type as any,
@@ -1130,15 +1082,6 @@ async function startServer() {
 
   app.listen(PORT, '0.0.0.0', async () => {
     console.log(`EVITRON 2K26 backend server running on http://0.0.0.0:${PORT}`);
-    try {
-      const existingCount = (await repository.listRegistrations()).length;
-      if (existingCount === 0) {
-        console.log('[STARTUP] Local registration store is empty. Pre-fetching registrations from Google Sheet...');
-        await autoSyncFromSheet(true);
-      }
-    } catch (e) {
-      console.warn('[STARTUP] Pre-fetch error (non-fatal):', e);
-    }
   });
 }
 

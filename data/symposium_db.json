@@ -564,6 +564,1255 @@
   ],
   "registrations": [
     {
+      "id": "EV26-UVDEZ2",
+      "createdAt": "2026-09-30T15:36:59.000Z",
+      "registrationType": "workshop",
+      "eventsText": "Embedded System",
+      "selectedWorkshopId": "ws-embedded-system",
+      "selectedTechnicalIds": [],
+      "selectedNonTechnicalIds": [],
+      "teamLeader": {
+        "fullName": "jagadeesh M",
+        "email": "jd5847694@gmail.com",
+        "phone": "9626989737",
+        "college": "Paavai engineering college",
+        "department": "Ece",
+        "year": "||nd year"
+      },
+      "participants": [
+        {
+          "fullName": "jagadeesh M",
+          "email": "jd5847694@gmail.com",
+          "phone": "9626989737",
+          "college": "Paavai engineering college",
+          "department": "Ece",
+          "year": "||nd year"
+        }
+      ],
+      "totalAmount": 300,
+      "paymentMethod": "UPI",
+      "paymentStatus": "paid",
+      "paymentId": "744924553556",
+      "upiReference": "744924553556",
+      "paymentProofUrl": "https://drive.google.com/file/d/1eTUKaI1Mw8kNAVXuYlHZnkSZlFiaiMgp/view?usp=drivesdk",
+      "attendanceMarked": false
+    },
+    {
+      "id": "EV26-5Q86UZ",
+      "createdAt": "2026-09-30T15:28:24.000Z",
+      "registrationType": "workshop",
+      "eventsText": "Embedded System",
+      "selectedWorkshopId": "ws-embedded-system",
+      "selectedTechnicalIds": [],
+      "selectedNonTechnicalIds": [],
+      "teamLeader": {
+        "fullName": "Santhosh N",
+        "email": "santhoshmonicka@gmail.com",
+        "phone": "9345758383",
+        "college": "PKIET",
+        "department": "ECE",
+        "year": "IV year"
+      },
+      "participants": [
+        {
+          "fullName": "Santhosh N",
+          "email": "santhoshmonicka@gmail.com",
+          "phone": "9345758383",
+          "college": "PKIET",
+          "department": "ECE",
+          "year": "IV year"
+        }
+      ],
+      "totalAmount": 300,
+      "paymentMethod": "UPI",
+      "paymentStatus": "paid",
+      "paymentId": "627386642036",
+      "upiReference": "627386642036",
+      "paymentProofUrl": "https://drive.google.com/file/d/1ysDWjGWSc7Ncnq7VMHu7sQ2AWmH8jPrv/view?usp=drivesdk",
+      "attendanceMarked": false
+    },
+    {
+      "id": "EV26-26DUHL",
+      "createdAt": "2026-09-30T15:15:44.000Z",
+      "registrationType": "workshop",
+      "eventsText": "Embedded System",
+      "selectedWorkshopId": "ws-embedded-system",
+      "selectedTechnicalIds": [],
+      "selectedNonTechnicalIds": [],
+      "teamLeader": {
+        "fullName": "Samira M",
+        "email": "rabickmd390@gmail.com",
+        "phone": "8015516378",
+        "college": "EGS Pillay Engineering College",
+        "department": "ECE",
+        "year": "III year"
+      },
+      "participants": [
+        {
+          "fullName": "Samira M",
+          "email": "rabickmd390@gmail.com",
+          "phone": "8015516378",
+          "college": "EGS Pillay Engineering College",
+          "department": "ECE",
+          "year": "III year"
+        }
+      ],
+      "totalAmount": 300,
+      "paymentMethod": "UPI",
+      "paymentStatus": "paid",
+      "paymentId": "6383109049@upi",
+      "upiReference": "6383109049@upi",
+      "paymentProofUrl": "https://drive.google.com/file/d/1K-GFP895siYjNkUM0MSSkcYd-gSPjz35/view?usp=drivesdk",
+      "attendanceMarked": false
+    },
+    {
+      "id": "EV26-H9H7FQ",
+      "createdAt": "2026-09-30T15:03:53.000Z",
+      "registrationType": "workshop",
+      "eventsText": "Embedded System",
+      "selectedWorkshopId": "ws-embedded-system",
+      "selectedTechnicalIds": [],
+      "selectedNonTechnicalIds": [],
+      "teamLeader": {
+        "fullName": "Ramyadhevi R",
+        "email": "ramyadhevi123@gmail.com",
+        "phone": "9952615438",
+        "college": "EGS Pillay Engineering collage Nagapattinam",
+        "department": "ECE",
+        "year": "III year"
+      },
+      "participants": [
+        {
+          "fullName": "Ramyadhevi R",
+          "email": "ramyadhevi123@gmail.com",
+          "phone": "9952615438",
+          "college": "EGS Pillay Engineering collage Nagapattinam",
+          "department": "ECE",
+          "year": "III year"
+        }
+      ],
+      "totalAmount": 300,
+      "paymentMethod": "UPI",
+      "paymentStatus": "paid",
+      "paymentId": "627384626538",
+      "upiReference": "627384626538",
+      "paymentProofUrl": "https://drive.google.com/file/d/1VMtHIZmyxuSB-NDZbaLWR2IlVgYC2JT4/view?usp=drivesdk",
+      "attendanceMarked": false
+    },
+    {
+      "id": "EV26-PRS3PF",
+      "createdAt": "2026-09-30T14:55:38.000Z",
+      "registrationType": "workshop",
+      "eventsText": "Embedded System",
+      "selectedWorkshopId": "ws-embedded-system",
+      "selectedTechnicalIds": [],
+      "selectedNonTechnicalIds": [],
+      "teamLeader": {
+        "fullName": "SRIRAM M",
+        "email": "sriramm21112005@gmail.com",
+        "phone": "8838498080",
+        "college": "PKIET",
+        "department": "ECE",
+        "year": "IV"
+      },
+      "participants": [
+        {
+          "fullName": "SRIRAM M",
+          "email": "sriramm21112005@gmail.com",
+          "phone": "8838498080",
+          "college": "PKIET",
+          "department": "ECE",
+          "year": "IV"
+        }
+      ],
+      "totalAmount": 300,
+      "paymentMethod": "UPI",
+      "paymentStatus": "paid",
+      "paymentId": "663982387772",
+      "upiReference": "663982387772",
+      "paymentProofUrl": "https://drive.google.com/file/d/1hYlJRenwqtPfi1FtXgAGXCfsHadFpCyN/view?usp=drivesdk",
+      "attendanceMarked": false
+    },
+    {
+      "id": "EV26-5ELEW4",
+      "createdAt": "2026-09-30T14:53:01.000Z",
+      "registrationType": "workshop",
+      "eventsText": "Embedded System",
+      "selectedWorkshopId": "ws-embedded-system",
+      "selectedTechnicalIds": [],
+      "selectedNonTechnicalIds": [],
+      "teamLeader": {
+        "fullName": "SIVABALAN M",
+        "email": "shiva356.nbl@gmail.com",
+        "phone": "7094832249",
+        "college": "Perunthalaivar Kamarajar institute of engineering  & technology",
+        "department": "ECE",
+        "year": "IV year"
+      },
+      "participants": [
+        {
+          "fullName": "SIVABALAN M",
+          "email": "shiva356.nbl@gmail.com",
+          "phone": "7094832249",
+          "college": "Perunthalaivar Kamarajar institute of engineering  & technology",
+          "department": "ECE",
+          "year": "IV year"
+        }
+      ],
+      "totalAmount": 300,
+      "paymentMethod": "UPI",
+      "paymentStatus": "paid",
+      "paymentId": "130489691944",
+      "upiReference": "130489691944",
+      "paymentProofUrl": "https://drive.google.com/file/d/1VSgpSC42kdG3gX_srLa9kD_912w59MZA/view?usp=drivesdk",
+      "attendanceMarked": false
+    },
+    {
+      "id": "EV26-3UA77Z",
+      "createdAt": "2026-09-30T14:34:50.000Z",
+      "registrationType": "workshop",
+      "eventsText": "Embedded System",
+      "selectedWorkshopId": "ws-embedded-system",
+      "selectedTechnicalIds": [],
+      "selectedNonTechnicalIds": [],
+      "teamLeader": {
+        "fullName": "Dheepak C",
+        "email": "dheepak481@gmail.com",
+        "phone": "6385577121",
+        "college": "PKIET",
+        "department": "ECE",
+        "year": "lV year"
+      },
+      "participants": [
+        {
+          "fullName": "Dheepak C",
+          "email": "dheepak481@gmail.com",
+          "phone": "6385577121",
+          "college": "PKIET",
+          "department": "ECE",
+          "year": "lV year"
+        }
+      ],
+      "totalAmount": 300,
+      "paymentMethod": "UPI",
+      "paymentStatus": "paid",
+      "paymentId": "627303530641",
+      "upiReference": "627303530641",
+      "paymentProofUrl": "https://drive.google.com/file/d/1CyOiUzslSeiC-Ge3OQ_fVL89Q6Zew0xY/view?usp=drivesdk",
+      "attendanceMarked": false
+    },
+    {
+      "id": "EV26-5S4RL6",
+      "createdAt": "2026-09-30T14:01:45.000Z",
+      "registrationType": "workshop",
+      "eventsText": "Embedded System",
+      "selectedWorkshopId": "ws-embedded-system",
+      "selectedTechnicalIds": [],
+      "selectedNonTechnicalIds": [],
+      "teamLeader": {
+        "fullName": "Divya.G",
+        "email": "gdhivya1352006@gmail.com",
+        "phone": "9384397637",
+        "college": "Vivekanadha college of engineering for women",
+        "department": "ECE",
+        "year": "II YEAR"
+      },
+      "participants": [
+        {
+          "fullName": "Divya.G",
+          "email": "gdhivya1352006@gmail.com",
+          "phone": "9384397637",
+          "college": "Vivekanadha college of engineering for women",
+          "department": "ECE",
+          "year": "II YEAR"
+        }
+      ],
+      "totalAmount": 300,
+      "paymentMethod": "UPI",
+      "paymentStatus": "paid",
+      "paymentId": "627344017798",
+      "upiReference": "627344017798",
+      "paymentProofUrl": "https://drive.google.com/file/d/1rZILz90RnDtZCZY4-sDh5BWYtiUcl4fx/view?usp=drivesdk",
+      "attendanceMarked": false
+    },
+    {
+      "id": "EV26-7KBMK6",
+      "createdAt": "2026-09-30T13:59:42.000Z",
+      "registrationType": "workshop",
+      "eventsText": "Embedded System",
+      "selectedWorkshopId": "ws-embedded-system",
+      "selectedTechnicalIds": [],
+      "selectedNonTechnicalIds": [],
+      "teamLeader": {
+        "fullName": "Jamuna A",
+        "email": "jamunaaru1709@gmail.com",
+        "phone": "9150853075",
+        "college": "Vivekanandha college of engineering for women",
+        "department": "ECE",
+        "year": "2nd year"
+      },
+      "participants": [
+        {
+          "fullName": "Jamuna A",
+          "email": "jamunaaru1709@gmail.com",
+          "phone": "9150853075",
+          "college": "Vivekanandha college of engineering for women",
+          "department": "ECE",
+          "year": "2nd year"
+        }
+      ],
+      "totalAmount": 300,
+      "paymentMethod": "UPI",
+      "paymentStatus": "paid",
+      "paymentId": "627321730148",
+      "upiReference": "627321730148",
+      "paymentProofUrl": "https://drive.google.com/file/d/1LWu6mClWerCgWT88EHWGOw4VzpxAR_MS/view?usp=drivesdk",
+      "attendanceMarked": false
+    },
+    {
+      "id": "EV26-UC7EQF",
+      "createdAt": "2026-09-30T13:58:22.000Z",
+      "registrationType": "workshop",
+      "eventsText": "Embedded System",
+      "selectedWorkshopId": "ws-embedded-system",
+      "selectedTechnicalIds": [],
+      "selectedNonTechnicalIds": [],
+      "teamLeader": {
+        "fullName": "Dharani S",
+        "email": "dharani27009@gmail.com",
+        "phone": "7397027009",
+        "college": "Vivekanandha college of engineering for women",
+        "department": "ECE",
+        "year": "II year"
+      },
+      "participants": [
+        {
+          "fullName": "Dharani S",
+          "email": "dharani27009@gmail.com",
+          "phone": "7397027009",
+          "college": "Vivekanandha college of engineering for women",
+          "department": "ECE",
+          "year": "II year"
+        }
+      ],
+      "totalAmount": 300,
+      "paymentMethod": "UPI",
+      "paymentStatus": "paid",
+      "paymentId": "663968287466",
+      "upiReference": "663968287466",
+      "paymentProofUrl": "https://drive.google.com/file/d/18xxqML17zH5f06GUVTtPTNzqlV2VqEop/view?usp=drivesdk",
+      "attendanceMarked": false
+    },
+    {
+      "id": "EV26-JGPYVP",
+      "createdAt": "2026-09-30T11:41:56.000Z",
+      "registrationType": "workshop",
+      "eventsText": "Embedded System",
+      "selectedWorkshopId": "ws-embedded-system",
+      "selectedTechnicalIds": [],
+      "selectedNonTechnicalIds": [],
+      "teamLeader": {
+        "fullName": "Kavignan.R",
+        "email": "kavingan2008@gmail.com",
+        "phone": "9566592488",
+        "college": "Paavai engineering college",
+        "department": "ECE",
+        "year": "II year"
+      },
+      "participants": [
+        {
+          "fullName": "Kavignan.R",
+          "email": "kavingan2008@gmail.com",
+          "phone": "9566592488",
+          "college": "Paavai engineering college",
+          "department": "ECE",
+          "year": "II year"
+        }
+      ],
+      "totalAmount": 300,
+      "paymentMethod": "UPI",
+      "paymentStatus": "paid",
+      "paymentId": "663955356767",
+      "upiReference": "663955356767",
+      "paymentProofUrl": "https://drive.google.com/file/d/1exrYn4oWYWHs2o9qM_YX8bzYUD6QRRUF/view?usp=drivesdk",
+      "attendanceMarked": false
+    },
+    {
+      "id": "EV26-3PZGTC",
+      "createdAt": "2026-09-30T11:40:22.000Z",
+      "registrationType": "workshop",
+      "eventsText": "Virtual Instrumentation",
+      "selectedWorkshopId": "ws-virtual-instrumentation",
+      "selectedTechnicalIds": [],
+      "selectedNonTechnicalIds": [],
+      "teamLeader": {
+        "fullName": "NANDHINI MK",
+        "email": "nandy4122007@gmail.com",
+        "phone": "8116655959",
+        "college": "MUTHAYAMMAL ENGINEERING COLLEGE",
+        "department": "ECE",
+        "year": "II"
+      },
+      "participants": [
+        {
+          "fullName": "NANDHINI MK",
+          "email": "nandy4122007@gmail.com",
+          "phone": "8116655959",
+          "college": "MUTHAYAMMAL ENGINEERING COLLEGE",
+          "department": "ECE",
+          "year": "II"
+        }
+      ],
+      "totalAmount": 300,
+      "paymentMethod": "UPI",
+      "paymentStatus": "paid",
+      "paymentId": "599705288471",
+      "upiReference": "599705288471",
+      "paymentProofUrl": "https://drive.google.com/file/d/1RF-ar3H5E1ksxhx5FS8qCuoZeRWCoUii/view?usp=drivesdk",
+      "attendanceMarked": false
+    },
+    {
+      "id": "EV26-N8AZPL",
+      "createdAt": "2026-09-30T11:23:53.000Z",
+      "registrationType": "workshop",
+      "eventsText": "Embedded System",
+      "selectedWorkshopId": "ws-embedded-system",
+      "selectedTechnicalIds": [],
+      "selectedNonTechnicalIds": [],
+      "teamLeader": {
+        "fullName": "Logeshwar S",
+        "email": "logeshselvaraj8118@gmail.com",
+        "phone": "9245814999",
+        "college": "Pavaai Engineering College",
+        "department": "ECE",
+        "year": "II year"
+      },
+      "participants": [
+        {
+          "fullName": "Logeshwar S",
+          "email": "logeshselvaraj8118@gmail.com",
+          "phone": "9245814999",
+          "college": "Pavaai Engineering College",
+          "department": "ECE",
+          "year": "II year"
+        }
+      ],
+      "totalAmount": 300,
+      "paymentMethod": "UPI",
+      "paymentStatus": "paid",
+      "paymentId": "165048023581",
+      "upiReference": "165048023581",
+      "paymentProofUrl": "https://drive.google.com/file/d/1xLpb6rGcOq5RO7AIj3Brc_V-dRLEb4Rj/view?usp=drivesdk",
+      "attendanceMarked": false
+    },
+    {
+      "id": "EV26-5M49NT",
+      "createdAt": "2026-09-30T09:48:17.000Z",
+      "registrationType": "workshop",
+      "eventsText": "SILICON 2 GDS",
+      "selectedWorkshopId": "ws-silicon-2-gds",
+      "selectedTechnicalIds": [],
+      "selectedNonTechnicalIds": [],
+      "teamLeader": {
+        "fullName": "Ramya. .P",
+        "email": "kpramyaramya7@gmail.com",
+        "phone": "7418356640",
+        "college": "JKKN COLLEGE OF ENGINEERING AND TECHNOLOGY",
+        "department": "ECE",
+        "year": "lll year"
+      },
+      "participants": [
+        {
+          "fullName": "Ramya. .P",
+          "email": "kpramyaramya7@gmail.com",
+          "phone": "7418356640",
+          "college": "JKKN COLLEGE OF ENGINEERING AND TECHNOLOGY",
+          "department": "ECE",
+          "year": "lll year"
+        }
+      ],
+      "totalAmount": 300,
+      "paymentMethod": "UPI",
+      "paymentStatus": "paid",
+      "paymentId": "130469969114",
+      "upiReference": "130469969114",
+      "paymentProofUrl": "https://drive.google.com/file/d/1lqAdg7iFj-sS5PpzKKVhuksW7MSosGoM/view?usp=drivesdk",
+      "attendanceMarked": false
+    },
+    {
+      "id": "EV26-HKS3EH",
+      "createdAt": "2026-09-30T09:40:30.000Z",
+      "registrationType": "workshop",
+      "eventsText": "SILICON 2 GDS",
+      "selectedWorkshopId": "ws-silicon-2-gds",
+      "selectedTechnicalIds": [],
+      "selectedNonTechnicalIds": [],
+      "teamLeader": {
+        "fullName": "Nagalakshmi. S",
+        "email": "senthilnagalakshmi3@gmail.com",
+        "phone": "6379624140",
+        "college": "JKKN COLLEGE OF ENGINEERING AND TECHNOLOGY",
+        "department": "ECE",
+        "year": "lll year"
+      },
+      "participants": [
+        {
+          "fullName": "Nagalakshmi. S",
+          "email": "senthilnagalakshmi3@gmail.com",
+          "phone": "6379624140",
+          "college": "JKKN COLLEGE OF ENGINEERING AND TECHNOLOGY",
+          "department": "ECE",
+          "year": "lll year"
+        }
+      ],
+      "totalAmount": 300,
+      "paymentMethod": "UPI",
+      "paymentStatus": "paid",
+      "paymentId": "130469513420",
+      "upiReference": "130469513420",
+      "paymentProofUrl": "https://drive.google.com/file/d/11RY072iXqtZ2dO9NdbTkvV0f89FlM-vJ/view?usp=drivesdk",
+      "attendanceMarked": false
+    },
+    {
+      "id": "EV26-KY76TH",
+      "createdAt": "2026-09-30T05:45:02.000Z",
+      "registrationType": "technical",
+      "eventsText": "TRACKTRON",
+      "selectedTechnicalIds": [
+        "tracktron",
+        "tech-tracktron"
+      ],
+      "selectedNonTechnicalIds": [],
+      "teamLeader": {
+        "fullName": "S Madhan kumar",
+        "email": "madhanarul311@gmail.com",
+        "phone": "9677680806",
+        "college": "RVS INSTITUTE OF TECHNOLOGY",
+        "department": "MECHANICAL ENGINEERING",
+        "year": "II YEAR"
+      },
+      "participants": [
+        {
+          "fullName": "S Madhan kumar",
+          "email": "madhanarul311@gmail.com",
+          "phone": "9677680806",
+          "college": "RVS INSTITUTE OF TECHNOLOGY",
+          "department": "MECHANICAL ENGINEERING",
+          "year": "II YEAR"
+        },
+        {
+          "fullName": "D HARIKRISHNA",
+          "email": "",
+          "phone": "8608035860",
+          "college": "RVS INSTITUTE OF TECHNOLOGY",
+          "department": "MECHANICAL ENGINEERING",
+          "year": "II YEAR"
+        },
+        {
+          "fullName": "S RITHICK SIVA",
+          "email": "",
+          "phone": "8015370236",
+          "college": "RVS INSTITUTE OF TECHNOLOGY",
+          "department": "MECHANICAL ENGINEERING",
+          "year": "II YEAR"
+        },
+        {
+          "fullName": "P SOWMIYA",
+          "email": "",
+          "phone": "9361467171",
+          "college": "RVS INSTITUTE OF TECHNOLOGY",
+          "department": "MECHANICAL ENGINEERING",
+          "year": "II YEAR"
+        }
+      ],
+      "totalAmount": 1000,
+      "paymentMethod": "UPI",
+      "paymentStatus": "paid",
+      "paymentId": "627334276193",
+      "upiReference": "627334276193",
+      "paymentProofUrl": "https://drive.google.com/file/d/1Km1ByDmnLXrog9LdkaKvzBGv5cQDv50C/view?usp=drivesdk",
+      "attendanceMarked": false
+    },
+    {
+      "id": "EV26-VTRRJ9",
+      "createdAt": "2026-09-30T05:28:54.000Z",
+      "registrationType": "workshop",
+      "eventsText": "SILICON 2 GDS",
+      "selectedWorkshopId": "ws-silicon-2-gds",
+      "selectedTechnicalIds": [],
+      "selectedNonTechnicalIds": [],
+      "teamLeader": {
+        "fullName": "Monisha.B",
+        "email": "monibalamurugan254@gmail.com",
+        "phone": "8248990249",
+        "college": "J.k.k.nataraja college of engineering and technology",
+        "department": "ECE",
+        "year": "III -year"
+      },
+      "participants": [
+        {
+          "fullName": "Monisha.B",
+          "email": "monibalamurugan254@gmail.com",
+          "phone": "8248990249",
+          "college": "J.k.k.nataraja college of engineering and technology",
+          "department": "ECE",
+          "year": "III -year"
+        }
+      ],
+      "totalAmount": 300,
+      "paymentMethod": "UPI",
+      "paymentStatus": "paid",
+      "paymentId": "663930921214",
+      "upiReference": "663930921214",
+      "paymentProofUrl": "https://drive.google.com/file/d/16RbsEotM2SY2jmPK_0tfOrSxA3HaA3wu/view?usp=drivesdk",
+      "attendanceMarked": false
+    },
+    {
+      "id": "EV26-WQU5L2",
+      "createdAt": "2026-09-29T15:20:58.000Z",
+      "registrationType": "workshop",
+      "eventsText": "Embedded System",
+      "selectedWorkshopId": "ws-embedded-system",
+      "selectedTechnicalIds": [],
+      "selectedNonTechnicalIds": [],
+      "teamLeader": {
+        "fullName": "Thenmozhi M",
+        "email": "thenmozhimeena1610@gmail.com",
+        "phone": "8248449591",
+        "college": "EGS Pillay Engineering College, Nagapattinam",
+        "department": "ECE",
+        "year": "III Year"
+      },
+      "participants": [
+        {
+          "fullName": "Thenmozhi M",
+          "email": "thenmozhimeena1610@gmail.com",
+          "phone": "8248449591",
+          "college": "EGS Pillay Engineering College, Nagapattinam",
+          "department": "ECE",
+          "year": "III Year"
+        }
+      ],
+      "totalAmount": 300,
+      "paymentMethod": "UPI",
+      "paymentStatus": "paid",
+      "paymentId": "663892655003",
+      "upiReference": "663892655003",
+      "paymentProofUrl": "https://drive.google.com/file/d/1BSxItdr7aZQNg4DsCJNIeB4VvzHUfqlo/view?usp=drivesdk",
+      "attendanceMarked": false
+    },
+    {
+      "id": "EV26-W8NFX9",
+      "createdAt": "2026-09-29T15:20:50.000Z",
+      "registrationType": "workshop",
+      "eventsText": "Embedded System",
+      "selectedWorkshopId": "ws-embedded-system",
+      "selectedTechnicalIds": [],
+      "selectedNonTechnicalIds": [],
+      "teamLeader": {
+        "fullName": "Ruwaidha. A",
+        "email": "ruwaidhakadhar05@gmail.com",
+        "phone": "9789520619",
+        "college": "E.G.S Pillay Engineering College",
+        "department": "ECE",
+        "year": "III"
+      },
+      "participants": [
+        {
+          "fullName": "Ruwaidha. A",
+          "email": "ruwaidhakadhar05@gmail.com",
+          "phone": "9789520619",
+          "college": "E.G.S Pillay Engineering College",
+          "department": "ECE",
+          "year": "III"
+        }
+      ],
+      "totalAmount": 300,
+      "paymentMethod": "UPI",
+      "paymentStatus": "paid",
+      "paymentId": "627214440564",
+      "upiReference": "627214440564",
+      "paymentProofUrl": "https://drive.google.com/file/d/1emP8CXZcew483d_umHeThpyzb_4hf88E/view?usp=drivesdk",
+      "attendanceMarked": false
+    },
+    {
+      "id": "EV26-8SCDT2",
+      "createdAt": "2026-09-29T14:41:09.000Z",
+      "registrationType": "technical",
+      "eventsText": "TECHPAPER",
+      "selectedTechnicalIds": [
+        "techpaper",
+        "tech-techpaper"
+      ],
+      "selectedNonTechnicalIds": [],
+      "teamLeader": {
+        "fullName": "Pandi B",
+        "email": "pandiprem174@gmail.com",
+        "phone": "9003165421",
+        "college": "Muthayammmal Engineering College",
+        "department": "EEE",
+        "year": "II year"
+      },
+      "participants": [
+        {
+          "fullName": "Pandi B",
+          "email": "pandiprem174@gmail.com",
+          "phone": "9003165421",
+          "college": "Muthayammmal Engineering College",
+          "department": "EEE",
+          "year": "II year"
+        },
+        {
+          "fullName": "Nithish U",
+          "email": "",
+          "phone": "9363075104",
+          "college": "Muthayammmal Engineering College",
+          "department": "EEE",
+          "year": "II year"
+        },
+        {
+          "fullName": "Suriya A",
+          "email": "",
+          "phone": "6380215540",
+          "college": "Muthayammmal Engineering College",
+          "department": "EEE",
+          "year": "II year"
+        }
+      ],
+      "totalAmount": 750,
+      "paymentMethod": "UPI",
+      "paymentStatus": "paid",
+      "paymentId": "191323384265",
+      "upiReference": "191323384265",
+      "paymentProofUrl": "https://drive.google.com/file/d/1gICoWSHjc3d5B0u4-PeYsIhFjj2Okj17/view?usp=drivesdk",
+      "attendanceMarked": false
+    },
+    {
+      "id": "EV26-8BWQBY",
+      "createdAt": "2026-09-29T13:57:38.000Z",
+      "registrationType": "workshop",
+      "eventsText": "SILICON 2 GDS",
+      "selectedWorkshopId": "ws-silicon-2-gds",
+      "selectedTechnicalIds": [],
+      "selectedNonTechnicalIds": [],
+      "teamLeader": {
+        "fullName": "Thirisha M",
+        "email": "thirisham223@gmail.com",
+        "phone": ":8778435310",
+        "college": "R P Sarathy institute of technology salem",
+        "department": "ECE",
+        "year": "II"
+      },
+      "participants": [
+        {
+          "fullName": "Thirisha M",
+          "email": "thirisham223@gmail.com",
+          "phone": ":8778435310",
+          "college": "R P Sarathy institute of technology salem",
+          "department": "ECE",
+          "year": "II"
+        }
+      ],
+      "totalAmount": 300,
+      "paymentMethod": "UPI",
+      "paymentStatus": "paid",
+      "paymentId": "986446669046",
+      "upiReference": "986446669046",
+      "paymentProofUrl": "https://drive.google.com/file/d/1Tl3V-8t6WwNwo7h331G7I5WM2pu8Af5p/view?usp=drivesdk",
+      "attendanceMarked": false
+    },
+    {
+      "id": "EV26-JQG9TR",
+      "createdAt": "2026-09-29T13:54:46.000Z",
+      "registrationType": "workshop",
+      "eventsText": "SILICON 2 GDS",
+      "selectedWorkshopId": "ws-silicon-2-gds",
+      "selectedTechnicalIds": [],
+      "selectedNonTechnicalIds": [],
+      "teamLeader": {
+        "fullName": "Yuvarani R",
+        "email": "yuvaraniravi12@gmail.com",
+        "phone": "9342553341",
+        "college": "R P Sarathy institute of technology salem",
+        "department": "ECE",
+        "year": "II"
+      },
+      "participants": [
+        {
+          "fullName": "Yuvarani R",
+          "email": "yuvaraniravi12@gmail.com",
+          "phone": "9342553341",
+          "college": "R P Sarathy institute of technology salem",
+          "department": "ECE",
+          "year": "II"
+        }
+      ],
+      "totalAmount": 300,
+      "paymentMethod": "UPI",
+      "paymentStatus": "paid",
+      "paymentId": "986446669046",
+      "upiReference": "986446669046",
+      "paymentProofUrl": "https://drive.google.com/file/d/1_c9KgLTSnOoT2oQqkifhUSHfIZsA1P_P/view?usp=drivesdk",
+      "attendanceMarked": false
+    },
+    {
+      "id": "EV26-XHDXM8",
+      "createdAt": "2026-09-29T13:50:08.000Z",
+      "registrationType": "workshop",
+      "eventsText": "SILICON 2 GDS",
+      "selectedWorkshopId": "ws-silicon-2-gds",
+      "selectedTechnicalIds": [],
+      "selectedNonTechnicalIds": [],
+      "teamLeader": {
+        "fullName": "Punithkumar R",
+        "email": "Punithkumarr0988@gmail.com",
+        "phone": "70109 76492",
+        "college": "R P Sarathy institute of technology salem",
+        "department": "ECE",
+        "year": "II"
+      },
+      "participants": [
+        {
+          "fullName": "Punithkumar R",
+          "email": "Punithkumarr0988@gmail.com",
+          "phone": "70109 76492",
+          "college": "R P Sarathy institute of technology salem",
+          "department": "ECE",
+          "year": "II"
+        }
+      ],
+      "totalAmount": 300,
+      "paymentMethod": "UPI",
+      "paymentStatus": "paid",
+      "paymentId": "80193201622",
+      "upiReference": "80193201622",
+      "paymentProofUrl": "https://drive.google.com/file/d/11muRJYjp_5CkbvTiMGTlYgNOLVCCmSJ9/view?usp=drivesdk",
+      "attendanceMarked": false
+    },
+    {
+      "id": "EV26-RG8XPP",
+      "createdAt": "2026-09-29T12:16:00.000Z",
+      "registrationType": "workshop",
+      "eventsText": "SILICON 2 GDS",
+      "selectedWorkshopId": "ws-silicon-2-gds",
+      "selectedTechnicalIds": [],
+      "selectedNonTechnicalIds": [],
+      "teamLeader": {
+        "fullName": "Deepika  R",
+        "email": "deepikarajaece@gmail.com",
+        "phone": "9363972552",
+        "college": "J.K.K.N College of Engineering and Technology",
+        "department": "ECE",
+        "year": "3rd - Year"
+      },
+      "participants": [
+        {
+          "fullName": "Deepika  R",
+          "email": "deepikarajaece@gmail.com",
+          "phone": "9363972552",
+          "college": "J.K.K.N College of Engineering and Technology",
+          "department": "ECE",
+          "year": "3rd - Year"
+        }
+      ],
+      "totalAmount": 300,
+      "paymentMethod": "UPI",
+      "paymentStatus": "paid",
+      "paymentId": "deepikaraja141007@okicici",
+      "upiReference": "deepikaraja141007@okicici",
+      "paymentProofUrl": "https://drive.google.com/file/d/1qMczD52JnXsMbgS_bIz_LH3xVLhMIrHV/view?usp=drivesdk",
+      "attendanceMarked": false
+    },
+    {
+      "id": "EV26-EXMDJ3",
+      "createdAt": "2026-09-29T12:04:36.000Z",
+      "registrationType": "workshop",
+      "eventsText": "SILICON 2 GDS",
+      "selectedWorkshopId": "ws-silicon-2-gds",
+      "selectedTechnicalIds": [],
+      "selectedNonTechnicalIds": [],
+      "teamLeader": {
+        "fullName": "K.Nandhini",
+        "email": "kn9224469@gmail.com",
+        "phone": "7397505089",
+        "college": "JKKN College of Engineering &. Technology",
+        "department": "ECE",
+        "year": "III-year"
+      },
+      "participants": [
+        {
+          "fullName": "K.Nandhini",
+          "email": "kn9224469@gmail.com",
+          "phone": "7397505089",
+          "college": "JKKN College of Engineering &. Technology",
+          "department": "ECE",
+          "year": "III-year"
+        }
+      ],
+      "totalAmount": 300,
+      "paymentMethod": "UPI",
+      "paymentStatus": "paid",
+      "paymentId": "663862321628",
+      "upiReference": "663862321628",
+      "paymentProofUrl": "https://drive.google.com/file/d/1_XwgVfhDtfW9Kw4t7Qdrj8tgxiQ7PFj1/view?usp=drivesdk",
+      "attendanceMarked": false
+    },
+    {
+      "id": "EV26-LRQ8RA",
+      "createdAt": "2026-09-28T12:31:55.000Z",
+      "registrationType": "workshop",
+      "eventsText": "Embedded System",
+      "selectedWorkshopId": "ws-embedded-system",
+      "selectedTechnicalIds": [],
+      "selectedNonTechnicalIds": [],
+      "teamLeader": {
+        "fullName": "Harini V",
+        "email": "harinivelmurugan1608@gmail.com",
+        "phone": "8807757014",
+        "college": "Chettinad college of engineering and technology, karur",
+        "department": "IT",
+        "year": "II year"
+      },
+      "participants": [
+        {
+          "fullName": "Harini V",
+          "email": "harinivelmurugan1608@gmail.com",
+          "phone": "8807757014",
+          "college": "Chettinad college of engineering and technology, karur",
+          "department": "IT",
+          "year": "II year"
+        }
+      ],
+      "totalAmount": 300,
+      "paymentMethod": "UPI",
+      "paymentStatus": "paid",
+      "paymentId": "627167751304",
+      "upiReference": "627167751304",
+      "paymentProofUrl": "https://drive.google.com/file/d/1WjVRb95lS86ZHF4yinqJ2lCUaGV3PG8p/view?usp=drivesdk",
+      "attendanceMarked": false
+    },
+    {
+      "id": "EV26-G84X4K",
+      "createdAt": "2026-09-27T13:53:24.000Z",
+      "registrationType": "technical",
+      "eventsText": "TECHPAPER",
+      "selectedTechnicalIds": [
+        "techpaper",
+        "tech-techpaper"
+      ],
+      "selectedNonTechnicalIds": [],
+      "teamLeader": {
+        "fullName": "Naveen S V",
+        "email": "naveensv008@gmail.com",
+        "phone": "87784 04400",
+        "college": "Knowlegde Institue of Technology",
+        "department": "CSE",
+        "year": "I year"
+      },
+      "participants": [
+        {
+          "fullName": "Naveen S V",
+          "email": "naveensv008@gmail.com",
+          "phone": "87784 04400",
+          "college": "Knowlegde Institue of Technology",
+          "department": "CSE",
+          "year": "I year"
+        },
+        {
+          "fullName": "Rohit Roshan R.A",
+          "email": "",
+          "phone": "78069 83157",
+          "college": "Knowlegde Institue of Technology",
+          "department": "CSE",
+          "year": "I year"
+        }
+      ],
+      "totalAmount": 500,
+      "paymentMethod": "UPI",
+      "paymentStatus": "paid",
+      "paymentId": "663424842110",
+      "upiReference": "663424842110",
+      "paymentProofUrl": "https://drive.google.com/file/d/1kreUOcW6Tmra62LTrl0H6K8ExaKY7sRa/view?usp=drivesdk",
+      "attendanceMarked": false
+    },
+    {
+      "id": "EV26-E5JHTL",
+      "createdAt": "2026-09-27T06:41:45.000Z",
+      "registrationType": "workshop",
+      "eventsText": "Embedded System",
+      "selectedWorkshopId": "ws-embedded-system",
+      "selectedTechnicalIds": [],
+      "selectedNonTechnicalIds": [],
+      "teamLeader": {
+        "fullName": "KANNIKA SHREE A",
+        "email": "shreekannika386@gmail.com",
+        "phone": "7904627080",
+        "college": "AVS COLLEGE OF ARTS AND SCIENCE OMALUR",
+        "department": "",
+        "year": ""
+      },
+      "participants": [
+        {
+          "fullName": "KANNIKA SHREE A",
+          "email": "shreekannika386@gmail.com",
+          "phone": "7904627080",
+          "college": "AVS COLLEGE OF ARTS AND SCIENCE OMALUR",
+          "department": "",
+          "year": ""
+        }
+      ],
+      "totalAmount": 300,
+      "paymentMethod": "UPI",
+      "paymentStatus": "paid",
+      "paymentId": "627088837752",
+      "upiReference": "627088837752",
+      "paymentProofUrl": "https://drive.google.com/file/d/16aem2wNfSGUXFvhheFdOBlKkqI2Obmes/view?usp=drivesdk",
+      "attendanceMarked": false
+    },
+    {
+      "id": "EV26-AK2XFK",
+      "createdAt": "2026-09-27T06:20:11.000Z",
+      "registrationType": "workshop",
+      "eventsText": "Embedded System",
+      "selectedWorkshopId": "ws-embedded-system",
+      "selectedTechnicalIds": [],
+      "selectedNonTechnicalIds": [],
+      "teamLeader": {
+        "fullName": "K Kanishka",
+        "email": "kanishka30142@gmail.com",
+        "phone": "7092708977",
+        "college": "Mahendra Engineering College",
+        "department": "ECE",
+        "year": "I Year"
+      },
+      "participants": [
+        {
+          "fullName": "K Kanishka",
+          "email": "kanishka30142@gmail.com",
+          "phone": "7092708977",
+          "college": "Mahendra Engineering College",
+          "department": "ECE",
+          "year": "I Year"
+        }
+      ],
+      "totalAmount": 300,
+      "paymentMethod": "UPI",
+      "paymentStatus": "paid",
+      "paymentId": "663601639081",
+      "upiReference": "663601639081",
+      "paymentProofUrl": "https://drive.google.com/file/d/1C3InnX5cozxFHpMicMKL6YAa4yD4I4dx/view?usp=drivesdk",
+      "attendanceMarked": false
+    },
+    {
+      "id": "EV26-RSWAYX",
+      "createdAt": "2026-09-27T06:00:05.000Z",
+      "registrationType": "workshop",
+      "eventsText": "Embedded System",
+      "selectedWorkshopId": "ws-embedded-system",
+      "selectedTechnicalIds": [],
+      "selectedNonTechnicalIds": [],
+      "teamLeader": {
+        "fullName": "THARIKA A",
+        "email": "tharikatharani90@gmail.com",
+        "phone": "8807527805",
+        "college": "MUTHAYAMMAL COLLEGE OF ARTS AND SCIENCE",
+        "department": "",
+        "year": ""
+      },
+      "participants": [
+        {
+          "fullName": "THARIKA A",
+          "email": "tharikatharani90@gmail.com",
+          "phone": "8807527805",
+          "college": "MUTHAYAMMAL COLLEGE OF ARTS AND SCIENCE",
+          "department": "",
+          "year": ""
+        }
+      ],
+      "totalAmount": 300,
+      "paymentMethod": "UPI",
+      "paymentStatus": "paid",
+      "paymentId": "627033442467",
+      "upiReference": "627033442467",
+      "paymentProofUrl": "https://drive.google.com/file/d/19m8ZHbIC5MXKUc3Wxz2bLaNPR2xB9AXH/view?usp=drivesdk",
+      "attendanceMarked": false
+    },
+    {
+      "id": "EV26-HMLM4Z",
+      "createdAt": "2026-09-27T05:33:04.000Z",
+      "registrationType": "technical",
+      "eventsText": "TECHPAPER",
+      "selectedTechnicalIds": [
+        "techpaper",
+        "tech-techpaper"
+      ],
+      "selectedNonTechnicalIds": [],
+      "teamLeader": {
+        "fullName": "Aishwarya P",
+        "email": "aishw995@gmail.com",
+        "phone": "82203 94199",
+        "college": "Excel Engineering College – Autonomous",
+        "department": "B.Tech (AI&DS)",
+        "year": "3rd Year"
+      },
+      "participants": [
+        {
+          "fullName": "Aishwarya P",
+          "email": "aishw995@gmail.com",
+          "phone": "82203 94199",
+          "college": "Excel Engineering College – Autonomous",
+          "department": "B.Tech (AI&DS)",
+          "year": "3rd Year"
+        },
+        {
+          "fullName": "Dhinakaran M",
+          "email": "",
+          "phone": "82203 75854",
+          "college": "Excel Engineering College – Autonomous",
+          "department": "B.Tech (AI&DS)",
+          "year": "3rd Year"
+        },
+        {
+          "fullName": "Harini G",
+          "email": "",
+          "phone": "93445 23543",
+          "college": "Excel Engineering College – Autonomous",
+          "department": "B.Tech (AI&DS)",
+          "year": "3rd Year"
+        },
+        {
+          "fullName": "Ayisha I",
+          "email": "",
+          "phone": "63807 43011",
+          "college": "Excel Engineering College – Autonomous",
+          "department": "B.Tech (AI&DS)",
+          "year": "3rd Year"
+        }
+      ],
+      "totalAmount": 1000,
+      "paymentMethod": "UPI",
+      "paymentStatus": "paid",
+      "paymentId": "T2609262118250231573704",
+      "upiReference": "T2609262118250231573704",
+      "paymentProofUrl": "https://drive.google.com/file/d/1jkDtL3y39ifaSscAuGH9i_6Rm9eH_6KE/view?usp=drivesdk",
+      "attendanceMarked": false
+    },
+    {
+      "id": "EV26-3LVJPX",
+      "createdAt": "2026-09-27T05:25:27.000Z",
+      "registrationType": "workshop",
+      "eventsText": "Embedded System",
+      "selectedWorkshopId": "ws-embedded-system",
+      "selectedTechnicalIds": [],
+      "selectedNonTechnicalIds": [],
+      "teamLeader": {
+        "fullName": "THARANI A",
+        "email": "tharania888@gmail.com",
+        "phone": "9150727805",
+        "college": "KNOWLEDGE INSTITUTE OF TECHNOLOGY",
+        "department": "",
+        "year": ""
+      },
+      "participants": [
+        {
+          "fullName": "THARANI A",
+          "email": "tharania888@gmail.com",
+          "phone": "9150727805",
+          "college": "KNOWLEDGE INSTITUTE OF TECHNOLOGY",
+          "department": "",
+          "year": ""
+        }
+      ],
+      "totalAmount": 300,
+      "paymentMethod": "UPI",
+      "paymentStatus": "paid",
+      "paymentId": "627084823616",
+      "upiReference": "627084823616",
+      "paymentProofUrl": "https://drive.google.com/file/d/1DfKKFG02qraRWw6wucYwFgMASpvgZKjt/view?usp=drivesdk",
+      "attendanceMarked": false
+    },
+    {
+      "id": "EV26-HEEQSF",
+      "createdAt": "2026-09-27T04:51:21.000Z",
+      "registrationType": "workshop",
+      "eventsText": "Embedded System",
+      "selectedWorkshopId": "ws-embedded-system",
+      "selectedTechnicalIds": [],
+      "selectedNonTechnicalIds": [],
+      "teamLeader": {
+        "fullName": "SUNDRAVEL",
+        "email": "sundaravelmanoj@gmail.com",
+        "phone": "6385676427",
+        "college": "Er.perumal manimekalai college of engineering",
+        "department": "ECE",
+        "year": "Engineering"
+      },
+      "participants": [
+        {
+          "fullName": "SUNDRAVEL",
+          "email": "sundaravelmanoj@gmail.com",
+          "phone": "6385676427",
+          "college": "Er.perumal manimekalai college of engineering",
+          "department": "ECE",
+          "year": "Engineering"
+        }
+      ],
+      "totalAmount": 300,
+      "paymentMethod": "UPI",
+      "paymentStatus": "paid",
+      "paymentId": "876514560765",
+      "upiReference": "876514560765",
+      "paymentProofUrl": "https://drive.google.com/file/d/14XBztt4caqasZoT2LyfJSR1nQhwm1r1l/view?usp=drivesdk",
+      "attendanceMarked": false
+    },
+    {
+      "id": "EV26-JLDKHL",
+      "createdAt": "2026-09-27T04:38:25.000Z",
+      "registrationType": "technical",
+      "eventsText": "EVOLVEX, DETECTIVE 404",
+      "selectedTechnicalIds": [
+        "evolvex",
+        "tech-evolvex"
+      ],
+      "selectedNonTechnicalIds": [
+        "detective-404",
+        "non-detective-404"
+      ],
+      "teamLeader": {
+        "fullName": "naveena.s",
+        "email": "naveenasn194@gmail.com",
+        "phone": "9345895267",
+        "college": "Erode Sengunthar Engineering College",
+        "department": "ECE",
+        "year": "3year"
+      },
+      "participants": [
+        {
+          "fullName": "naveena.s",
+          "email": "naveenasn194@gmail.com",
+          "phone": "9345895267",
+          "college": "Erode Sengunthar Engineering College",
+          "department": "ECE",
+          "year": "3year"
+        },
+        {
+          "fullName": "Gokul",
+          "email": "",
+          "phone": "9360208931",
+          "college": "Erode Sengunthar Engineering College",
+          "department": "ECE",
+          "year": "3year"
+        }
+      ],
+      "totalAmount": 500,
+      "paymentMethod": "UPI",
+      "paymentStatus": "paid",
+      "paymentId": "627006738535",
+      "upiReference": "627006738535",
+      "paymentProofUrl": "https://drive.google.com/file/d/11XgQh7ya6QYJKf6j21x79sy_TEynHt4U/view?usp=drivesdk",
+      "attendanceMarked": false
+    },
+    {
       "id": "EV26-JWPA6R",
       "createdAt": "2026-09-26T17:28:21.000Z",
       "registrationType": "technical",

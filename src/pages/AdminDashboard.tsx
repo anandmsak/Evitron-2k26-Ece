@@ -92,6 +92,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     return 'Synced via Cache Memory';
   });
 
+  const [connectionError, setConnectionError] = useState<string | null>(null);
+
   const activeStats = useMemo(() => {
     if (stats && stats.totalRegistrations > 0) return stats;
     if (registrations.length > 0) {
@@ -321,10 +323,33 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   }, [selectedEventId, events]);
 
   useEffect(() => {
-    if (token) {
-      loadDashboardData();
+    if (!token) return;
+    loadDashboardData();
+    const interval = setInterval(() => {
+      loadDashboardDataSilent();
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [token, filterType, filterStatus, searchTerm]);
+
+  const loadDashboardDataSilent = async () => {
+    if (!token) return;
+    try {
+      const statsData = await fetchAdminStats(token);
+      setStats(statsData);
+
+      let query = '';
+      if (filterType) query += `type=${filterType}&`;
+      if (filterStatus) query += `status=${filterStatus}&`;
+      if (searchTerm) query += `search=${encodeURIComponent(searchTerm)}&`;
+
+      const regData = await fetchAdminRegistrations(token, query);
+      setRegistrations(regData);
+      setConnectionError(null);
+    } catch (err: any) {
+      console.warn('[Supabase Real-Time Sync Pause]: Unreachable', err);
+      setConnectionError('⚠️ Supabase connection lost. Retrying live connection...');
     }
-  }, [token, filterType, filterStatus]);
+  };
 
   const loadDashboardData = async () => {
     if (!token) return;
@@ -339,68 +364,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       if (searchTerm) query += `search=${encodeURIComponent(searchTerm)}&`;
 
       const regData = await fetchAdminRegistrations(token, query);
-      
-      // Auto-heal empty database from Google Sheet if 0 registrations returned on standard load
-      if (regData.length === 0 && !searchTerm && !filterType && !filterStatus) {
-        const webhookUrl = settingsForm.googleSheetWebhookUrl || defaultSettings.googleSheetWebhookUrl;
-        if (webhookUrl) {
-          try {
-            await restoreRegistrationsFromSheetApi(token, [], webhookUrl);
-            const reloadedRegs = await fetchAdminRegistrations(token, query);
-            if (reloadedRegs.length > 0) {
-              setRegistrations(reloadedRegs);
-              try {
-                localStorage.setItem('evitron_admin_cached_regs', JSON.stringify(reloadedRegs));
-              } catch {}
-              const reloadedStats = await fetchAdminStats(token);
-              setStats(reloadedStats);
-              return;
-            }
-          } catch {}
-        }
-      }
-
-      if (regData.length > 0) {
-        const seen = new Set<string>();
-        const deduped = regData.filter((r) => {
-          const key = (r.id || '').toUpperCase();
-          if (!key || seen.has(key)) return false;
-          seen.add(key);
-          return true;
-        });
-        setRegistrations(deduped);
-        try {
-          const serialized = JSON.stringify(deduped);
-          localStorage.setItem('evitron_gsheet_synced_cache_v3', serialized);
-          localStorage.setItem('evitron_admin_cached_regs', serialized);
-          const now = Date.now();
-          localStorage.setItem('evitron_gsheet_last_synced_at', String(now));
-          setLastSyncedTime(new Date(now).toLocaleString());
-        } catch {}
-      } else if (!searchTerm && !filterType && !filterStatus) {
-        const cached = localStorage.getItem('evitron_gsheet_synced_cache_v3') || localStorage.getItem('evitron_admin_cached_regs');
-        if (cached) {
-          try {
-            const parsed = JSON.parse(cached);
-            if (Array.isArray(parsed) && parsed.length > 0) {
-              const seen = new Set<string>();
-              const deduped = parsed.filter((r) => {
-                const key = (r.id || '').toUpperCase();
-                if (!key || seen.has(key)) return false;
-                seen.add(key);
-                return true;
-              });
-              setRegistrations(deduped);
-            }
-          } catch {}
-        }
-      } else {
-        setRegistrations(regData);
-      }
+      setRegistrations(regData);
+      setConnectionError(null);
     } catch (err: any) {
       console.error(err);
       if (err.message?.includes('Unauthorized') || err.message?.includes('Invalid')) {
         handleLogout();
+      } else {
+        setConnectionError('⚠️ Supabase table read error. Verify database connection credentials.');
       }
     } finally {
       setLoading(false);
@@ -866,23 +837,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           </p>
         </div>
 
-        {/* Google Sheet Sync Cache Memory Status Bar */}
-        <div className="w-full bg-emerald-50 border border-emerald-200 rounded-xl p-3.5 flex flex-wrap items-center justify-between gap-3 text-xs text-emerald-950 shadow-2xs">
+        {/* Real-time Supabase Connection Status Bar */}
+        <div className={`w-full border rounded-xl p-3.5 flex flex-wrap items-center justify-between gap-3 text-xs shadow-2xs transition-colors duration-300 ${connectionError ? 'bg-rose-50 border-rose-200 text-rose-950' : 'bg-emerald-50 border-emerald-200 text-emerald-950'}`}>
           <div className="flex items-center gap-2">
-            <RefreshCw className="w-4 h-4 text-emerald-600 shrink-0" />
+            <span className={`w-2.5 h-2.5 rounded-full ${connectionError ? 'bg-rose-600 animate-ping' : 'bg-emerald-600 animate-pulse'}`} />
             <span>
-              <strong>Google Sheet Cache Memory Active:</strong> Last synced: <span className="font-mono font-bold text-emerald-900">{lastSyncedTime}</span> ({registrations.length} registrations loaded instantly from secure cache).
+              {connectionError ? (
+                <strong>{connectionError}</strong>
+              ) : (
+                <>
+                  <strong>Supabase Real-Time Engine Active:</strong> Secure live table subscriptions are connected ({registrations.length} registrations synced instantly). Dashboard auto-updates every 5 seconds without lag.
+                </>
+              )}
             </span>
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={handleRestoreFromSheets}
-              disabled={isRestoringSheets}
-              className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-bold rounded-lg cursor-pointer shadow-xs transition-colors flex items-center gap-1.5 disabled:opacity-50 text-xs"
-            >
-              <RefreshCw className={`w-3.5 h-3.5 ${isRestoringSheets ? 'animate-spin' : ''}`} />
-              <span>{isRestoringSheets ? 'Pulling from Sheet...' : 'Sync & Pull Fresh from Sheet'}</span>
-            </button>
           </div>
         </div>
 

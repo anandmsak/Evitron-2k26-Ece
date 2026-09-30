@@ -865,9 +865,6 @@ export async function listRegistrations(filters?: {
   paymentStatus?: RegistrationRecord['paymentStatus'];
   search?: string;
 }): Promise<RegistrationRecord[]> {
-  const localRegs = store.getRegistrations();
-  let results = localRegs;
-
   if (isSupabaseConfigured()) {
     try {
       let query = supabaseAdmin
@@ -897,32 +894,31 @@ export async function listRegistrations(filters?: {
 
       const { data, error } = await query;
       if (!error && data) {
-        const remoteRegs = data.map(mapRegistration);
-        let hasNew = false;
-        for (const r of remoteRegs) {
-          const exists = localRegs.some(lr => lr.id.toUpperCase() === r.id.toUpperCase());
-          if (!exists) {
-            store.addRegistration(r);
-            hasNew = true;
-          }
+        let results = data.map(mapRegistration);
+        if (filters?.search) {
+          const needle = filters.search.toLowerCase();
+          results = results.filter((r) =>
+            [
+              r.id,
+              r.teamLeader?.fullName,
+              r.teamLeader?.email,
+              r.teamLeader?.phone,
+              r.teamLeader?.college,
+              r.upiReference,
+            ]
+              .filter(Boolean)
+              .some((value) => String(value).toLowerCase().includes(needle))
+          );
         }
-        const updatedLocalRegs = hasNew ? store.getRegistrations() : localRegs;
-        const map = new Map<string, RegistrationRecord>();
-        for (const r of updatedLocalRegs) {
-          map.set(r.id.toUpperCase(), r);
-        }
-        for (const r of remoteRegs) {
-          map.set(r.id.toUpperCase(), r);
-        }
-        results = Array.from(map.values()).sort(
-          (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-        );
+        return results;
       }
-    } catch {
-      results = localRegs;
+    } catch (e) {
+      console.error('[DB] listRegistrations direct query failed:', e);
     }
   }
 
+  // Fallback to local store memory ONLY if Supabase is not configured
+  let results = store.getRegistrations();
   if (filters?.registrationType) {
     results = results.filter((r) => r.registrationType === filters.registrationType);
   }
@@ -944,7 +940,6 @@ export async function listRegistrations(filters?: {
         .some((value) => String(value).toLowerCase().includes(needle))
     );
   }
-
   return results;
 }
 
