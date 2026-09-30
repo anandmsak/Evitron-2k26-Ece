@@ -480,6 +480,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         participantFormUrl: settingsForm.participantFormUrl,
         googleSheetWebhookUrl: settingsForm.googleSheetWebhookUrl,
         adminNotificationEmails: settingsForm.adminNotificationEmails,
+        closedWorkshops: settingsForm.closedWorkshops,
       });
       setSettingsForm(updated);
       onRefreshSettings();
@@ -1858,6 +1859,58 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         <div className="font-mono text-[11px] break-all">{testEmailResult.message}</div>
                       </div>
                     )}
+                  </div>
+                </div>
+
+                {/* Workshop Registration Control Panel */}
+                <div className="pt-5 border-t border-stone-200">
+                  <h4 className="text-sm font-extrabold text-stone-900 mb-1 uppercase tracking-wider flex items-center gap-1.5">
+                    ⚙️ Workshop Registration Control Panel
+                  </h4>
+                  <p className="text-[11px] text-stone-500 mb-3">
+                    Manually open or close registrations for specific workshops. When closed, students will be prevented from selecting that workshop during registration, and an active marquee notification will automatically stream on the homepage.
+                  </p>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                    {[
+                      { id: 'silicon-2-gds', name: 'SILICON 2 GDS' },
+                      { id: 'embedded-system', name: 'Embedded System' },
+                      { id: 'virtual-instrumentation', name: 'Virtual Instrumentation' },
+                    ].map((ws) => {
+                      const isClosed = (settingsForm.closedWorkshops || []).includes(ws.id);
+                      return (
+                        <div key={ws.id} className={`p-3.5 border rounded-xl flex items-center justify-between gap-3 transition-all ${isClosed ? 'bg-rose-50/50 border-rose-200' : 'bg-emerald-50/20 border-stone-200'}`}>
+                          <div>
+                            <span className="font-extrabold text-xs text-stone-900 block">{ws.name}</span>
+                            <span className={`text-[10px] font-bold ${isClosed ? 'text-rose-600' : 'text-emerald-600'}`}>
+                              {isClosed ? '🔴 REGISTRATION CLOSED' : '🟢 REGISTRATION OPEN'}
+                            </span>
+                          </div>
+                          
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              const currentClosed = settingsForm.closedWorkshops || [];
+                              const nextClosed = currentClosed.includes(ws.id)
+                                ? currentClosed.filter(id => id !== ws.id)
+                                : [...currentClosed, ws.id];
+                              
+                              try {
+                                const updated = await updateSiteSettings(token, { closedWorkshops: nextClosed });
+                                setSettingsForm(updated);
+                                onRefreshSettings();
+                                showNotification(`Registration for ${ws.name} is now ${nextClosed.includes(ws.id) ? 'CLOSED' : 'OPEN'}.`, 'success');
+                              } catch (err: any) {
+                                showNotification(err.message || 'Failed to persist workshop closure.', 'error');
+                              }
+                            }}
+                            className={`px-3 py-1.5 rounded-lg text-[10px] font-bold cursor-pointer transition-colors shadow-2xs ${isClosed ? 'bg-emerald-600 hover:bg-emerald-700 text-white' : 'bg-rose-600 hover:bg-rose-700 text-white'}`}
+                          >
+                            {isClosed ? 'Open Reg' : 'Close Reg'}
+                          </button>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               </div>

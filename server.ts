@@ -776,8 +776,14 @@ app.post('/api/admin/login', (req, res) => {
   return res.status(401).json({ error: 'Incorrect administrator password.' });
 });
 
+let lastAutoSyncTime = 0;
 let isAutoSyncingFromSheet = false;
-async function autoSyncFromSheetIfEmpty() {
+async function autoSyncFromSheet(force = false) {
+  const now = Date.now();
+  // Only auto-sync at most once every 30 seconds to be extremely performant and rate-limit safe
+  if (!force && now - lastAutoSyncTime < 30000) {
+    return;
+  }
   if (isAutoSyncingFromSheet) return;
   isAutoSyncingFromSheet = true;
   try {
@@ -800,6 +806,7 @@ async function autoSyncFromSheetIfEmpty() {
       if (Array.isArray(data) && data.length > 0) {
         console.log(`[AUTO-SYNC] Auto-restored ${data.length} registrations from Google Sheet!`);
         await repository.importRegistrations(data);
+        lastAutoSyncTime = Date.now();
       }
     }
   } catch (err) {
@@ -810,31 +817,26 @@ async function autoSyncFromSheetIfEmpty() {
 }
 
 app.get('/api/admin/stats', requireAdmin, async (_req, res) => {
-  let stats = await repository.getRegistrationStats();
-  if (stats.totalRegistrations === 0) {
-    await autoSyncFromSheetIfEmpty();
-    stats = await repository.getRegistrationStats();
-  }
+  // Sync in background to maintain perfectly up-to-date cache
+  autoSyncFromSheet().catch(() => {});
+  
+  const stats = await repository.getRegistrationStats();
   res.json(stats);
 });
 
 app.get('/api/admin/registrations', requireAdmin, async (req, res) => {
   const { type, status, search } = req.query as { type?: string; status?: string; search?: string };
-  let registrations = await repository.listRegistrations({
+  
+  // Sync in background to maintain perfectly up-to-date cache
+  if (!search && !type && !status) {
+    autoSyncFromSheet().catch(() => {});
+  }
+
+  const registrations = await repository.listRegistrations({
     registrationType: type as any,
     paymentStatus: status as any,
     search,
   });
-
-  // If local store has 0 registrations, automatically restore from Google Sheet without forcing the admin to click anything!
-  if (registrations.length === 0 && !search && !type && !status) {
-    await autoSyncFromSheetIfEmpty();
-    registrations = await repository.listRegistrations({
-      registrationType: type as any,
-      paymentStatus: status as any,
-      search,
-    });
-  }
 
   res.json(registrations);
 });
@@ -1132,7 +1134,7 @@ async function startServer() {
       const existingCount = (await repository.listRegistrations()).length;
       if (existingCount === 0) {
         console.log('[STARTUP] Local registration store is empty. Pre-fetching registrations from Google Sheet...');
-        await autoSyncFromSheetIfEmpty();
+        await autoSyncFromSheet(true);
       }
     } catch (e) {
       console.warn('[STARTUP] Pre-fetch error (non-fatal):', e);

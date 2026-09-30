@@ -17,10 +17,11 @@ import {
   Ticket,
   Layers,
 } from 'lucide-react';
-import { EventItem } from '../types';
+import { EventItem, SiteSettings } from '../types';
 
 interface EventDetailPageProps {
   event: EventItem;
+  settings?: SiteSettings;
   onNavigate: (path: string) => void;
 }
 
@@ -31,8 +32,12 @@ const DEFAULT_PAPER_THEMES = [
   'Sustainable Technology, Environmental Innovation & Clean Energy',
 ];
 
-export const EventDetailPage: React.FC<EventDetailPageProps> = ({ event, onNavigate }) => {
+export const EventDetailPage: React.FC<EventDetailPageProps> = ({ event, settings, onNavigate }) => {
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(0);
+  const regDeadline = settings?.registrationDeadline || '05/10/2026';
+  const isClosed = (settings?.closedWorkshops || []).some(
+    (id) => id.toLowerCase() === (event.slug || '').toLowerCase() || id.toLowerCase() === (event.id || '').toLowerCase()
+  );
 
   const toggleFaq = (idx: number) => {
     setOpenFaqIndex(openFaqIndex === idx ? null : idx);
@@ -131,7 +136,7 @@ export const EventDetailPage: React.FC<EventDetailPageProps> = ({ event, onNavig
             </span>
             {event.category !== 'non-technical' && event.category !== 'non_technical' && (
               <span className="block text-[10px] text-[#B22222] font-semibold mt-0.5">
-                Last date for registration: 05/10/2026
+                Last date for registration: {regDeadline}
               </span>
             )}
           </div>
@@ -139,13 +144,25 @@ export const EventDetailPage: React.FC<EventDetailPageProps> = ({ event, onNavig
 
         {/* Action button */}
         <div className="mt-6 flex flex-wrap items-center gap-4">
+          {isClosed ? (
+            <div className="w-full bg-rose-50 border border-rose-200 text-rose-950 p-4 rounded-lg flex items-center gap-3 mb-2 text-xs sm:text-sm font-extrabold uppercase tracking-wide">
+              <AlertCircle className="w-5 h-5 text-rose-600 shrink-0" />
+              <span>🔴 This event seats are filled! Registration is closed.</span>
+            </div>
+          ) : null}
+
           <button
             id="event-detail-register-btn"
-            onClick={() => onNavigate('/register')}
-            className="px-6 py-3 bg-[#B22222] hover:bg-[#961c1c] active:bg-[#7e1717] text-white font-bold text-sm rounded-lg shadow-sm flex items-center gap-2 cursor-pointer transition-colors"
+            disabled={isClosed}
+            onClick={() => !isClosed && onNavigate('/register')}
+            className={`px-6 py-3 font-bold text-sm rounded-lg shadow-sm flex items-center gap-2 transition-colors ${
+              isClosed
+                ? 'bg-rose-100 border border-rose-200 text-rose-500 cursor-not-allowed opacity-75'
+                : 'bg-[#B22222] hover:bg-[#961c1c] active:bg-[#7e1717] text-white cursor-pointer'
+            }`}
           >
             <Ticket className="w-4 h-4" />
-            Register for {event.title}
+            {isClosed ? 'Registration Closed' : `Register for ${event.title}`}
           </button>
 
           <button

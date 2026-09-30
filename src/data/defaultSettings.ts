@@ -37,6 +37,7 @@ export const initialSiteSettings: SiteSettings = {
   adminNotificationEmails: ['evitron26@gmail.com'],
   forceEarlyBird: true,
   earlyBirdDeadline: '2026-10-05T23:59:59+05:30',
+  closedWorkshops: [],
 };
 
 export const defaultSettings = initialSiteSettings;

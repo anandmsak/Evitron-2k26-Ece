@@ -46,8 +46,36 @@ export const HomePage: React.FC<HomePageProps> = ({ settings: propSettings, even
     } catch {}
   }, []);
 
+  const getClosedWorkshopsNotification = () => {
+    const closedIds = settings.closedWorkshops || [];
+    if (closedIds.length === 0) return '';
+
+    const closedNames = closedIds.map(id => {
+      const match = events.find(
+        (e) => (e.id || '').toLowerCase() === id.toLowerCase() || (e.slug || '').toLowerCase() === id.toLowerCase()
+      );
+      return match ? match.title : id;
+    });
+
+    if (closedNames.length === 1) {
+      return `${closedNames[0]} seats are filled, registration is closed,Please checkout remaining events.`;
+    }
+    return `${closedNames.join(' & ')} seats are filled, registrations are closed.`;
+  };
+
+  const closedNotifText = getClosedWorkshopsNotification();
+
   return (
     <div className="space-y-12 pb-16">
+      {/* Dynamic Workshop Closed Scrolling Marquee */}
+      {closedNotifText && (
+        <div className="bg-[#B22222] text-white py-2 overflow-hidden border-b border-red-800">
+          <marquee scrollamount="5" className="cursor-default font-extrabold text-xs uppercase tracking-wider">
+            <span>🔥 &nbsp; {closedNotifText} &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 🔥 &nbsp; {closedNotifText} &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 🔥 &nbsp; {closedNotifText}</span>
+          </marquee>
+        </div>
+      )}
+
       {/* Resume Registration Banner if attendee returned after payment */}
       {ongoingDraft && (
         <div className="bg-emerald-50 border-b border-emerald-200 py-3 px-4 sm:px-6 shadow-2xs">

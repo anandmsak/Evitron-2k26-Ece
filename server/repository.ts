@@ -898,8 +898,17 @@ export async function listRegistrations(filters?: {
       const { data, error } = await query;
       if (!error && data) {
         const remoteRegs = data.map(mapRegistration);
+        let hasNew = false;
+        for (const r of remoteRegs) {
+          const exists = localRegs.some(lr => lr.id.toUpperCase() === r.id.toUpperCase());
+          if (!exists) {
+            store.addRegistration(r);
+            hasNew = true;
+          }
+        }
+        const updatedLocalRegs = hasNew ? store.getRegistrations() : localRegs;
         const map = new Map<string, RegistrationRecord>();
-        for (const r of localRegs) {
+        for (const r of updatedLocalRegs) {
           map.set(r.id.toUpperCase(), r);
         }
         for (const r of remoteRegs) {

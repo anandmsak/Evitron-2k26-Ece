@@ -1118,23 +1118,32 @@ export const RegistrationPage: React.FC<RegistrationPageProps> = ({ events, sett
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               {workshops.map((w) => {
                 const isSelected = selectedWorkshopId === w.id;
+                const isClosed = (settings.closedWorkshops || []).some(
+                  (id) => id.toLowerCase() === (w.slug || '').toLowerCase() || id.toLowerCase() === (w.id || '').toLowerCase()
+                );
                 return (
                   <button
                     key={w.id}
                     type="button"
-                    onClick={() => handleSelectWorkshop(w.id)}
-                    className={`p-3.5 rounded-lg border text-left transition-all cursor-pointer ${
-                      isSelected
-                        ? 'bg-red-50/70 border-[#B22222] shadow-xs'
-                        : 'bg-white border-stone-200 hover:border-stone-300'
+                    disabled={isClosed}
+                    onClick={() => !isClosed && handleSelectWorkshop(w.id)}
+                    className={`p-3.5 rounded-lg border text-left transition-all ${
+                      isClosed
+                        ? 'bg-rose-50/30 border-rose-200 opacity-60 cursor-not-allowed'
+                        : isSelected
+                        ? 'bg-red-50/70 border-[#B22222] shadow-xs cursor-pointer'
+                        : 'bg-white border-stone-200 hover:border-stone-300 cursor-pointer'
                     }`}
                   >
                     <div className="flex items-center justify-between mb-1">
                       <span className="font-bold text-stone-900 text-xs">{w.title}</span>
                       {isSelected && <CheckCircle2 className="w-4 h-4 text-[#B22222]" />}
+                      {isClosed && <span className="text-[9px] font-extrabold text-rose-600 bg-rose-100 px-1.5 py-0.5 rounded uppercase tracking-wider">CLOSED</span>}
                     </div>
                     <p className="text-[11px] text-stone-500 line-clamp-2">{w.tagline}</p>
-                    <div className="mt-2 text-[10px] font-semibold text-[#B22222]">₹300 / Participant</div>
+                    <div className="mt-2 text-[10px] font-semibold text-[#B22222]">
+                      {isClosed ? 'Registration Closed' : '₹300 / Participant'}
+                    </div>
                   </button>
                 );
               })}
@@ -1191,20 +1200,27 @@ export const RegistrationPage: React.FC<RegistrationPageProps> = ({ events, sett
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 {technicalEvents.map((t) => {
                   const isSelected = selectedTechnicalIds.includes(t.id);
+                  const isClosed = (settings.closedWorkshops || []).some(
+                    (id) => id.toLowerCase() === (t.slug || '').toLowerCase() || id.toLowerCase() === (t.id || '').toLowerCase()
+                  );
                   return (
                     <button
                       key={t.id}
                       type="button"
-                      onClick={() => handleToggleTechnical(t.id)}
-                      className={`p-3.5 rounded-lg border text-left transition-all cursor-pointer ${
-                        isSelected
-                          ? 'bg-red-50/70 border-[#B22222] shadow-xs ring-1 ring-[#B22222]/30'
-                          : 'bg-white border-stone-200 hover:border-stone-300'
+                      disabled={isClosed}
+                      onClick={() => !isClosed && handleToggleTechnical(t.id)}
+                      className={`p-3.5 rounded-lg border text-left transition-all ${
+                        isClosed
+                          ? 'bg-rose-50/30 border-rose-200 opacity-60 cursor-not-allowed'
+                          : isSelected
+                          ? 'bg-red-50/70 border-[#B22222] shadow-xs ring-1 ring-[#B22222]/30 cursor-pointer'
+                          : 'bg-white border-stone-200 hover:border-stone-300 cursor-pointer'
                       }`}
                     >
                       <div className="flex items-center justify-between mb-1">
                         <span className="font-bold text-stone-900 text-xs">{t.title}</span>
                         {isSelected && <CheckCircle2 className="w-4 h-4 text-[#B22222]" />}
+                        {isClosed && <span className="text-[9px] font-extrabold text-rose-600 bg-rose-100 px-1.5 py-0.5 rounded uppercase tracking-wider">CLOSED</span>}
                       </div>
                       <p className="text-[11px] text-stone-500">{t.tagline}</p>
                     </button>
@@ -1233,16 +1249,21 @@ export const RegistrationPage: React.FC<RegistrationPageProps> = ({ events, sett
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
                 {nonTechnicalEvents.map((n) => {
                   const isSelected = selectedNonTechnicalIds.includes(n.id);
-                  const isDisabled = selectedTechnicalIds.length === 0;
+                  const isClosed = (settings.closedWorkshops || []).some(
+                    (id) => id.toLowerCase() === (n.slug || '').toLowerCase() || id.toLowerCase() === (n.id || '').toLowerCase()
+                  );
+                  const isDisabled = selectedTechnicalIds.length === 0 || isClosed;
 
                   return (
                     <button
                       key={n.id}
                       type="button"
                       disabled={isDisabled}
-                      onClick={() => handleToggleNonTechnical(n.id)}
+                      onClick={() => !isDisabled && handleToggleNonTechnical(n.id)}
                       className={`p-3 rounded-lg border text-left transition-all ${
-                        isDisabled
+                        isClosed
+                          ? 'bg-rose-50/30 border-rose-200 opacity-60 cursor-not-allowed'
+                          : isDisabled
                           ? 'opacity-40 bg-stone-50 border-stone-200 cursor-not-allowed'
                           : isSelected
                           ? 'bg-red-50/70 border-[#B22222] cursor-pointer'
@@ -1252,6 +1273,7 @@ export const RegistrationPage: React.FC<RegistrationPageProps> = ({ events, sett
                       <div className="flex items-center justify-between mb-1">
                         <span className="font-bold text-stone-900 text-xs">{n.title}</span>
                         {isSelected && <CheckCircle2 className="w-3.5 h-3.5 text-[#B22222]" />}
+                        {isClosed && <span className="text-[9px] font-extrabold text-rose-600 bg-rose-100 px-1.5 py-0.5 rounded uppercase tracking-wider">CLOSED</span>}
                       </div>
                       <p className="text-[10px] text-stone-500">{n.tagline}</p>
                     </button>

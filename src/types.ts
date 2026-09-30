@@ -108,4 +108,5 @@ export interface SiteSettings {
   adminNotificationEmails?: string[];
   forceEarlyBird?: boolean;
   earlyBirdDeadline?: string;
+  closedWorkshops?: string[];
 }
