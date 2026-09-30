@@ -325,10 +325,29 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   useEffect(() => {
     if (!token) return;
     loadDashboardData();
-    const interval = setInterval(() => {
-      loadDashboardDataSilent();
-    }, 5000);
-    return () => clearInterval(interval);
+
+    // Direct Supabase real-time change event stream
+    const eventSource = new EventSource(`/api/admin/realtime-stream?token=${encodeURIComponent(token)}`);
+    
+    eventSource.onmessage = (event) => {
+      try {
+        const parsed = JSON.parse(event.data);
+        if (parsed.type === 'change') {
+          console.log('[REAL-TIME] Direct Supabase live change event received! Updating dashboard...');
+          loadDashboardDataSilent();
+        }
+      } catch (e) {
+        console.warn('Real-time message parse error:', e);
+      }
+    };
+
+    eventSource.onerror = () => {
+      setConnectionError('⚠️ Supabase Real-Time stream disconnected. Attempting automatic reconnection...');
+    };
+
+    return () => {
+      eventSource.close();
+    };
   }, [token, filterType, filterStatus, searchTerm]);
 
   const loadDashboardDataSilent = async () => {
@@ -846,7 +865,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 <strong>{connectionError}</strong>
               ) : (
                 <>
-                  <strong>Supabase Real-Time Engine Active:</strong> Secure live table subscriptions are connected ({registrations.length} registrations synced instantly). Dashboard auto-updates every 5 seconds without lag.
+                  <strong>Supabase Real-Time Engine Active:</strong> Secure live PostgreSQL channel is connected ({registrations.length} registrations synced instantly). Updates trigger instantly on table insert/update/delete events.
                 </>
               )}
             </span>
