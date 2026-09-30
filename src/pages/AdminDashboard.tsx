@@ -588,7 +588,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
       return [
         r.id,
-        r.createdAt,
+        `"${new Date(r.createdAt).toLocaleString('en-IN')}"`,
         r.registrationType,
         `"${eventTitles.join('; ')}"`,
         `"${r.teamLeader.fullName}"`,
@@ -1088,8 +1088,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     return registrations.map((r) => (
                       <tr key={r.id} className="hover:bg-stone-50/70">
                         <td className="p-3 font-mono font-bold text-stone-900">{r.id}</td>
-                        <td className="p-3 text-stone-500 whitespace-nowrap">
-                          {new Date(r.createdAt).toLocaleDateString()}
+                        <td className="p-3 text-stone-600 whitespace-nowrap text-xs">
+                          <div className="font-semibold text-stone-800">
+                            {new Date(r.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+                          </div>
+                          <div className="text-[10px] text-stone-400 font-mono">
+                            {new Date(r.createdAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })}
+                          </div>
                         </td>
                         <td className="p-3">
                           {r.registrationType === 'workshop' ? (
