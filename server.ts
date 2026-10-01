@@ -23,6 +23,7 @@ import {
   sendTestEmail,
   emailAuditLog,
 } from './server/email.js';
+import { syncRegistrationToGoogleSheet, syncAllRegistrationsToGoogleSheet, deleteRegistrationFromGoogleSheet } from './server/googleSheet.js';
 import { Participant, RegistrationRecord } from './src/types.js';
 import { getPricePerPerson, isEarlyBirdActive } from './server/pricing.js';
 
@@ -212,34 +213,71 @@ async function validateRegistrationRules(body: {
     };
   }
 
-  // Enforce workshop and event closures on the backend
+  // Enforce workshop and event closures on the backend strictly
   const closedEvents = settings.closedWorkshops || [];
   const { selectedWorkshopId, selectedTechnicalIds = [], selectedNonTechnicalIds = [] } = body;
+  const dbEvents = await repository.getEvents(false);
 
-  if (selectedWorkshopId && closedEvents.includes(selectedWorkshopId)) {
+  const isClosedStrict = (key: string | undefined) => {
+    if (!key || closedEvents.length === 0) return false;
+    const clean = key.trim().toLowerCase();
+    const stripped = clean.replace(/^(ws|tech|non|nontech)-/i, '');
+
+    for (const c of closedEvents) {
+      if (!c) continue;
+      const cClean = c.trim().toLowerCase();
+      const cStripped = cClean.replace(/^(ws|tech|non|nontech)-/i, '');
+
+      if (clean === cClean || stripped === cStripped) return true;
+      if (
+        (stripped.includes('silicon') && cClean.includes('silicon')) ||
+        (stripped.includes('embedded') && cClean.includes('embedded')) ||
+        (stripped.includes('virtual') && cClean.includes('virtual')) ||
+        (stripped.includes('paper') && cClean.includes('paper')) ||
+        (stripped.includes('evolvex') && cClean.includes('evolvex')) ||
+        (stripped.includes('tracktron') && cClean.includes('tracktron')) ||
+        (stripped.includes('mind') && cClean.includes('mind')) ||
+        (stripped.includes('prompt') && cClean.includes('prompt')) ||
+        (stripped.includes('mem') && cClean.includes('mem')) ||
+        (stripped.includes('detective') && cClean.includes('detective'))
+      ) {
+        return true;
+      }
+
+      if (dbEvents && dbEvents.length > 0) {
+        const e1 = findEventByAnyKey(dbEvents, key);
+        const e2 = findEventByAnyKey(dbEvents, c);
+        if (e1 && e2 && (e1.id === e2.id || e1.slug === e2.slug)) return true;
+        if (e1 && (e1.id.toLowerCase() === cClean || e1.slug?.toLowerCase() === cClean)) return true;
+      }
+    }
+    return false;
+  };
+
+  if (selectedWorkshopId && isClosedStrict(selectedWorkshopId)) {
     return {
       valid: false,
       status: 400,
-      error: `The selected workshop "${selectedWorkshopId}" is closed due to capacity limits.`,
+      error: 'Registration for the selected workshop is currently STRICTLY CLOSED by event administration.',
     };
   }
 
   for (const tid of selectedTechnicalIds) {
-    if (closedEvents.includes(tid)) {
+    if (isClosedStrict(tid)) {
       return {
         valid: false,
         status: 400,
-        error: `The selected technical event "${tid}" is closed due to capacity limits.`,
+        error: 'Registration for the selected technical event is currently STRICTLY CLOSED by event administration.',
       };
     }
   }
 
   for (const nid of selectedNonTechnicalIds) {
-    if (closedEvents.includes(nid)) {
+    if (isClosedStrict(nid)) {
       return {
         valid: false,
         status: 400,
-        error: `The selected non-technical event "${nid}" is closed due to capacity limits.`,
+        error: 'Registration for the selected non-technical event is currently STRICTLY CLOSED by event administration.',
       };
     }
   }
@@ -533,6 +571,7 @@ app.post('/api/verify-payment', wrap(async (req, res) => {
   await Promise.allSettled([
     sendRegistrationConfirmationEmail(newRecord, eventTitles),
     sendAdminNewRegistrationNotification(newRecord, eventTitles, adminEmails),
+    syncRegistrationToGoogleSheet(newRecord, eventTitles),
   ]);
 
   res.json({
@@ -572,16 +611,22 @@ app.post('/api/register-upi', wrap(async (req, res) => {
   const allEvents = await repository.getEvents(false);
   const eventTitles: string[] = [];
   if (newRecord.selectedWorkshopId || newRecord.registrationType === 'workshop') {
-    const w = newRecord.selectedWorkshopId ? findEventByAnyKey(allEvents, newRecord.selectedWorkshopId) : null;
-    eventTitles.push(cleanWorkshopTitle(w ? w.title : newRecord.selectedWorkshopId));
+    const wsKey = newRecord.selectedWorkshopId || registrationData.selectedWorkshopId;
+    const w = wsKey ? findEventByAnyKey(allEvents, wsKey) : null;
+    eventTitles.push(cleanWorkshopTitle(w ? w.title : wsKey));
   }
-  for (const tid of newRecord.selectedTechnicalIds) {
+  const techList = (newRecord.selectedTechnicalIds?.length ? newRecord.selectedTechnicalIds : registrationData.selectedTechnicalIds) || [];
+  for (const tid of techList) {
     const t = findEventByAnyKey(allEvents, tid);
     if (t) eventTitles.push(t.title);
   }
-  for (const nid of newRecord.selectedNonTechnicalIds) {
+  const nonTechList = (newRecord.selectedNonTechnicalIds?.length ? newRecord.selectedNonTechnicalIds : registrationData.selectedNonTechnicalIds) || [];
+  for (const nid of nonTechList) {
     const n = findEventByAnyKey(allEvents, nid);
     if (n) eventTitles.push(n.title);
+  }
+  if (eventTitles.length === 0 && newRecord.eventsText) {
+    eventTitles.push(newRecord.eventsText);
   }
 
   const adminEmails = settings.adminNotificationEmails?.length ? settings.adminNotificationEmails : ['evitron26@gmail.com'];
@@ -590,6 +635,7 @@ app.post('/api/register-upi', wrap(async (req, res) => {
   await Promise.allSettled([
     sendAdminNewRegistrationNotification(newRecord, eventTitles, adminEmails),
     sendRegistrationConfirmationEmail(newRecord, eventTitles),
+    syncRegistrationToGoogleSheet(newRecord, eventTitles),
   ]);
 
   res.json({
@@ -620,6 +666,10 @@ app.post('/api/webhook', wrap(async (req: any, res) => {
       const registrationUuid = await repository.getRegistrationUuidByRazorpayOrderId(payment.order_id);
       if (registrationUuid) {
         await repository.finalizeRazorpayRegistration(registrationUuid, payment.id, true);
+        const finalized = await repository.getRegistrationByUuid(registrationUuid);
+        if (finalized) {
+          syncRegistrationToGoogleSheet(finalized).catch(() => {});
+        }
         return res.json({ status: 'ok', finalized: true });
       }
     }
@@ -840,10 +890,22 @@ app.patch('/api/admin/registrations/:id/status', requireAdmin, wrap(async (req, 
 
     await Promise.allSettled([
       sendRegistrationConfirmationEmail(updated, eventTitles),
+      syncRegistrationToGoogleSheet(updated, eventTitles),
     ]);
   }
 
   res.json(updated);
+}));
+
+app.post('/api/admin/sync-google-sheet', requireAdmin, wrap(async (_req, res) => {
+  const registrations = await repository.listRegistrations();
+  const sorted = [...registrations].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+  const result = await syncAllRegistrationsToGoogleSheet(sorted);
+  res.json({
+    success: true,
+    count: result.syncedCount,
+    message: `Synchronized ${result.syncedCount} of ${sorted.length} registration record(s) to Google Sheets.`,
+  });
 }));
 
 app.post('/api/admin/test-email', requireAdmin, wrap(async (req, res) => {
@@ -869,11 +931,16 @@ app.delete('/api/admin/registrations/:id', requireAdmin, wrap(async (req, res) =
     return res.status(403).json({ error: 'Invalid delete confirmation password.' });
   }
 
-  const success = await repository.deleteRegistration(req.params.id);
+  const regId = req.params.id;
+  const success = await repository.deleteRegistration(regId);
   if (!success) {
     return res.status(404).json({ error: 'Registration not found' });
   }
-  res.json({ success: true, message: `Registration ${req.params.id} deleted successfully` });
+
+  // Trigger Google Sheet deletion asynchronously
+  deleteRegistrationFromGoogleSheet(regId).catch(() => {});
+
+  res.json({ success: true, message: `Registration ${regId} deleted successfully` });
 }));
 
 app.patch('/api/admin/settings/environment', requireAdmin, wrap(async (req, res) => {

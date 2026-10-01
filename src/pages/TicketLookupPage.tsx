@@ -2,12 +2,49 @@ import React, { useState, useEffect } from 'react';
 import { Search, Ticket, CheckCircle, Clock, AlertCircle, Printer, MapPin, Calendar, ArrowLeft } from 'lucide-react';
 import { RegistrationRecord, SiteSettings } from '../types';
 import { defaultSettings } from '../data/defaultSettings';
-import { fetchRegistrationById, cleanWorkshopTitle } from '../services/api';
+import { fetchRegistrationById, cleanWorkshopTitle, getShortEventName } from '../services/api';
 
 interface TicketLookupPageProps {
   initialRegId?: string;
   settings?: SiteSettings;
   onNavigate: (path: string) => void;
+}
+
+function formatTicketEventName(ticket: RegistrationRecord): string {
+  if (ticket.registrationType === 'workshop') {
+    const raw = ticket.selectedWorkshopId || ticket.eventsText || 'Embedded System';
+    return `Workshop: ${getShortEventName(raw)}`;
+  }
+
+  const events: string[] = [];
+  const seenNames = new Set<string>();
+
+  const allIds = [
+    ...(ticket.selectedTechnicalIds || []),
+    ...(ticket.selectedNonTechnicalIds || []),
+  ];
+
+  const addEventName = (keyOrTitle: string) => {
+    if (!keyOrTitle) return;
+    const shortName = getShortEventName(keyOrTitle);
+    if (shortName && !seenNames.has(shortName.toLowerCase())) {
+      seenNames.add(shortName.toLowerCase());
+      events.push(shortName);
+    }
+  };
+
+  allIds.forEach(addEventName);
+
+  if (ticket.eventsText) {
+    const parts = ticket.eventsText.split(',').map((s) => s.trim());
+    parts.forEach(addEventName);
+  }
+
+  if (events.length === 0) {
+    events.push('techpaper');
+  }
+
+  return `Technical Symposium: ${events.join(' + ')}`;
 }
 
 export const TicketLookupPage: React.FC<TicketLookupPageProps> = ({ initialRegId, settings: propSettings, onNavigate }) => {
@@ -170,9 +207,7 @@ export const TicketLookupPage: React.FC<TicketLookupPageProps> = ({ initialRegId
                 <div className="pt-2 border-t border-stone-100">
                   <span className="text-stone-400 block font-medium">Registered Track & Event:</span>
                   <span className="font-bold text-stone-900 text-xs">
-                    {ticket.registrationType === 'workshop'
-                      ? `Workshop: ${cleanWorkshopTitle(ticket.eventsText || ticket.selectedWorkshopId)}`
-                      : `Technical Symposium Track (${ticket.eventsText || 'Technical Events'})`}
+                    {formatTicketEventName(ticket)}
                   </span>
                 </div>
               </div>

@@ -24,6 +24,7 @@ import { EventItem, Participant, RegistrationRecord, SiteSettings } from '../typ
 import { defaultSettings } from '../data/defaultSettings';
 import { createOrder, verifyPayment, submitUpiRegistration } from '../services/api';
 import { getPricePerPerson, isEarlyBirdActive } from '../utils/pricing';
+import { isEventClosedStrict } from '../utils/closureUtils';
 import QRCode from 'qrcode';
 
 interface RegistrationPageProps {
@@ -94,21 +95,61 @@ export const RegistrationPage: React.FC<RegistrationPageProps> = ({ events, sett
   const [paymentScreenshotFileName, setPaymentScreenshotFileName] = useState<string>(() => initialDraft?.paymentScreenshotFileName || '');
   const [paymentScreenshotError, setPaymentScreenshotError] = useState<string | null>(null);
 
-  // Synchronize and normalize selectedWorkshopId if events list loads after initial render
+  // Synchronize and normalize event IDs if events list loads after initial render
   React.useEffect(() => {
-    if (chosenTrack === 'workshop' && selectedWorkshopId && events.length > 0) {
+    if (events.length === 0) return;
+
+    if (chosenTrack === 'workshop' && selectedWorkshopId) {
       const match = events.find(
         (e) =>
-          e.category === 'workshops' &&
+          (e.category === 'workshops' || e.category === 'workshop') &&
           (e.id === selectedWorkshopId ||
             e.slug === selectedWorkshopId ||
+            `ws-${e.slug}` === selectedWorkshopId ||
+            e.id === `ws-${selectedWorkshopId}` ||
             e.title.toLowerCase() === selectedWorkshopId.toLowerCase())
       );
       if (match && match.id !== selectedWorkshopId) {
         setSelectedWorkshopId(match.id);
       }
     }
-  }, [events, chosenTrack, selectedWorkshopId]);
+
+    if (chosenTrack === 'technical' && selectedTechnicalIds.length > 0) {
+      const updatedTech = selectedTechnicalIds.map((tid) => {
+        const match = events.find(
+          (e) =>
+            (e.category === 'technical' || e.category === 'technicals') &&
+            (e.id === tid ||
+              e.slug === tid ||
+              `tech-${e.slug}` === tid ||
+              e.id === `tech-${tid}` ||
+              e.title.toLowerCase() === tid.toLowerCase())
+        );
+        return match ? match.id : tid;
+      });
+      if (JSON.stringify(updatedTech) !== JSON.stringify(selectedTechnicalIds)) {
+        setSelectedTechnicalIds(updatedTech);
+      }
+    }
+
+    if (chosenTrack === 'technical' && selectedNonTechnicalIds.length > 0) {
+      const updatedNonTech = selectedNonTechnicalIds.map((nid) => {
+        const match = events.find(
+          (e) =>
+            (e.category === 'non-technical' || e.category === 'non_technical') &&
+            (e.id === nid ||
+              e.slug === nid ||
+              `non-${e.slug}` === nid ||
+              e.id === `non-${nid}` ||
+              e.title.toLowerCase() === nid.toLowerCase())
+        );
+        return match ? match.id : nid;
+      });
+      if (JSON.stringify(updatedNonTech) !== JSON.stringify(selectedNonTechnicalIds)) {
+        setSelectedNonTechnicalIds(updatedNonTech);
+      }
+    }
+  }, [events, chosenTrack, selectedWorkshopId, selectedTechnicalIds, selectedNonTechnicalIds]);
 
   // Persistent auto-save handler to guarantee no data loss when switching to UPI payment apps (PhonePe, GPay, Paytm)
   const saveDraftToStorage = React.useCallback(() => {
@@ -257,9 +298,9 @@ export const RegistrationPage: React.FC<RegistrationPageProps> = ({ events, sett
     return () => clearInterval(interval);
   }, [isProcessing]);
 
-  const workshops = events.filter((e) => e.category === 'workshops');
-  const technicalEvents = events.filter((e) => e.category === 'technical');
-  const nonTechnicalEvents = events.filter((e) => e.category === 'non-technical');
+  const workshops = events.filter((e) => e.category === 'workshops' || e.category === 'workshop');
+  const technicalEvents = events.filter((e) => e.category === 'technical' || e.category === 'technicals');
+  const nonTechnicalEvents = events.filter((e) => e.category === 'non-technical' || e.category === 'non_technical');
 
   // If registrations are globally closed by admin
   if (!settings.isRegistrationOpen) {
@@ -298,7 +339,43 @@ export const RegistrationPage: React.FC<RegistrationPageProps> = ({ events, sett
   //    Non-technical alone can NEVER be selected.
   // ----------------------------------------------------
 
+  // Auto-clear closed workshop or event selections immediately when settings update
+  React.useEffect(() => {
+    const closedList = settings.closedWorkshops || [];
+    if (closedList.length === 0) return;
+
+    if (selectedWorkshopId && isEventClosedStrict(selectedWorkshopId, closedList, events)) {
+      setSelectedWorkshopId('');
+      if (chosenTrack === 'workshop') setChosenTrack(null);
+      setErrorMsg('The workshop you previously selected is STRICTLY CLOSED by event administration.');
+    }
+
+    if (selectedTechnicalIds.length > 0) {
+      const remainingTech = selectedTechnicalIds.filter((id) => !isEventClosedStrict(id, closedList, events));
+      if (remainingTech.length !== selectedTechnicalIds.length) {
+        setSelectedTechnicalIds(remainingTech);
+        if (remainingTech.length === 0) {
+          setSelectedNonTechnicalIds([]);
+          if (chosenTrack === 'technical') setChosenTrack(null);
+        }
+        setErrorMsg('The selected technical event is STRICTLY CLOSED by event administration.');
+      }
+    }
+
+    if (selectedNonTechnicalIds.length > 0) {
+      const remainingNonTech = selectedNonTechnicalIds.filter((id) => !isEventClosedStrict(id, closedList, events));
+      if (remainingNonTech.length !== selectedNonTechnicalIds.length) {
+        setSelectedNonTechnicalIds(remainingNonTech);
+        setErrorMsg('The selected non-technical event is STRICTLY CLOSED by event administration.');
+      }
+    }
+  }, [settings.closedWorkshops, selectedWorkshopId, selectedTechnicalIds, selectedNonTechnicalIds, events, chosenTrack]);
+
   const handleSelectWorkshop = (id: string) => {
+    if (isEventClosedStrict(id, settings.closedWorkshops, events)) {
+      setErrorMsg('Registration for this workshop is STRICTLY CLOSED by administration.');
+      return;
+    }
     setErrorMsg(null);
     if (selectedWorkshopId === id) {
       setSelectedWorkshopId('');
@@ -312,16 +389,18 @@ export const RegistrationPage: React.FC<RegistrationPageProps> = ({ events, sett
   };
 
   const handleToggleTechnical = (id: string) => {
+    if (isEventClosedStrict(id, settings.closedWorkshops, events)) {
+      setErrorMsg('Registration for this technical event is STRICTLY CLOSED by administration.');
+      return;
+    }
     setSelectedWorkshopId(''); // Workshop disappears/clears
     setErrorMsg(null);
 
     if (selectedTechnicalIds.includes(id)) {
-      // Deselect technical -> clear non-technical as well since non-tech cannot exist without tech
       setSelectedTechnicalIds([]);
       setSelectedNonTechnicalIds([]);
       setChosenTrack(null);
     } else {
-      // Strictly 1 technical event allowed (replaces any previous technical selection)
       setChosenTrack('technical');
       setSelectedTechnicalIds([id]);
     }
@@ -1118,9 +1197,7 @@ export const RegistrationPage: React.FC<RegistrationPageProps> = ({ events, sett
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               {workshops.map((w) => {
                 const isSelected = selectedWorkshopId === w.id;
-                const isClosed = (settings.closedWorkshops || []).some(
-                  (id) => id.toLowerCase() === (w.slug || '').toLowerCase() || id.toLowerCase() === (w.id || '').toLowerCase()
-                );
+                const isClosed = isEventClosedStrict(w.id || w.slug || w.title, settings.closedWorkshops, events);
                 return (
                   <button
                     key={w.id}
@@ -1129,7 +1206,7 @@ export const RegistrationPage: React.FC<RegistrationPageProps> = ({ events, sett
                     onClick={() => !isClosed && handleSelectWorkshop(w.id)}
                     className={`p-3.5 rounded-lg border text-left transition-all ${
                       isClosed
-                        ? 'bg-rose-50/30 border-rose-200 opacity-60 cursor-not-allowed'
+                        ? 'bg-rose-50/50 border-rose-300 opacity-70 cursor-not-allowed shadow-none'
                         : isSelected
                         ? 'bg-red-50/70 border-[#B22222] shadow-xs cursor-pointer'
                         : 'bg-white border-stone-200 hover:border-stone-300 cursor-pointer'
@@ -1138,11 +1215,11 @@ export const RegistrationPage: React.FC<RegistrationPageProps> = ({ events, sett
                     <div className="flex items-center justify-between mb-1">
                       <span className="font-bold text-stone-900 text-xs">{w.title}</span>
                       {isSelected && <CheckCircle2 className="w-4 h-4 text-[#B22222]" />}
-                      {isClosed && <span className="text-[9px] font-extrabold text-rose-600 bg-rose-100 px-1.5 py-0.5 rounded uppercase tracking-wider">CLOSED</span>}
+                      {isClosed && <span className="text-[9px] font-extrabold text-white bg-rose-600 px-1.5 py-0.5 rounded uppercase tracking-wider">CLOSED</span>}
                     </div>
                     <p className="text-[11px] text-stone-500 line-clamp-2">{w.tagline}</p>
-                    <div className="mt-2 text-[10px] font-semibold text-[#B22222]">
-                      {isClosed ? 'Registration Closed' : '₹300 / Participant'}
+                    <div className="mt-2 text-[10px] font-bold text-[#B22222]">
+                      {isClosed ? '🔴 REGISTRATION CLOSED' : '₹300 / Participant'}
                     </div>
                   </button>
                 );
@@ -1200,9 +1277,7 @@ export const RegistrationPage: React.FC<RegistrationPageProps> = ({ events, sett
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 {technicalEvents.map((t) => {
                   const isSelected = selectedTechnicalIds.includes(t.id);
-                  const isClosed = (settings.closedWorkshops || []).some(
-                    (id) => id.toLowerCase() === (t.slug || '').toLowerCase() || id.toLowerCase() === (t.id || '').toLowerCase()
-                  );
+                  const isClosed = isEventClosedStrict(t.id || t.slug || t.title, settings.closedWorkshops, events);
                   return (
                     <button
                       key={t.id}
@@ -1211,7 +1286,7 @@ export const RegistrationPage: React.FC<RegistrationPageProps> = ({ events, sett
                       onClick={() => !isClosed && handleToggleTechnical(t.id)}
                       className={`p-3.5 rounded-lg border text-left transition-all ${
                         isClosed
-                          ? 'bg-rose-50/30 border-rose-200 opacity-60 cursor-not-allowed'
+                          ? 'bg-rose-50/50 border-rose-300 opacity-70 cursor-not-allowed shadow-none'
                           : isSelected
                           ? 'bg-red-50/70 border-[#B22222] shadow-xs ring-1 ring-[#B22222]/30 cursor-pointer'
                           : 'bg-white border-stone-200 hover:border-stone-300 cursor-pointer'
@@ -1220,7 +1295,7 @@ export const RegistrationPage: React.FC<RegistrationPageProps> = ({ events, sett
                       <div className="flex items-center justify-between mb-1">
                         <span className="font-bold text-stone-900 text-xs">{t.title}</span>
                         {isSelected && <CheckCircle2 className="w-4 h-4 text-[#B22222]" />}
-                        {isClosed && <span className="text-[9px] font-extrabold text-rose-600 bg-rose-100 px-1.5 py-0.5 rounded uppercase tracking-wider">CLOSED</span>}
+                        {isClosed && <span className="text-[9px] font-extrabold text-white bg-rose-600 px-1.5 py-0.5 rounded uppercase tracking-wider">CLOSED</span>}
                       </div>
                       <p className="text-[11px] text-stone-500">{t.tagline}</p>
                     </button>
@@ -1249,9 +1324,7 @@ export const RegistrationPage: React.FC<RegistrationPageProps> = ({ events, sett
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
                 {nonTechnicalEvents.map((n) => {
                   const isSelected = selectedNonTechnicalIds.includes(n.id);
-                  const isClosed = (settings.closedWorkshops || []).some(
-                    (id) => id.toLowerCase() === (n.slug || '').toLowerCase() || id.toLowerCase() === (n.id || '').toLowerCase()
-                  );
+                  const isClosed = isEventClosedStrict(n.id || n.slug || n.title, settings.closedWorkshops, events);
                   const isDisabled = selectedTechnicalIds.length === 0 || isClosed;
 
                   return (

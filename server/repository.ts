@@ -16,13 +16,13 @@ export function cleanWorkshopTitle(raw: string | undefined): string {
   if (!raw) return 'Workshop';
   const s = raw.toLowerCase();
   if (s.includes('silicon') || s.includes('gds') || s.includes('cadence') || s.includes('vlsi')) {
-    return 'SILICON 2 GDS';
+    return 'silicon 2gds';
   }
   if (s.includes('embedded') || s.includes('microcontroller') || s.includes('arm')) {
     return 'Embedded System';
   }
   if (s.includes('instrumentation') || s.includes('labview') || s.includes('virtual') || s.includes('daq')) {
-    return 'Virtual Instrumentation';
+    return 'Virtual instrument';
   }
   return raw.replace(/ws-/i, '').trim() || 'Workshop';
 }
@@ -272,6 +272,59 @@ export async function getEventBySlug(slug: string): Promise<EventItem | undefine
   return mapEvent(data);
 }
 
+async function resolveEventInfo(eventIdentifier: string): Promise<{ id: string; price: number; name: string; category: string } | null> {
+  if (!eventIdentifier) return null;
+  const clean = eventIdentifier.trim();
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(clean);
+
+  const { data: dbEvents } = await supabaseAdmin.from('events').select('id, code, name, category, price');
+  if (!dbEvents || dbEvents.length === 0) return null;
+
+  if (isUuid) {
+    const foundById = dbEvents.find(e => e.id.toLowerCase() === clean.toLowerCase());
+    if (foundById) return { id: foundById.id, price: Number(foundById.price || 0), name: foundById.name, category: foundById.category };
+  }
+
+  const cleanLower = clean.toLowerCase();
+  const stripped = cleanLower
+    .replace(/^tech-/, '')
+    .replace(/^ws-/, '')
+    .replace(/^non-/, '')
+    .replace(/^nontech-/, '');
+
+  const match = dbEvents.find(e => {
+    const codeLower = (e.code || '').toLowerCase();
+    const nameLower = (e.name || '').toLowerCase();
+    return (
+      e.id === clean ||
+      codeLower === cleanLower ||
+      codeLower === stripped ||
+      nameLower === cleanLower ||
+      nameLower === stripped ||
+      nameLower.replace(/\s+/g, '-') === stripped ||
+      (stripped.includes('paper') && (codeLower.includes('paper') || nameLower.includes('paper'))) ||
+      (stripped.includes('evolvex') && codeLower.includes('evolvex')) ||
+      (stripped.includes('project') && (codeLower.includes('evolvex') || nameLower.includes('evolvex'))) ||
+      (stripped.includes('tracktron') && codeLower.includes('tracktron')) ||
+      ((stripped.includes('line') || stripped.includes('robot')) && codeLower.includes('tracktron')) ||
+      (stripped.includes('silicon') && codeLower.includes('silicon')) ||
+      (stripped.includes('cadence') && codeLower.includes('silicon')) ||
+      (stripped.includes('embedded') && codeLower.includes('embedded')) ||
+      ((stripped.includes('virtual') || stripped.includes('instrumentation') || stripped.includes('labview')) && codeLower.includes('virtual')) ||
+      ((stripped.includes('mind') || stripped.includes('maze')) && codeLower.includes('mind')) ||
+      (stripped.includes('prompt') && codeLower.includes('prompt')) ||
+      (stripped.includes('mem') && codeLower.includes('mem')) ||
+      (stripped.includes('detective') && codeLower.includes('detective'))
+    );
+  });
+
+  if (match) {
+    return { id: match.id, price: Number(match.price || 0), name: match.name, category: match.category };
+  }
+
+  return null;
+}
+
 export async function validateRegistrationEvents(
   eventIds: string[]
 ): Promise<{ valid: boolean; error?: string; events?: Array<{ id: string; category: string; price: number; isActive: boolean; name: string }> }> {
@@ -297,30 +350,34 @@ export async function validateRegistrationEvents(
     };
   }
 
-  const { data, error } = await supabaseAdmin
+  const { data: dbEvents, error } = await supabaseAdmin
     .from('events')
-    .select('id,name,category,price,is_active')
-    .in('id', uniqueIds);
+    .select('id,code,name,category,price,is_active');
 
-  if (error) throw error;
-  if (!data || data.length !== uniqueIds.length) {
-    return { valid: false, error: 'One or more selected events do not exist.' };
+  if (error || !dbEvents || dbEvents.length === 0) {
+    throw error || new Error('Failed to fetch events from database');
   }
 
-  const events = data.map((event: any) => ({
-    id: event.id,
-    name: event.name,
-    category: String(event.category).toLowerCase(),
-    price: Number(event.price || 0),
-    isActive: Boolean(event.is_active),
-  }));
-
-  const inactiveEvent = events.find((event) => !event.isActive);
-  if (inactiveEvent) {
-    return { valid: false, error: `The selected event "${inactiveEvent.name}" is currently inactive.` };
+  const matchedEvents: any[] = [];
+  for (const rawId of uniqueIds) {
+    const resolved = await resolveEventInfo(rawId);
+    if (!resolved) {
+      return { valid: false, error: `One or more selected events do not exist (${rawId}).` };
+    }
+    const full = dbEvents.find(e => e.id === resolved.id);
+    if (!full || !full.is_active) {
+      return { valid: false, error: `The selected event "${resolved.name}" is currently inactive.` };
+    }
+    matchedEvents.push({
+      id: full.id,
+      name: full.name,
+      category: String(full.category).toLowerCase(),
+      price: Number(full.price || 0),
+      isActive: Boolean(full.is_active),
+    });
   }
 
-  return { valid: true, events };
+  return { valid: true, events: matchedEvents };
 }
 
 export async function updateEvent(
@@ -401,8 +458,10 @@ export function mapRegistration(row: DbRegistration, truncateProof = false): Reg
   const regNonTechnicalIds: string[] = [];
 
   const eventsList = Array.isArray(row.registration_events) ? row.registration_events : [];
+  const eventNames: string[] = [];
   for (const re of eventsList) {
     if (!re || !re.event_id) continue;
+    if (re.events?.name) eventNames.push(re.events.name);
     const cat = String(re.events?.category || '').toLowerCase();
     if (cat === 'workshop' || cat === 'workshops') {
       regWorkshopId = re.event_id;
@@ -424,6 +483,7 @@ export function mapRegistration(row: DbRegistration, truncateProof = false): Reg
     selectedWorkshopId: regWorkshopId,
     selectedTechnicalIds: regTechnicalIds,
     selectedNonTechnicalIds: regNonTechnicalIds,
+    eventsText: eventNames.length > 0 ? eventNames.join(', ') : undefined,
     participants: participantsList,
     teamLeader: leader,
     totalAmount: Number(row.total_amount || 0),
@@ -647,21 +707,84 @@ export async function createPendingRazorpayRegistration(input: {
   ];
   const dbRegType = input.registrationType === 'workshop' ? 'individual' : 'team';
 
-  const { data, error } = await supabaseAdmin.rpc(
-    'create_pending_razorpay_registration',
-    {
-      p_registration_code: registrationCode,
-      p_registration_type: dbRegType,
-      p_total_amount: input.totalAmount,
-      p_participants: input.participants,
-      p_event_ids: eventIds,
+  // 1. Insert into registrations
+  const { data: reg, error: regErr } = await supabaseAdmin
+    .from('registrations')
+    .insert({
+      registration_code: registrationCode,
+      registration_type: dbRegType,
+      total_amount: input.totalAmount,
+      payment_method: 'razorpay',
+      payment_status: 'pending',
+    })
+    .select('id')
+    .single();
+
+  if (regErr || !reg?.id) {
+    throw regErr || new Error('Failed to create registration record in Supabase');
+  }
+
+  const uuid = reg.id;
+
+  // 2. Insert participants with valid check constraint role ('team_leader' and 'member')
+  for (let idx = 0; idx < input.participants.length; idx++) {
+    const p = input.participants[idx];
+    const { data: pData, error: pInsertErr } = await supabaseAdmin
+      .from('participants')
+      .insert({
+        full_name: p.fullName,
+        email: p.email || '',
+        phone: p.phone || '',
+        college: p.college || '',
+        department: p.department || null,
+        year_of_study: p.year || null,
+      })
+      .select('id')
+      .single();
+
+    if (pInsertErr || !pData?.id) {
+      console.error(`[DB] createPendingRazorpayRegistration participant [${idx}] insert failed:`, pInsertErr?.message);
+      continue;
     }
-  );
 
-  if (error) throw error;
-  const uuid = String(data || registrationCode);
+    const { error: rpErr } = await supabaseAdmin
+      .from('registration_participants')
+      .insert({
+        registration_id: uuid,
+        participant_id: pData.id,
+        role: idx === 0 ? 'team_leader' : 'member',
+      });
 
-  await selfHealParticipants(uuid, input.participants);
+    if (rpErr) {
+      console.error(`[DB] createPendingRazorpayRegistration registration_participants [${idx}] insert failed:`, rpErr.message);
+    }
+  }
+
+  // 3. Insert initial payment record
+  await supabaseAdmin
+    .from('payments')
+    .insert({
+      registration_id: uuid,
+      amount: input.totalAmount,
+      method: 'razorpay',
+      status: 'pending',
+    });
+
+  // 4. Insert registration_events with resolved UUIDs and prices
+  for (const rawId of eventIds) {
+    const resolved = await resolveEventInfo(rawId);
+    if (resolved) {
+      const defaultPrice = resolved.category === 'workshop' ? 300 : 250;
+      await supabaseAdmin
+        .from('registration_events')
+        .insert({
+          registration_id: uuid,
+          event_id: resolved.id,
+          price_at_registration: resolved.price || defaultPrice,
+        });
+    }
+  }
+
   return uuid;
 }
 
@@ -698,31 +821,105 @@ export async function createRegistration(input: RegistrationCreateInput): Promis
   }
 
   const dbRegType = input.registrationType === 'workshop' ? 'individual' : 'team';
-  const payload = {
-    p_registration_code: code,
-    p_registration_type: dbRegType,
-    p_payment_method: input.paymentMethod,
-    p_payment_status: input.paymentStatus === 'pending_verification' ? 'pending_verification' : input.paymentStatus,
-    p_total_amount: input.totalAmount,
-    p_participants: input.participants,
-    p_event_ids: [
-      ...(input.selectedWorkshopId ? [input.selectedWorkshopId] : []),
-      ...input.selectedTechnicalIds,
-      ...input.selectedNonTechnicalIds,
-    ],
-    p_razorpay_order_id: input.razorpayOrderId || null,
-    p_razorpay_payment_id: input.razorpayPaymentId || null,
-    p_razorpay_signature_verified: Boolean(input.razorpaySignatureVerified),
-    p_upi_reference: input.upiReference || null,
-    p_payment_proof_url: input.paymentProofUrl || null,
-  };
+  const dbStatus = input.paymentStatus === 'pending_verification' ? 'pending_verification' : input.paymentStatus;
 
-  const { data, error } = await supabaseAdmin.rpc('create_registration_transaction', payload);
-  if (error || !data) throw error || new Error('Registration transaction failed on Supabase');
+  // 1. Insert into registrations
+  const { data: reg, error: regErr } = await supabaseAdmin
+    .from('registrations')
+    .insert({
+      registration_code: code,
+      registration_type: dbRegType,
+      total_amount: input.totalAmount,
+      payment_method: input.paymentMethod,
+      payment_status: dbStatus,
+    })
+    .select('id')
+    .single();
 
-  const uuid = typeof data === 'string' ? data : data?.registration_id || data?.id;
+  if (regErr || !reg?.id) {
+    throw regErr || new Error('Failed to create registration record in Supabase');
+  }
 
-  await selfHealParticipants(uuid, input.participants);
+  const uuid = reg.id;
+
+  // 2. Insert participants with valid check constraint role ('team_leader' and 'member')
+  for (let idx = 0; idx < input.participants.length; idx++) {
+    const p = input.participants[idx];
+    const { data: pData, error: pInsertErr } = await supabaseAdmin
+      .from('participants')
+      .insert({
+        full_name: p.fullName,
+        email: p.email || '',
+        phone: p.phone || '',
+        college: p.college || '',
+        department: p.department || null,
+        year_of_study: p.year || null,
+      })
+      .select('id')
+      .single();
+
+    if (pInsertErr || !pData?.id) {
+      console.error(`[DB] createRegistration participant [${idx}] insert failed:`, pInsertErr?.message);
+      continue;
+    }
+
+    const { error: rpErr } = await supabaseAdmin
+      .from('registration_participants')
+      .insert({
+        registration_id: uuid,
+        participant_id: pData.id,
+        role: idx === 0 ? 'team_leader' : 'member',
+      });
+
+    if (rpErr) {
+      console.error(`[DB] createRegistration registration_participants [${idx}] insert failed:`, rpErr.message);
+    }
+  }
+
+  // 3. Insert payment
+  const { error: payErr } = await supabaseAdmin
+    .from('payments')
+    .insert({
+      registration_id: uuid,
+      amount: input.totalAmount,
+      method: input.paymentMethod,
+      status: dbStatus,
+      razorpay_order_id: input.razorpayOrderId || null,
+      razorpay_payment_id: input.razorpayPaymentId || null,
+      upi_reference: input.upiReference || null,
+      payment_proof_url: input.paymentProofUrl || null,
+    });
+
+  if (payErr) {
+    console.error(`[DB] createRegistration payments insert failed:`, payErr.message);
+  }
+
+  // 4. Insert registration_events with resolved UUIDs and prices
+  const eventIds = [
+    ...(input.selectedWorkshopId ? [input.selectedWorkshopId] : []),
+    ...(input.selectedTechnicalIds || []),
+    ...(input.selectedNonTechnicalIds || []),
+  ];
+
+  for (const rawId of eventIds) {
+    if (!rawId) continue;
+    const resolved = await resolveEventInfo(rawId);
+    if (resolved) {
+      const defaultPrice = resolved.category === 'workshop' ? 300 : 250;
+      const { error: reErr } = await supabaseAdmin
+        .from('registration_events')
+        .insert({
+          registration_id: uuid,
+          event_id: resolved.id,
+          price_at_registration: resolved.price || defaultPrice,
+        });
+      if (reErr) {
+        console.error(`[DB] Failed to insert registration_events for ${rawId}:`, reErr.message);
+      }
+    } else {
+      console.warn(`[DB] Could not resolveEventInfo for rawId: "${rawId}"`);
+    }
+  }
 
   const reloaded = await getRegistrationByUuid(uuid);
   if (!reloaded) throw new Error('Failed to reload newly created registration.');
@@ -810,11 +1007,15 @@ export async function deleteRegistration(registrationCode: string): Promise<bool
     throw new Error('Supabase is not configured');
   }
 
-  const { data: registration, error: findErr } = await supabaseAdmin
-    .from('registrations')
-    .select('id')
-    .or(`registration_code.eq.${code},id.eq.${code}`)
-    .maybeSingle();
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(code);
+  let query = supabaseAdmin.from('registrations').select('id');
+  if (isUuid) {
+    query = query.or(`registration_code.eq.${code},id.eq.${code}`);
+  } else {
+    query = query.eq('registration_code', code);
+  }
+
+  const { data: registration, error: findErr } = await query.maybeSingle();
 
   if (findErr || !registration) {
     throw findErr || new Error(`Registration ${code} not found`);

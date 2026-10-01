@@ -37,9 +37,13 @@ import {
   markAttendanceApi,
   deleteRegistrationApi,
   testEmailApi,
+  syncGoogleSheetsApi,
   cleanWorkshopTitle,
+  getShortEventName,
   fetchPaymentProof,
 } from '../services/api';
+
+import { isEventClosedStrict } from '../utils/closureUtils';
 
 interface AdminDashboardProps {
   initialSettings: SiteSettings;
@@ -106,6 +110,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           r.teamLeader?.phone,
           r.teamLeader?.college,
           r.upiReference,
+          r.eventsText,
+          r.selectedWorkshopId,
+          ...(r.selectedTechnicalIds || []),
+          ...(r.selectedNonTechnicalIds || []),
+          ...(r.participants || []).map((p) => p.fullName),
         ]
           .filter(Boolean)
           .some((value) => String(value).toLowerCase().includes(needle))
@@ -143,33 +152,326 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [activeProofUrl, setActiveProofUrl] = useState<string | null>(null);
   const [activeProofRegId, setActiveProofRegId] = useState<string | null>(null);
 
+  const EVENT_METADATA_MAP: Record<string, { code: string; name: string; specificTitle: string; fullDisplay: string; category: 'workshop' | 'technical' | 'non-technical'; badgeIcon: string }> = {
+    // TECHNICAL EVENTS
+    'techpaper': {
+      code: 'techpaper',
+      name: 'techpaper',
+      specificTitle: 'techpaper',
+      fullDisplay: 'techpaper',
+      category: 'technical',
+      badgeIcon: '🔬',
+    },
+    '46aa179c-ec4a-4d8d-a206-7c4c497a95ce': {
+      code: 'techpaper',
+      name: 'techpaper',
+      specificTitle: 'techpaper',
+      fullDisplay: 'techpaper',
+      category: 'technical',
+      badgeIcon: '🔬',
+    },
+    'evolvex': {
+      code: 'evolvex',
+      name: 'evolvex',
+      specificTitle: 'evolvex',
+      fullDisplay: 'evolvex',
+      category: 'technical',
+      badgeIcon: '🔬',
+    },
+    'c2a1bbfc-85fb-49f9-9d9d-39759b6df37f': {
+      code: 'evolvex',
+      name: 'evolvex',
+      specificTitle: 'evolvex',
+      fullDisplay: 'evolvex',
+      category: 'technical',
+      badgeIcon: '🔬',
+    },
+    'tracktron': {
+      code: 'tracktron',
+      name: 'tractron',
+      specificTitle: 'tractron',
+      fullDisplay: 'tractron',
+      category: 'technical',
+      badgeIcon: '🔬',
+    },
+    '626a494c-0e71-4679-abad-9d5a4d5758e2': {
+      code: 'tracktron',
+      name: 'tractron',
+      specificTitle: 'tractron',
+      fullDisplay: 'tractron',
+      category: 'technical',
+      badgeIcon: '🔬',
+    },
+    'tractron': {
+      code: 'tracktron',
+      name: 'tractron',
+      specificTitle: 'tractron',
+      fullDisplay: 'tractron',
+      category: 'technical',
+      badgeIcon: '🔬',
+    },
+
+    // WORKSHOPS
+    'silicon-2-gds': {
+      code: 'silicon-2-gds',
+      name: 'silicon 2gds',
+      specificTitle: 'silicon 2gds',
+      fullDisplay: 'silicon 2gds',
+      category: 'workshop',
+      badgeIcon: '⚙️',
+    },
+    '4e91a80e-4baa-4fc2-bf6c-7f95e135fc80': {
+      code: 'silicon-2-gds',
+      name: 'silicon 2gds',
+      specificTitle: 'silicon 2gds',
+      fullDisplay: 'silicon 2gds',
+      category: 'workshop',
+      badgeIcon: '⚙️',
+    },
+    'embedded-system': {
+      code: 'embedded-system',
+      name: 'Embedded System',
+      specificTitle: 'Embedded System',
+      fullDisplay: 'Embedded System',
+      category: 'workshop',
+      badgeIcon: '⚙️',
+    },
+    'd6699fda-e9a5-404d-88e8-bd9e0610988e': {
+      code: 'embedded-system',
+      name: 'Embedded System',
+      specificTitle: 'Embedded System',
+      fullDisplay: 'Embedded System',
+      category: 'workshop',
+      badgeIcon: '⚙️',
+    },
+    'virtual-instrumentation': {
+      code: 'virtual-instrumentation',
+      name: 'Virtual instrument',
+      specificTitle: 'Virtual instrument',
+      fullDisplay: 'Virtual instrument',
+      category: 'workshop',
+      badgeIcon: '⚙️',
+    },
+    'ee27539a-2318-44da-9697-bb859ed57a50': {
+      code: 'virtual-instrumentation',
+      name: 'Virtual instrument',
+      specificTitle: 'Virtual instrument',
+      fullDisplay: 'Virtual instrument',
+      category: 'workshop',
+      badgeIcon: '⚙️',
+    },
+
+    // NON-TECHNICAL EVENTS
+    'mind-maze': {
+      code: 'mind-maze',
+      name: 'mind maze',
+      specificTitle: 'mind maze',
+      fullDisplay: 'mind maze',
+      category: 'non-technical',
+      badgeIcon: '🎨',
+    },
+    '8ebc96bf-893d-4e6b-8976-6f541f2631ff': {
+      code: 'mind-maze',
+      name: 'mind maze',
+      specificTitle: 'mind maze',
+      fullDisplay: 'mind maze',
+      category: 'non-technical',
+      badgeIcon: '🎨',
+    },
+    'promptify': {
+      code: 'promptify',
+      name: 'promptify',
+      specificTitle: 'promptify',
+      fullDisplay: 'promptify',
+      category: 'non-technical',
+      badgeIcon: '🎨',
+    },
+    '41b7298f-6401-4409-a000-5cc406e194b8': {
+      code: 'promptify',
+      name: 'promptify',
+      specificTitle: 'promptify',
+      fullDisplay: 'promptify',
+      category: 'non-technical',
+      badgeIcon: '🎨',
+    },
+    'memix': {
+      code: 'memix',
+      name: 'memix',
+      specificTitle: 'memix',
+      fullDisplay: 'memix',
+      category: 'non-technical',
+      badgeIcon: '🎨',
+    },
+    '0dcd0759-87af-4bce-9757-5e52833c538b': {
+      code: 'memix',
+      name: 'memix',
+      specificTitle: 'memix',
+      fullDisplay: 'memix',
+      category: 'non-technical',
+      badgeIcon: '🎨',
+    },
+    'detective-404': {
+      code: 'detective-404',
+      name: 'detective 404',
+      specificTitle: 'detective 404',
+      fullDisplay: 'detective 404',
+      category: 'non-technical',
+      badgeIcon: '🎨',
+    },
+    '57d56f8c-99c4-4e78-bb57-4c7a6ec47716': {
+      code: 'detective-404',
+      name: 'detective 404',
+      specificTitle: 'detective 404',
+      fullDisplay: 'detective 404',
+      category: 'non-technical',
+      badgeIcon: '🎨',
+    },
+  };
+
+  const resolveEventMeta = (eventKey: string, categoryFallback?: 'workshop' | 'technical' | 'non-technical') => {
+    if (!eventKey) {
+      return {
+        code: 'unknown',
+        name: 'Event',
+        specificTitle: 'Event',
+        fullDisplay: 'Event',
+        category: categoryFallback || 'technical',
+        badgeIcon: categoryFallback === 'workshop' ? '⚙️' : categoryFallback === 'non-technical' ? '🎨' : '🔬',
+      };
+    }
+
+    const clean = eventKey.trim();
+    const lower = clean.toLowerCase();
+    const stripped = lower
+      .replace(/^tech-/, '')
+      .replace(/^ws-/, '')
+      .replace(/^non-/, '')
+      .replace(/^nontech-/, '');
+
+    if (EVENT_METADATA_MAP[lower]) return EVENT_METADATA_MAP[lower];
+    if (EVENT_METADATA_MAP[stripped]) return EVENT_METADATA_MAP[stripped];
+
+    // Try matching with events array from props
+    const found = events.find((e) => {
+      const idL = (e.id || '').toLowerCase();
+      const slugL = (e.slug || '').toLowerCase();
+      const titleL = (e.title || '').toLowerCase();
+      return idL === lower || slugL === lower || slugL === stripped || titleL === lower || titleL === stripped;
+    });
+
+    if (found) {
+      const fSlug = (found.slug || '').toLowerCase().replace(/^(tech|ws|non|nontech)-/, '');
+      if (EVENT_METADATA_MAP[fSlug]) return EVENT_METADATA_MAP[fSlug];
+      const isWs = found.category === 'workshops' || found.category === 'workshop';
+      const isNon = found.category === 'non-technical' || found.category === 'non_technical';
+      const shortName = getShortEventName(found.slug || found.title);
+      return {
+        code: found.slug || found.id,
+        name: shortName,
+        specificTitle: shortName,
+        fullDisplay: shortName,
+        category: isWs ? ('workshop' as const) : isNon ? ('non-technical' as const) : ('technical' as const),
+        badgeIcon: isWs ? '⚙️' : isNon ? '🎨' : '🔬',
+      };
+    }
+
+    // Heuristics based on text keywords
+    if (lower.includes('paper')) return EVENT_METADATA_MAP['techpaper'];
+    if (lower.includes('evolvex') || lower.includes('project')) return EVENT_METADATA_MAP['evolvex'];
+    if (lower.includes('tracktron') || lower.includes('robot') || lower.includes('line')) return EVENT_METADATA_MAP['tracktron'];
+    if (lower.includes('silicon') || lower.includes('cadence') || lower.includes('vlsi')) return EVENT_METADATA_MAP['silicon-2-gds'];
+    if (lower.includes('embedded') || lower.includes('microcontroller')) return EVENT_METADATA_MAP['embedded-system'];
+    if (lower.includes('virtual') || lower.includes('labview') || lower.includes('instrumentation')) return EVENT_METADATA_MAP['virtual-instrumentation'];
+    if (lower.includes('mind') || lower.includes('maze')) return EVENT_METADATA_MAP['mind-maze'];
+    if (lower.includes('prompt')) return EVENT_METADATA_MAP['promptify'];
+    if (lower.includes('mem')) return EVENT_METADATA_MAP['memix'];
+    if (lower.includes('detective') || lower.includes('circuit')) return EVENT_METADATA_MAP['detective-404'];
+
+    const shortName = getShortEventName(clean);
+    return {
+      code: stripped,
+      name: shortName,
+      specificTitle: shortName,
+      fullDisplay: shortName,
+      category: categoryFallback || 'technical',
+      badgeIcon: categoryFallback === 'workshop' ? '⚙️' : categoryFallback === 'non-technical' ? '🎨' : '🔬',
+    };
+  };
+
+  const getRegistrationSpecificEvents = (r: RegistrationRecord) => {
+    const isWorkshop = r.registrationType === 'workshop';
+    const memberCount = r.participants?.length || 1;
+    const result = {
+      trackLabel: isWorkshop ? 'WORKSHOP' : `TECHNICAL (${memberCount})`,
+      isWorkshop,
+      events: [] as Array<{ code: string; name: string; specificTitle: string; fullDisplay: string; category: 'workshop' | 'technical' | 'non-technical'; badgeIcon: string }>,
+    };
+
+    if (isWorkshop) {
+      const rawWs = r.selectedWorkshopId || r.eventsText || 'Embedded System';
+      result.events.push(resolveEventMeta(rawWs, 'workshop'));
+      return result;
+    }
+
+    // Technical Track: Resolve specific technical and non-technical events
+    const seenCodes = new Set<string>();
+
+    const techIds = (r.selectedTechnicalIds || []).filter(Boolean);
+    const nonTechIds = (r.selectedNonTechnicalIds || []).filter(Boolean);
+
+    techIds.forEach((id) => {
+      const meta = resolveEventMeta(id, 'technical');
+      const key = meta.code.toLowerCase();
+      if (!seenCodes.has(key)) {
+        seenCodes.add(key);
+        result.events.push(meta);
+      }
+    });
+
+    nonTechIds.forEach((id) => {
+      const meta = resolveEventMeta(id, 'non-technical');
+      const key = meta.code.toLowerCase();
+      if (!seenCodes.has(key)) {
+        seenCodes.add(key);
+        result.events.push(meta);
+      }
+    });
+
+    if (r.eventsText) {
+      const parts = r.eventsText.split(',').map((s) => s.trim()).filter(Boolean);
+      parts.forEach((p) => {
+        const meta = resolveEventMeta(p);
+        const key = meta.code.toLowerCase();
+        if (!seenCodes.has(key)) {
+          seenCodes.add(key);
+          result.events.push(meta);
+        }
+      });
+    }
+
+    if (result.events.length === 0) {
+      result.events.push(resolveEventMeta('techpaper', 'technical'));
+    }
+
+    return result;
+  };
+
   const findEv = (eventKey: string) => {
     if (!eventKey) return undefined;
-    const keyUpper = eventKey.trim().toUpperCase();
-    return events.find((e) => {
-      const idUpper = (e.id || '').toUpperCase();
-      const slugUpper = (e.slug || '').toUpperCase();
-      return (
-        idUpper === keyUpper ||
-        slugUpper === keyUpper ||
-        idUpper === `TECH-${keyUpper}` ||
-        slugUpper === `TECH-${keyUpper}` ||
-        idUpper === `WS-${keyUpper}` ||
-        slugUpper === `WS-${keyUpper}` ||
-        idUpper.replace('TECH-', '') === keyUpper ||
-        slugUpper.replace('TECH-', '') === keyUpper ||
-        idUpper.replace('WS-', '') === keyUpper ||
-        slugUpper.replace('WS-', '') === keyUpper
-      );
-    });
+    const meta = resolveEventMeta(eventKey);
+    return {
+      id: eventKey,
+      slug: meta.code,
+      title: meta.name,
+      tagline: meta.specificTitle,
+      category: meta.category,
+    } as any;
   };
 
   const getWorkshopDisplayTitle = (r: RegistrationRecord) => {
-    if (r.selectedWorkshopId) {
-      const ev = findEv(r.selectedWorkshopId);
-      if (ev) return cleanWorkshopTitle(ev.title);
-    }
-    return cleanWorkshopTitle(r.eventsText || r.selectedWorkshopId);
+    const spec = getRegistrationSpecificEvents(r);
+    const ws = spec.events.find((e) => e.category === 'workshop') || spec.events[0];
+    return ws ? ws.fullDisplay : cleanWorkshopTitle(r.eventsText || r.selectedWorkshopId || 'Workshop');
   };
 
   const getParticipantsForEvent = (eventId: string) => {
@@ -177,69 +479,34 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     const eventObj = events.find(e => e.id === eventId);
     if (!eventObj) return list;
 
-    const isWorkshopEvent = eventObj.category === 'workshops' || eventObj.category === 'workshop';
+    const targetSlug = (eventObj.slug || '').toLowerCase().replace(/^(tech|ws|non|nontech)-/, '').trim();
+    const targetId = (eventObj.id || '').toLowerCase().replace(/^(tech|ws|non|nontech)-/, '').trim();
+    const targetTitle = (eventObj.title || '').toLowerCase().trim();
 
     (allRegistrations || []).forEach((r) => {
-      let match = false;
+      const spec = getRegistrationSpecificEvents(r);
+      const match = spec.events.some((e) => {
+        const c = (e.code || '').toLowerCase();
+        const n = (e.name || '').toLowerCase();
+        const s = (e.specificTitle || '').toLowerCase();
+        return (
+          c === targetSlug ||
+          c === targetId ||
+          n === targetTitle ||
+          s === targetTitle ||
+          (targetSlug.includes('silicon') && (c.includes('silicon') || n.includes('silicon'))) ||
+          (targetSlug.includes('embedded') && (c.includes('embedded') || n.includes('embedded'))) ||
+          (targetSlug.includes('virtual') && (c.includes('virtual') || n.includes('virtual'))) ||
+          (targetSlug.includes('paper') && (c.includes('paper') || n.includes('paper') || s.includes('paper'))) ||
+          (targetSlug.includes('evolvex') && (c.includes('evolvex') || n.includes('evolvex') || s.includes('project'))) ||
+          (targetSlug.includes('tracktron') && (c.includes('tracktron') || n.includes('tracktron') || s.includes('line') || s.includes('robot'))) ||
+          (targetSlug.includes('mind') && (c.includes('mind') || n.includes('mind'))) ||
+          (targetSlug.includes('prompt') && (c.includes('prompt') || n.includes('prompt'))) ||
+          (targetSlug.includes('mem') && (c.includes('mem') || n.includes('mem'))) ||
+          (targetSlug.includes('detective') && (c.includes('detective') || n.includes('detective')))
+        );
+      });
 
-      if (isWorkshopEvent) {
-        if (r.registrationType === 'workshop' || r.selectedWorkshopId || (r.eventsText || '').toLowerCase().includes('workshop')) {
-          const targetSlug = (eventObj.slug || '').toLowerCase().replace(/^ws-/, '').trim();
-          const targetId = (eventObj.id || '').toLowerCase().replace(/^ws-/, '').trim();
-          const targetTitleClean = cleanWorkshopTitle(eventObj.title).toLowerCase();
-
-          const regWsId = (r.selectedWorkshopId || '').toLowerCase().replace(/^ws-/, '').trim();
-          const regEventsClean = cleanWorkshopTitle(r.eventsText || r.selectedWorkshopId).toLowerCase();
-          const rawText = `${r.eventsText || ''} ${r.selectedWorkshopId || ''}`.toLowerCase();
-
-          if (regWsId && (regWsId === targetSlug || regWsId === targetId)) {
-            match = true;
-          } else if (regEventsClean && targetTitleClean && regEventsClean === targetTitleClean) {
-            match = true;
-          } else if (targetSlug.includes('silicon') || targetTitleClean.includes('silicon')) {
-            match = rawText.includes('silicon') || rawText.includes('gds') || rawText.includes('cadence') || rawText.includes('vlsi');
-          } else if (targetSlug.includes('embedded') || targetTitleClean.includes('embedded')) {
-            match = rawText.includes('embedded') || rawText.includes('microcontroller') || rawText.includes('arm');
-          } else if (targetSlug.includes('instrumentation') || targetTitleClean.includes('instrumentation')) {
-            match = rawText.includes('instrumentation') || rawText.includes('labview') || rawText.includes('virtual') || rawText.includes('daq');
-          } else if (!r.selectedWorkshopId && registrations.length === 1) {
-            match = true;
-          }
-        }
-      } else {
-        const eId = (eventObj.id || '').toLowerCase();
-        const eSlug = (eventObj.slug || '').toLowerCase();
-        const eTitle = (eventObj.title || '').toLowerCase();
-        const eIdNorm = eId.replace(/^tech-/, '').replace(/^nontech-/, '');
-        const eSlugNorm = eSlug.replace(/^tech-/, '').replace(/^nontech-/, '');
-
-        const selectedIds = [
-          ...(r.selectedTechnicalIds || []),
-          ...(r.selectedNonTechnicalIds || []),
-        ].map((id) => (id || '').toLowerCase());
-
-        match = selectedIds.some((id) => {
-          const idNorm = id.replace(/^tech-/, '').replace(/^nontech-/, '');
-          return (
-            id === eId ||
-            id === eSlug ||
-            idNorm === eSlugNorm ||
-            idNorm === eIdNorm ||
-            id === `tech-${eSlugNorm}` ||
-            id === `tech-${eIdNorm}`
-          );
-        });
-
-        if (!match && r.eventsText && r.registrationType !== 'workshop') {
-          const textLower = r.eventsText.toLowerCase();
-          if ((eSlugNorm.includes('paper') || eTitle.includes('paper')) && textLower.includes('paper')) match = true;
-          if ((eSlugNorm.includes('evolvex') || eSlugNorm.includes('project') || eTitle.includes('project')) && (textLower.includes('evolvex') || textLower.includes('project'))) match = true;
-          if ((eSlugNorm.includes('tracktron') || eSlugNorm.includes('robot') || eTitle.includes('robot')) && (textLower.includes('tracktron') || textLower.includes('robot'))) match = true;
-          if ((eSlugNorm.includes('circuit') || eTitle.includes('circuit')) && (textLower.includes('circuit') || textLower.includes('debug'))) match = true;
-          if (eSlugNorm && textLower.includes(eSlugNorm)) match = true;
-        }
-      }
-      
       if (match) {
         r.participants.forEach((p, idx) => {
           list.push({
@@ -254,6 +521,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         });
       }
     });
+
     return list;
   };
 
@@ -269,6 +537,21 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       refreshLive();
     } catch (err: any) {
       setDeletePasswordError(err.message || 'Failed to delete registration.');
+    }
+  };
+
+  const [isSyncingSheet, setIsSyncingSheet] = useState(false);
+
+  const handleSyncGoogleSheet = async () => {
+    if (!token) return;
+    setIsSyncingSheet(true);
+    try {
+      const res = await syncGoogleSheetsApi(token);
+      showNotification(res.message || 'Successfully synchronized all registrations with Google Sheet!', 'success');
+    } catch (err: any) {
+      showNotification(`Failed to sync with Google Sheet: ${err.message}`, 'error');
+    } finally {
+      setIsSyncingSheet(false);
     }
   };
 
@@ -572,25 +855,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     ];
 
     const rows = list.map((r) => {
-      const eventTitles: string[] = [];
-      if (r.selectedWorkshopId || r.registrationType === 'workshop') {
-        const wTitle = getWorkshopDisplayTitle(r);
-        eventTitles.push(wTitle);
-      }
-      for (const tid of r.selectedTechnicalIds) {
-        const t = findEv(tid);
-        if (t) eventTitles.push(t.title);
-      }
-      for (const nid of r.selectedNonTechnicalIds) {
-        const n = findEv(nid);
-        if (n) eventTitles.push(n.title);
-      }
+      const spec = getRegistrationSpecificEvents(r);
+      const eventTitles = spec.events.map((e) => e.fullDisplay);
 
       return [
         r.id,
         `"${new Date(r.createdAt).toLocaleString('en-IN')}"`,
-        r.registrationType,
-        `"${eventTitles.join('; ')}"`,
+        `"${spec.trackLabel}"`,
+        `"${spec.events.map((e) => e.name).join(', ')}"`,
         `"${r.teamLeader.fullName}"`,
         r.teamLeader.email,
         r.teamLeader.phone,
@@ -1027,6 +1299,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 <Download className="w-3.5 h-3.5" /> Export CSV
               </button>
 
+              <button
+                onClick={handleSyncGoogleSheet}
+                disabled={isSyncingSheet}
+                className="px-3 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-md flex items-center gap-1.5 font-semibold cursor-pointer shadow-xs disabled:opacity-50"
+                title="Synchronize all registrations live with connected Google Sheet"
+              >
+                <FileSpreadsheet className="w-3.5 h-3.5" />
+                {isSyncingSheet ? 'Syncing...' : 'Sync to Google Sheet'}
+              </button>
+
               <a
                 href={settingsForm.driveUploadUrl}
                 target="_blank"
@@ -1046,7 +1328,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 <tr className="bg-stone-50 text-stone-600 border-b border-stone-200 font-bold uppercase tracking-wider text-[10px]">
                   <th className="p-3">Reg ID</th>
                   <th className="p-3">Date</th>
-                  <th className="p-3">Track</th>
+                  <th className="p-3">Track & Specific Event</th>
                   <th className="p-3">Team Leader / College</th>
                   <th className="p-3">Participants</th>
                   <th className="p-3">Fee</th>
@@ -1063,29 +1345,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     </td>
                   </tr>
                 ) : (
-                  (() => {
-                    const findEv = (eventKey: string) => {
-                      if (!eventKey) return undefined;
-                      const keyUpper = eventKey.trim().toUpperCase();
-                      return events.find((e) => {
-                        const idUpper = (e.id || '').toUpperCase();
-                        const slugUpper = (e.slug || '').toUpperCase();
-                        return (
-                          idUpper === keyUpper ||
-                          slugUpper === keyUpper ||
-                          idUpper === `TECH-${keyUpper}` ||
-                          slugUpper === `TECH-${keyUpper}` ||
-                          idUpper === `WS-${keyUpper}` ||
-                          slugUpper === `WS-${keyUpper}` ||
-                          idUpper.replace('TECH-', '') === keyUpper ||
-                          slugUpper.replace('TECH-', '') === keyUpper ||
-                          idUpper.replace('WS-', '') === keyUpper ||
-                          slugUpper.replace('WS-', '') === keyUpper
-                        );
-                      });
-                    };
-
-                    return registrations.map((r) => (
+                  registrations.map((r) => {
+                    const spec = getRegistrationSpecificEvents(r);
+                    return (
                       <tr key={r.id} className="hover:bg-stone-50/70">
                         <td className="p-3 font-mono font-bold text-stone-900">{r.id}</td>
                         <td className="p-3 text-stone-600 whitespace-nowrap text-xs">
@@ -1096,46 +1358,41 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                             {new Date(r.createdAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })}
                           </div>
                         </td>
-                        <td className="p-3">
-                          {r.registrationType === 'workshop' ? (
-                            <div className="space-y-1">
-                              <span className="inline-block px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-red-100 text-[#B22222]">
-                                WORKSHOP
-                              </span>
-                              <span className="block px-2 py-1 bg-red-50 text-[#B22222] rounded border border-red-200 font-extrabold text-xs">
-                                ⚙️ {getWorkshopDisplayTitle(r)}
-                              </span>
-                            </div>
-                          ) : (
+                        <td className="p-3 min-w-[220px] max-w-[280px]">
+                          <div className="space-y-1.5">
                             <div>
-                              <span className="inline-block px-2 py-0.5 rounded text-[10px] font-bold uppercase mb-1.5 bg-stone-100 text-stone-800">
-                                TECHNICAL ({r.participants.length})
+                              <span
+                                className={`inline-block px-2 py-0.5 rounded text-[10px] font-extrabold uppercase tracking-wide border ${
+                                  spec.isWorkshop
+                                    ? 'bg-red-100 text-[#B22222] border-red-200'
+                                    : 'bg-stone-100 text-stone-800 border-stone-200'
+                                }`}
+                              >
+                                {spec.trackLabel}
                               </span>
-                              <div className="text-[10px] space-y-1 max-w-[150px] mt-1">
-                                {(r.selectedTechnicalIds || []).map(id => {
-                                  const ev = findEv(id);
-                                  return ev ? (
-                                    <span key={id} className="block px-1.5 py-0.5 bg-blue-50 text-blue-700 rounded border border-blue-100 font-semibold truncate" title={ev.title}>
-                                      🔬 {ev.title}
-                                    </span>
-                                  ) : null;
-                                })}
-                                {(r.selectedNonTechnicalIds || []).map(id => {
-                                  const ev = findEv(id);
-                                  return ev ? (
-                                    <span key={id} className="block px-1.5 py-0.5 bg-purple-50 text-purple-700 rounded border border-purple-100 font-semibold truncate" title={ev.title}>
-                                      🎨 {ev.title}
-                                    </span>
-                                  ) : null;
-                                })}
-                                {(!r.selectedTechnicalIds || r.selectedTechnicalIds.length === 0) && r.eventsText && (
-                                  <span className="block px-1.5 py-0.5 bg-stone-50 text-stone-700 rounded border border-stone-200 font-semibold truncate" title={r.eventsText}>
-                                    {r.eventsText}
-                                  </span>
-                                )}
-                              </div>
                             </div>
-                          )}
+                            <div className="flex flex-wrap gap-1.5">
+                              {spec.events.map((evt, idx) => {
+                                const isWs = evt.category === 'workshop';
+                                const isNonTech = evt.category === 'non-technical';
+                                return (
+                                  <span
+                                    key={idx}
+                                    className={`inline-flex items-center gap-1 px-2.5 py-1 rounded text-[11px] font-extrabold uppercase tracking-wide border shadow-2xs ${
+                                      isWs
+                                        ? 'bg-red-50 text-[#B22222] border-red-200'
+                                        : isNonTech
+                                        ? 'bg-purple-50 text-purple-900 border-purple-200'
+                                        : 'bg-blue-50 text-blue-900 border-blue-200'
+                                    }`}
+                                  >
+                                    <span>{evt.badgeIcon}</span>
+                                    <span>{evt.name}</span>
+                                  </span>
+                                );
+                              })}
+                            </div>
+                          </div>
                         </td>
                       <td className="p-3 max-w-[220px]">
                         <span className="font-bold text-stone-900 block truncate">
@@ -1241,8 +1498,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         </button>
                       </td>
                     </tr>
-                    ))
-                  })()
+                    );
+                  })
                 )}
               </tbody>
             </table>
@@ -1722,17 +1979,17 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                     {[
-                      { id: 'silicon-2-gds', name: 'SILICON 2 GDS' },
-                      { id: 'embedded-system', name: 'Embedded System' },
-                      { id: 'virtual-instrumentation', name: 'Virtual Instrumentation' },
+                      { id: 'silicon-2-gds', keys: ['silicon-2-gds', 'ws-silicon-2-gds', '4e91a80e-4baa-4fc2-bf6c-7f95e135fc80'], name: 'SILICON 2 GDS' },
+                      { id: 'embedded-system', keys: ['embedded-system', 'ws-embedded-system', 'd6699fda-e9a5-404d-88e8-bd9e0610988e'], name: 'Embedded System' },
+                      { id: 'virtual-instrumentation', keys: ['virtual-instrumentation', 'ws-virtual-instrumentation', 'ee27539a-2318-44da-9697-bb859ed57a50'], name: 'Virtual Instrumentation' },
                     ].map((ws) => {
-                      const isClosed = (settingsForm.closedWorkshops || []).includes(ws.id);
+                      const isClosed = isEventClosedStrict(ws.id, settingsForm.closedWorkshops || [], events);
                       return (
-                        <div key={ws.id} className={`p-3.5 border rounded-xl flex items-center justify-between gap-3 transition-all ${isClosed ? 'bg-rose-50/50 border-rose-200' : 'bg-emerald-50/20 border-stone-200'}`}>
+                        <div key={ws.id} className={`p-3.5 border rounded-xl flex items-center justify-between gap-3 transition-all ${isClosed ? 'bg-rose-50 border-rose-300 shadow-2xs' : 'bg-emerald-50/30 border-stone-200'}`}>
                           <div>
                             <span className="font-extrabold text-xs text-stone-900 block">{ws.name}</span>
-                            <span className={`text-[10px] font-bold ${isClosed ? 'text-rose-600' : 'text-emerald-600'}`}>
-                              {isClosed ? '🔴 REGISTRATION CLOSED' : '🟢 REGISTRATION OPEN'}
+                            <span className={`text-[10px] font-extrabold tracking-wider ${isClosed ? 'text-rose-700 bg-rose-100 px-1.5 py-0.5 rounded border border-rose-200' : 'text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded border border-emerald-200'}`}>
+                              {isClosed ? '🔴 STRICTLY CLOSED' : '🟢 OPEN FOR REGISTRATION'}
                             </span>
                           </div>
                           
@@ -1740,22 +1997,25 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                             type="button"
                             onClick={async () => {
                               const currentClosed = settingsForm.closedWorkshops || [];
-                              const nextClosed = currentClosed.includes(ws.id)
-                                ? currentClosed.filter(id => id !== ws.id)
-                                : [...currentClosed, ws.id];
+                              let nextClosed: string[] = [];
+                              if (isClosed) {
+                                nextClosed = currentClosed.filter((id) => !ws.keys.includes(id) && !isEventClosedStrict(id, ws.keys, events));
+                              } else {
+                                nextClosed = Array.from(new Set([...currentClosed, ...ws.keys]));
+                              }
                               
                               try {
                                 const updated = await updateSiteSettings(token, { closedWorkshops: nextClosed });
                                 setSettingsForm(updated);
                                 onRefreshSettings();
-                                showNotification(`Registration for ${ws.name} is now ${nextClosed.includes(ws.id) ? 'CLOSED' : 'OPEN'}.`, 'success');
+                                showNotification(`Registration for ${ws.name} is now strictly ${!isClosed ? 'CLOSED' : 'OPEN'}.`, 'success');
                               } catch (err: any) {
                                 showNotification(err.message || 'Failed to persist workshop closure.', 'error');
                               }
                             }}
-                            className={`px-3 py-1.5 rounded-lg text-[10px] font-bold cursor-pointer transition-colors shadow-2xs ${isClosed ? 'bg-emerald-600 hover:bg-emerald-700 text-white' : 'bg-rose-600 hover:bg-rose-700 text-white'}`}
+                            className={`px-3 py-1.5 rounded-lg text-[10px] font-extrabold cursor-pointer transition-colors shadow-xs ${isClosed ? 'bg-emerald-700 hover:bg-emerald-800 text-white' : 'bg-rose-700 hover:bg-rose-800 text-white'}`}
                           >
-                            {isClosed ? 'Open Reg' : 'Close Reg'}
+                            {isClosed ? '🔓 Open Workshop' : '🔒 Strict Close'}
                           </button>
                         </div>
                       );

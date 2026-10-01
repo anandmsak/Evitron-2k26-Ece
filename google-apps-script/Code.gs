@@ -36,24 +36,53 @@ const STANDARD_HEADERS = [
 
 /**
  * Extracts strictly clean workshop title:
- * - "SILICON 2 GDS"
+ * - "silicon 2gds"
  * - "Embedded System"
- * - "Virtual Instrumentation"
+ * - "Virtual instrument"
  * Strips all lengthy descriptions and taglines.
  */
 function cleanWorkshopTitle(raw) {
   if (!raw) return '';
   const s = String(raw).toLowerCase();
   if (s.indexOf('silicon') !== -1 || s.indexOf('gds') !== -1 || s.indexOf('cadence') !== -1 || s.indexOf('vlsi') !== -1) {
-    return 'SILICON 2 GDS';
+    return 'silicon 2gds';
   }
   if (s.indexOf('embedded') !== -1 || s.indexOf('microcontroller') !== -1 || s.indexOf('arm') !== -1) {
     return 'Embedded System';
   }
   if (s.indexOf('instrumentation') !== -1 || s.indexOf('labview') !== -1 || s.indexOf('virtual') !== -1 || s.indexOf('daq') !== -1) {
-    return 'Virtual Instrumentation';
+    return 'Virtual instrument';
   }
   return String(raw).trim();
+}
+
+/**
+ * Clean short event names without lengthy descriptions or taglines:
+ * - techpaper
+ * - tractron
+ * - evolvex
+ * - silicon 2gds
+ * - Embedded System
+ * - Virtual instrument
+ * - mind maze
+ * - promptify
+ * - memix
+ * - detective 404
+ */
+function cleanEventShortName(raw) {
+  if (!raw) return '';
+  const s = String(raw).toLowerCase().trim();
+  if (s.indexOf('techpaper') !== -1 || s.indexOf('paper presentation') !== -1 || s.indexOf('paper') !== -1) return 'techpaper';
+  if (s.indexOf('tracktron') !== -1 || s.indexOf('tractron') !== -1 || s.indexOf('line follower') !== -1 || s.indexOf('robot') !== -1) return 'tractron';
+  if (s.indexOf('evolvex') !== -1 || s.indexOf('project') !== -1) return 'evolvex';
+  if (s.indexOf('silicon') !== -1 || s.indexOf('gds') !== -1 || s.indexOf('cadence') !== -1 || s.indexOf('vlsi') !== -1) return 'silicon 2gds';
+  if (s.indexOf('embedded') !== -1 || s.indexOf('microcontroller') !== -1 || s.indexOf('arm') !== -1) return 'Embedded System';
+  if (s.indexOf('instrumentation') !== -1 || s.indexOf('labview') !== -1 || s.indexOf('virtual') !== -1 || s.indexOf('daq') !== -1) return 'Virtual instrument';
+  if (s.indexOf('mind') !== -1 || s.indexOf('maze') !== -1) return 'mind maze';
+  if (s.indexOf('prompt') !== -1) return 'promptify';
+  if (s.indexOf('mem') !== -1) return 'memix';
+  if (s.indexOf('detective') !== -1 || s.indexOf('404') !== -1) return 'detective 404';
+  return String(raw).replace(/^(tech|ws|non|nontech)-/i, '').trim();
 }
 
 /**
@@ -121,6 +150,31 @@ function doPost(e) {
     ).setMimeType(ContentService.MimeType.JSON);
   }
 
+  // Handle deletion request
+  if (data.action === 'delete' || data.isDelete) {
+    const lock = LockService.getScriptLock();
+    if (lock.tryLock(25000)) {
+      try {
+        const ss = SpreadsheetApp.getActiveSpreadsheet();
+        let sheet = ss.getSheetByName(SHEET_NAME) || ss.getSheets()[0];
+        const rows = sheet.getDataRange().getValues();
+        for (let r = 1; r < rows.length; r++) {
+          if (String(rows[r][0]).trim().toUpperCase() === regId.toUpperCase()) {
+            sheet.deleteRow(r + 1);
+            return ContentService.createTextOutput(
+              JSON.stringify({ status: 'success', action: 'deleted', regId: regId })
+            ).setMimeType(ContentService.MimeType.JSON);
+          }
+        }
+      } finally {
+        lock.releaseLock();
+      }
+    }
+    return ContentService.createTextOutput(
+      JSON.stringify({ status: 'success', action: 'not_found' })
+    ).setMimeType(ContentService.MimeType.JSON);
+  }
+
   // 1. Process Google Drive upload outside of the sheet lock to prevent sheet queuing bottleneck
   let driveLink = 'N/A';
   if (data.paymentProofData && String(data.paymentProofData).indexOf('data:') === 0) {
@@ -133,21 +187,29 @@ function doPost(e) {
     driveLink = String(data.paymentProofData).trim();
   }
 
-  // 2. Format Event and Track names cleanly
+  // 2. Format Event and Track names cleanly with short names
   const isWorkshop = String(data.track || '').toLowerCase().indexOf('workshop') !== -1 ||
     String(data.events || '').toLowerCase().indexOf('workshop') !== -1 ||
     String(data.selectedWorkshopId || '').length > 0;
 
-  let cleanEvents = String(data.events || '').trim();
+  let cleanEvents = '';
   let trackLabel = '';
 
   if (isWorkshop) {
-    const rawWs = data.events || data.selectedWorkshopId || 'Workshop';
-    const wsName = cleanWorkshopTitle(rawWs) || 'Workshop';
-    cleanEvents = wsName;
-    trackLabel = 'Workshop (' + wsName + ')';
+    const rawWs = data.events || data.selectedWorkshopId || 'Embedded System';
+    cleanEvents = cleanEventShortName(rawWs);
+    trackLabel = 'Workshop';
   } else {
-    trackLabel = 'Technical Symposium (Team of ' + (data.participantsCount || 1) + ')';
+    trackLabel = 'Technical Symposium (' + (data.participantsCount || 1) + ')';
+    if (data.events) {
+      cleanEvents = String(data.events)
+        .split(',')
+        .map(function(e) { return cleanEventShortName(e); })
+        .filter(Boolean)
+        .join(', ');
+    } else {
+      cleanEvents = 'techpaper';
+    }
   }
 
   // 3. Acquire short atomic sheet lock (<100ms lock duration)
@@ -200,9 +262,23 @@ function doPost(e) {
       return fallbackIdx;
     }
 
-    // Prepare dictionary of field values
+    // Prepare dictionary of field values safely
     const nowKolkata = new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
-    const createdAtKolkata = data.createdAt ? new Date(data.createdAt).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }) : nowKolkata;
+
+    function formatTimestampValue(rawVal) {
+      if (!rawVal || rawVal === 'Invalid Date') return nowKolkata;
+      const str = String(rawVal).trim();
+      if (/^\d{1,2}[\/\-]\d{1,2}[\/\-]\d{4}/.test(str)) {
+        return str;
+      }
+      const d = new Date(str);
+      if (!isNaN(d.getTime())) {
+        return d.toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
+      }
+      return nowKolkata;
+    }
+
+    const createdAtKolkata = formatTimestampValue(data.timestamp || data.createdAt);
 
     const fields = [
       { names: ['Registration ID', 'reg id', 'id'], val: regId, defIdx: 0 },

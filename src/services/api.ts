@@ -54,17 +54,19 @@ function findEventByAnyKey(allEvents: any[], eventKey: string) {
   });
 }
 
+export { getShortEventName } from '../utils/eventShortNames';
+
 export function cleanWorkshopTitle(raw: string | undefined): string {
   if (!raw) return 'Workshop';
   const s = raw.toLowerCase();
   if (s.includes('silicon') || s.includes('gds') || s.includes('cadence') || s.includes('vlsi')) {
-    return 'SILICON 2 GDS';
+    return 'silicon 2gds';
   }
   if (s.includes('embedded') || s.includes('microcontroller') || s.includes('arm')) {
     return 'Embedded System';
   }
   if (s.includes('instrumentation') || s.includes('labview') || s.includes('virtual') || s.includes('daq')) {
-    return 'Virtual Instrumentation';
+    return 'Virtual instrument';
   }
   return raw.replace(/ws-/i, '').trim() || 'Workshop';
 }

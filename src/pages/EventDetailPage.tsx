@@ -18,6 +18,7 @@ import {
   Layers,
 } from 'lucide-react';
 import { EventItem, SiteSettings } from '../types';
+import { isEventClosedStrict } from '../utils/closureUtils';
 
 interface EventDetailPageProps {
   event: EventItem;
@@ -35,9 +36,7 @@ const DEFAULT_PAPER_THEMES = [
 export const EventDetailPage: React.FC<EventDetailPageProps> = ({ event, settings, onNavigate }) => {
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(0);
   const regDeadline = settings?.registrationDeadline || '05/10/2026';
-  const isClosed = (settings?.closedWorkshops || []).some(
-    (id) => id.toLowerCase() === (event.slug || '').toLowerCase() || id.toLowerCase() === (event.id || '').toLowerCase()
-  );
+  const isClosed = isEventClosedStrict(event.id || event.slug || event.title, settings?.closedWorkshops || []);
 
   const toggleFaq = (idx: number) => {
     setOpenFaqIndex(openFaqIndex === idx ? null : idx);
