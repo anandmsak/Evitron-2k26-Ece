@@ -50,17 +50,62 @@ export const HomePage: React.FC<HomePageProps> = ({ settings: propSettings, even
     const closedIds = settings.closedWorkshops || [];
     if (closedIds.length === 0) return '';
 
-    const closedNames = closedIds.map(id => {
-      const match = events.find(
-        (e) => (e.id || '').toLowerCase() === id.toLowerCase() || (e.slug || '').toLowerCase() === id.toLowerCase()
-      );
-      return match ? match.title : id;
-    });
+    const cleanNames: string[] = [];
 
-    if (closedNames.length === 1) {
-      return `${closedNames[0]} seats are filled, registration is closed.`;
+    for (const id of closedIds) {
+      if (!id) continue;
+      const s = String(id).toLowerCase().trim();
+
+      if (
+        s.includes('silicon') ||
+        s.includes('vlsi') ||
+        s.includes('gds') ||
+        s.includes('cadence') ||
+        s === '4e91a80e-4baa-4fc2-bf6c-7f95e135fc80'
+      ) {
+        cleanNames.push('SILICON 2 GDS');
+      } else if (
+        s.includes('virtual') ||
+        s.includes('instrument') ||
+        s.includes('labview') ||
+        s.includes('daq') ||
+        s === 'ee27539a-2318-44da-9697-bb859ed57a50'
+      ) {
+        cleanNames.push('Virtual Instrumentation');
+      } else if (
+        s.includes('embedded') ||
+        s.includes('arm') ||
+        s.includes('microcontroller') ||
+        s === 'd6699fda-e9a5-404d-88e8-bd9e0610988e'
+      ) {
+        cleanNames.push('Embedded System');
+      } else {
+        const match = events.find(
+          (e) => (e.id || '').toLowerCase() === s || (e.slug || '').toLowerCase() === s
+        );
+        if (match) {
+          cleanNames.push(match.title);
+        } else {
+          const formatted = s
+            .replace(/^(ws|tech|non|nontech)-/i, '')
+            .replace(/-/g, ' ')
+            .toUpperCase();
+          if (formatted) cleanNames.push(formatted);
+        }
+      }
     }
-    return `${closedNames.join(' & ')} seats are filled, registrations are closed.`;
+
+    // Deduplicate so each closed workshop is listed EXACTLY ONCE
+    const uniqueNames = Array.from(new Set(cleanNames.filter(Boolean)));
+    if (uniqueNames.length === 0) return '';
+
+    if (uniqueNames.length === 1) {
+      return `${uniqueNames[0]} seats are filled and registration is closed for this workshop. Kindly check out our other exciting events & technical paper presentations!`;
+    }
+
+    const last = uniqueNames.pop();
+    const joined = `${uniqueNames.join(', ')} & ${last}`;
+    return `${joined} seats are filled and registrations are closed for these workshops. Kindly check out our other exciting events & technical paper presentations!`;
   };
 
   const closedNotifText = getClosedWorkshopsNotification();
