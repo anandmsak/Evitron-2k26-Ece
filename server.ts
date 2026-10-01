@@ -28,14 +28,22 @@ import { Participant, RegistrationRecord } from './src/types.js';
 import { getPricePerPerson, isEarlyBirdActive } from './server/pricing.js';
 
 function findEventByAnyKey(allEvents: any[], eventKey: string) {
-  if (!eventKey) return undefined;
+  if (!eventKey || !Array.isArray(allEvents)) return undefined;
   const keyUpper = eventKey.trim().toUpperCase();
+  const keyLower = eventKey.trim().toLowerCase();
+  const stripped = keyLower.replace(/^(ws|tech|non|nontech)-/i, '');
+
   return allEvents.find((e) => {
     const idUpper = (e.id || '').toUpperCase();
-    const slugUpper = (e.slug || '').toUpperCase();
+    const slugUpper = (e.slug || e.code || '').toUpperCase();
+    const nameUpper = (e.title || e.name || '').toUpperCase();
+    const codeLower = (e.code || e.slug || '').toLowerCase();
+    const nameLower = (e.title || e.name || '').toLowerCase();
+
     return (
       idUpper === keyUpper ||
       slugUpper === keyUpper ||
+      nameUpper === keyUpper ||
       idUpper === `TECH-${keyUpper}` ||
       slugUpper === `TECH-${keyUpper}` ||
       idUpper === `WS-${keyUpper}` ||
@@ -43,7 +51,20 @@ function findEventByAnyKey(allEvents: any[], eventKey: string) {
       idUpper.replace('TECH-', '') === keyUpper ||
       slugUpper.replace('TECH-', '') === keyUpper ||
       idUpper.replace('WS-', '') === keyUpper ||
-      slugUpper.replace('WS-', '') === keyUpper
+      slugUpper.replace('WS-', '') === keyUpper ||
+      codeLower === stripped ||
+      nameLower === stripped ||
+      (stripped.includes('silicon') && (codeLower.includes('silicon') || nameLower.includes('silicon'))) ||
+      (stripped.includes('vlsi') && (codeLower.includes('silicon') || nameLower.includes('silicon'))) ||
+      (stripped.includes('embedded') && (codeLower.includes('embedded') || nameLower.includes('embedded'))) ||
+      (stripped.includes('virtual') && (codeLower.includes('virtual') || nameLower.includes('virtual'))) ||
+      (stripped.includes('paper') && (codeLower.includes('paper') || nameLower.includes('paper'))) ||
+      (stripped.includes('evolvex') && (codeLower.includes('evolvex') || nameLower.includes('evolvex'))) ||
+      (stripped.includes('tracktron') && (codeLower.includes('tracktron') || nameLower.includes('tracktron'))) ||
+      (stripped.includes('mind') && (codeLower.includes('mind') || nameLower.includes('mind'))) ||
+      (stripped.includes('prompt') && (codeLower.includes('prompt') || nameLower.includes('prompt'))) ||
+      (stripped.includes('mem') && (codeLower.includes('mem') || nameLower.includes('mem'))) ||
+      (stripped.includes('detective') && (codeLower.includes('detective') || nameLower.includes('detective')))
     );
   });
 }
@@ -356,7 +377,32 @@ async function validateRegistrationRules(body: {
   }
 
   const events = eventValidation.events || [];
-  const eventMap = new Map(events.map((event) => [String(event.id), event]));
+  const findMatchingEvent = (key: string | undefined) => {
+    if (!key) return undefined;
+    const clean = key.trim().toLowerCase();
+    const stripped = clean.replace(/^(ws|tech|non|nontech)-/i, '');
+    return events.find((e) => {
+      const eId = (e.id || '').toLowerCase();
+      const eCode = ((e as any).code || (e as any).slug || '').toLowerCase();
+      const eName = (e.name || '').toLowerCase();
+      return (
+        eId === clean ||
+        eCode === clean ||
+        eCode === stripped ||
+        eName === clean ||
+        (stripped.includes('silicon') && (eCode.includes('silicon') || eName.includes('silicon'))) ||
+        (stripped.includes('embedded') && (eCode.includes('embedded') || eName.includes('embedded'))) ||
+        (stripped.includes('virtual') && (eCode.includes('virtual') || eName.includes('virtual'))) ||
+        (stripped.includes('paper') && (eCode.includes('paper') || eName.includes('paper'))) ||
+        (stripped.includes('evolvex') && (eCode.includes('evolvex') || eName.includes('evolvex'))) ||
+        (stripped.includes('tracktron') && (eCode.includes('tracktron') || eName.includes('tracktron'))) ||
+        (stripped.includes('mind') && (eCode.includes('mind') || eName.includes('mind'))) ||
+        (stripped.includes('prompt') && (eCode.includes('prompt') || eName.includes('prompt'))) ||
+        (stripped.includes('mem') && (eCode.includes('mem') || eName.includes('mem'))) ||
+        (stripped.includes('detective') && (eCode.includes('detective') || eName.includes('detective')))
+      );
+    });
+  };
 
   if (registrationType === 'workshop') {
     if (!selectedWorkshopId) {
@@ -377,7 +423,7 @@ async function validateRegistrationRules(body: {
       };
     }
 
-    const workshop = eventMap.get(String(selectedWorkshopId));
+    const workshop = findMatchingEvent(selectedWorkshopId);
     if (!workshop || (workshop.category !== 'workshop' && workshop.category !== 'workshops')) {
       return { valid: false, status: 400, error: 'Selected workshop was not found or is invalid.' };
     }
@@ -404,13 +450,13 @@ async function validateRegistrationRules(body: {
       };
     }
 
-    const technical = eventMap.get(String(selectedTechnicalIds[0]));
+    const technical = findMatchingEvent(selectedTechnicalIds[0]);
     if (!technical || technical.category !== 'technical') {
       return { valid: false, status: 400, error: 'Selected technical event was not found.' };
     }
 
     for (const eventId of selectedNonTechnicalIds) {
-      const nonTechnical = eventMap.get(String(eventId));
+      const nonTechnical = findMatchingEvent(eventId);
       if (!nonTechnical || (nonTechnical.category !== 'nontechnical' && nonTechnical.category !== 'non-technical' && nonTechnical.category !== 'non_technical')) {
         return { valid: false, status: 400, error: 'Selected non-technical event is invalid.' };
       }
@@ -750,6 +796,23 @@ app.post('/api/attendance/mark', requireAdmin, wrap(async (req, res) => {
 
   try {
     const result = await repository.markAttendance(cleanId);
+    if (result.success && result.registration) {
+      const allEvents = await repository.getEvents(false);
+      const eventTitles: string[] = [];
+      if (result.registration.selectedWorkshopId || result.registration.registrationType === 'workshop') {
+        const w = result.registration.selectedWorkshopId ? findEventByAnyKey(allEvents, result.registration.selectedWorkshopId) : null;
+        eventTitles.push(cleanWorkshopTitle(w ? w.title : result.registration.selectedWorkshopId));
+      }
+      for (const tid of result.registration.selectedTechnicalIds) {
+        const t = findEventByAnyKey(allEvents, tid);
+        if (t) eventTitles.push(t.title);
+      }
+      for (const nid of result.registration.selectedNonTechnicalIds) {
+        const n = findEventByAnyKey(allEvents, nid);
+        if (n) eventTitles.push(n.title);
+      }
+      syncRegistrationToGoogleSheet(result.registration, eventTitles).catch(() => {});
+    }
     res.json(result);
   } catch (err: any) {
     res.status(404).json({ success: false, message: err.message || 'Registration not found' });
@@ -872,27 +935,25 @@ app.patch('/api/admin/registrations/:id/status', requireAdmin, wrap(async (req, 
     return res.status(404).json({ error: 'Registration not found' });
   }
 
-  if (status === 'paid') {
-    const allEvents = await repository.getEvents(false);
-    const eventTitles: string[] = [];
-    if (updated.selectedWorkshopId || updated.registrationType === 'workshop') {
-      const w = updated.selectedWorkshopId ? findEventByAnyKey(allEvents, updated.selectedWorkshopId) : null;
-      eventTitles.push(cleanWorkshopTitle(w ? w.title : updated.selectedWorkshopId));
-    }
-    for (const tid of updated.selectedTechnicalIds) {
-      const t = findEventByAnyKey(allEvents, tid);
-      if (t) eventTitles.push(t.title);
-    }
-    for (const nid of updated.selectedNonTechnicalIds) {
-      const n = findEventByAnyKey(allEvents, nid);
-      if (n) eventTitles.push(n.title);
-    }
-
-    await Promise.allSettled([
-      sendRegistrationConfirmationEmail(updated, eventTitles),
-      syncRegistrationToGoogleSheet(updated, eventTitles),
-    ]);
+  const allEvents = await repository.getEvents(false);
+  const eventTitles: string[] = [];
+  if (updated.selectedWorkshopId || updated.registrationType === 'workshop') {
+    const w = updated.selectedWorkshopId ? findEventByAnyKey(allEvents, updated.selectedWorkshopId) : null;
+    eventTitles.push(cleanWorkshopTitle(w ? w.title : updated.selectedWorkshopId));
   }
+  for (const tid of updated.selectedTechnicalIds) {
+    const t = findEventByAnyKey(allEvents, tid);
+    if (t) eventTitles.push(t.title);
+  }
+  for (const nid of updated.selectedNonTechnicalIds) {
+    const n = findEventByAnyKey(allEvents, nid);
+    if (n) eventTitles.push(n.title);
+  }
+
+  await Promise.allSettled([
+    status === 'paid' ? sendRegistrationConfirmationEmail(updated, eventTitles) : Promise.resolve(),
+    syncRegistrationToGoogleSheet(updated, eventTitles),
+  ]);
 
   res.json(updated);
 }));

@@ -13,6 +13,7 @@ import { RegistrationPage } from './pages/RegistrationPage';
 import { TicketLookupPage } from './pages/TicketLookupPage';
 import { AdminDashboard } from './pages/AdminDashboard';
 import { LoadingScreen } from './components/LoadingScreen';
+import { MaintenanceScreen } from './components/MaintenanceScreen';
 
 export default function App() {
   const [route, navigate] = useAppRoute();
@@ -56,6 +57,28 @@ export default function App() {
 
   // Determine current active page
   const renderCurrentPage = () => {
+    if (route.path === '/admin') {
+      return (
+        <AdminDashboard
+          initialSettings={settings}
+          events={events}
+          onRefreshEvents={loadEvents}
+          onRefreshSettings={loadSettings}
+          onNavigate={navigate}
+        />
+      );
+    }
+
+    // If site maintenance mode is active, block public pages and show Maintenance Screen
+    if (settings.isMaintenanceMode) {
+      return (
+        <MaintenanceScreen
+          settings={settings}
+          onNavigate={navigate}
+        />
+      );
+    }
+
     if (route.path === '/register') {
       return (
         <RegistrationPage
@@ -71,18 +94,6 @@ export default function App() {
         <TicketLookupPage
           initialRegId={route.regId}
           settings={settings}
-          onNavigate={navigate}
-        />
-      );
-    }
-
-    if (route.path === '/admin') {
-      return (
-        <AdminDashboard
-          initialSettings={settings}
-          events={events}
-          onRefreshEvents={loadEvents}
-          onRefreshSettings={loadSettings}
           onNavigate={navigate}
         />
       );

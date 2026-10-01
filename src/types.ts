@@ -109,4 +109,6 @@ export interface SiteSettings {
   forceEarlyBird?: boolean;
   earlyBirdDeadline?: string;
   closedWorkshops?: string[];
+  isMaintenanceMode?: boolean;
+  maintenanceMessage?: string;
 }

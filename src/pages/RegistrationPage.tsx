@@ -789,12 +789,20 @@ export const RegistrationPage: React.FC<RegistrationPageProps> = ({ events, sett
   if (step === 'success' && confirmedRegistration) {
     const selectedEvts = events.filter((e) => {
       const matchKey = (key: string) => {
+        if (!key) return false;
         const k = key.trim().toUpperCase();
+        const kLower = key.trim().toLowerCase();
+        const stripped = kLower.replace(/^(ws|tech|non|nontech)-/i, '');
         const idUpper = (e.id || '').toUpperCase();
         const slugUpper = (e.slug || '').toUpperCase();
+        const titleUpper = (e.title || '').toUpperCase();
+        const titleLower = (e.title || '').toLowerCase();
+        const slugLower = (e.slug || '').toLowerCase();
+
         return (
           idUpper === k ||
           slugUpper === k ||
+          titleUpper === k ||
           idUpper === `TECH-${k}` ||
           slugUpper === `TECH-${k}` ||
           idUpper === `WS-${k}` ||
@@ -802,7 +810,20 @@ export const RegistrationPage: React.FC<RegistrationPageProps> = ({ events, sett
           idUpper.replace('TECH-', '') === k ||
           slugUpper.replace('TECH-', '') === k ||
           idUpper.replace('WS-', '') === k ||
-          slugUpper.replace('WS-', '') === k
+          slugUpper.replace('WS-', '') === k ||
+          slugLower === stripped ||
+          titleLower === stripped ||
+          (stripped.includes('silicon') && (slugLower.includes('silicon') || titleLower.includes('silicon'))) ||
+          (stripped.includes('vlsi') && (slugLower.includes('silicon') || titleLower.includes('silicon'))) ||
+          (stripped.includes('embedded') && (slugLower.includes('embedded') || titleLower.includes('embedded'))) ||
+          (stripped.includes('virtual') && (slugLower.includes('virtual') || titleLower.includes('virtual'))) ||
+          (stripped.includes('paper') && (slugLower.includes('paper') || titleLower.includes('paper'))) ||
+          (stripped.includes('evolvex') && (slugLower.includes('evolvex') || titleLower.includes('evolvex'))) ||
+          (stripped.includes('tracktron') && (slugLower.includes('tracktron') || titleLower.includes('tracktron'))) ||
+          (stripped.includes('mind') && (slugLower.includes('mind') || titleLower.includes('mind'))) ||
+          (stripped.includes('prompt') && (slugLower.includes('prompt') || titleLower.includes('prompt'))) ||
+          (stripped.includes('mem') && (slugLower.includes('mem') || titleLower.includes('mem'))) ||
+          (stripped.includes('detective') && (slugLower.includes('detective') || titleLower.includes('detective')))
         );
       };
 
@@ -817,6 +838,29 @@ export const RegistrationPage: React.FC<RegistrationPageProps> = ({ events, sett
       }
       return false;
     });
+
+    const displayEventsList = selectedEvts.length > 0 
+      ? selectedEvts 
+      : (confirmedRegistration.eventsText || (confirmedRegistration.registrationType === 'workshop' ? 'Workshop Event' : 'Technical Symposium'))
+          .split(',')
+          .map((s, idx) => ({
+            id: `evt-fallback-${idx}`,
+            title: s.trim(),
+            tagline: confirmedRegistration.registrationType === 'workshop' ? 'Hands-on Workshop' : 'Symposium Event',
+            category: confirmedRegistration.registrationType === 'workshop' ? 'workshops' : 'technical',
+            slug: s.trim().toLowerCase().replace(/\s+/g, '-'),
+            description: '',
+            venue: 'TLC / ECE Department',
+            time: '09:30 AM',
+            date: '08/10/2026',
+            eligibility: 'All Engineering Students',
+            teamSize: confirmedRegistration.registrationType === 'workshop' ? 1 : confirmedRegistration.participants.length,
+            feePerPerson: 250,
+            rules: [],
+            procedure: [],
+            perks: [],
+            isActive: true,
+          } as EventItem));
 
     return (
       <div className="py-8 sm:py-12 max-w-3xl mx-auto px-4 sm:px-6">
@@ -917,10 +961,10 @@ export const RegistrationPage: React.FC<RegistrationPageProps> = ({ events, sett
                 Registered Events
               </h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                {selectedEvts.map((evt) => (
+                {displayEventsList.map((evt) => (
                   <div key={evt.id} className="p-2.5 bg-stone-50 rounded-lg border border-stone-200 text-xs">
                     <span className="font-bold text-stone-900 block">{evt.title}</span>
-                    <span className="text-stone-500 text-[11px]">{evt.tagline}</span>
+                    <span className="text-stone-500 text-[11px]">{evt.tagline || (evt.category === 'workshops' ? 'Hands-on Workshop' : 'Symposium Event')}</span>
                   </div>
                 ))}
               </div>

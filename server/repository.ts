@@ -1,3 +1,5 @@
+import fs from 'fs';
+import path from 'path';
 import { supabaseAdmin, isSupabaseConfigured } from './supabase.js';
 import {
   EventItem,
@@ -12,17 +14,69 @@ type DbEvent = Record<string, any>;
 type DbParticipant = Record<string, any>;
 type DbRegistration = Record<string, any>;
 
+const SETTINGS_FILE_PATH = path.resolve(process.cwd(), 'data', 'site_settings.json');
+const SYMPOSIUM_DB_PATH = path.resolve(process.cwd(), 'data', 'symposium_db.json');
+
+function loadPersistentSettings(): SiteSettings {
+  try {
+    if (fs.existsSync(SETTINGS_FILE_PATH)) {
+      const raw = fs.readFileSync(SETTINGS_FILE_PATH, 'utf8');
+      const parsed = JSON.parse(raw);
+      if (parsed && typeof parsed === 'object') {
+        return { ...initialSiteSettings, ...parsed };
+      }
+    }
+  } catch (err) {
+    console.warn('[SETTINGS FILE READ NOTICE]', err);
+  }
+
+  try {
+    if (fs.existsSync(SYMPOSIUM_DB_PATH)) {
+      const raw = fs.readFileSync(SYMPOSIUM_DB_PATH, 'utf8');
+      const parsed = JSON.parse(raw);
+      if (parsed?.settings && typeof parsed.settings === 'object') {
+        return { ...initialSiteSettings, ...parsed.settings };
+      }
+    }
+  } catch (err) {
+    console.warn('[SYMPOSIUM_DB READ NOTICE]', err);
+  }
+
+  return { ...initialSiteSettings };
+}
+
+function savePersistentSettings(settings: SiteSettings) {
+  try {
+    const dir = path.dirname(SETTINGS_FILE_PATH);
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+    fs.writeFileSync(SETTINGS_FILE_PATH, JSON.stringify(settings, null, 2), 'utf8');
+
+    if (fs.existsSync(SYMPOSIUM_DB_PATH)) {
+      try {
+        const raw = fs.readFileSync(SYMPOSIUM_DB_PATH, 'utf8');
+        const db = JSON.parse(raw) || {};
+        db.settings = { ...(db.settings || {}), ...settings };
+        fs.writeFileSync(SYMPOSIUM_DB_PATH, JSON.stringify(db, null, 2), 'utf8');
+      } catch {}
+    }
+  } catch (err) {
+    console.warn('[SETTINGS FILE WRITE NOTICE]', err);
+  }
+}
+
 export function cleanWorkshopTitle(raw: string | undefined): string {
   if (!raw) return 'Workshop';
   const s = raw.toLowerCase();
-  if (s.includes('silicon') || s.includes('gds') || s.includes('cadence') || s.includes('vlsi')) {
-    return 'silicon 2gds';
+  if (s.includes('silicon') || s.includes('gds') || s.includes('cadence') || s.includes('vlsi') || s === '4e91a80e-4baa-4fc2-bf6c-7f95e135fc80' || s === 'ws-silicon-2-gds' || s === 'silicon-2-gds') {
+    return 'SILICON 2 GDS';
   }
-  if (s.includes('embedded') || s.includes('microcontroller') || s.includes('arm')) {
+  if (s.includes('instrumentation') || s.includes('labview') || s.includes('virtual') || s.includes('daq') || s === 'ee27539a-2318-44da-9697-bb859ed57a50' || s === 'ws-virtual-instrumentation' || s === 'virtual-instrumentation') {
+    return 'Virtual Instrumentation';
+  }
+  if (s.includes('embedded') || s.includes('microcontroller') || s.includes('arm') || s === 'd6699fda-e9a5-404d-88e8-bd9e0610988e' || s === 'ws-embedded-system' || s === 'embedded-system') {
     return 'Embedded System';
-  }
-  if (s.includes('instrumentation') || s.includes('labview') || s.includes('virtual') || s.includes('daq')) {
-    return 'Virtual instrument';
   }
   return raw.replace(/ws-/i, '').trim() || 'Workshop';
 }
@@ -84,7 +138,7 @@ function mapEvent(row: DbEvent): EventItem {
   };
 }
 
-let cachedSiteSettings: SiteSettings = { ...initialSiteSettings };
+let cachedSiteSettings: SiteSettings = loadPersistentSettings();
 
 export async function getSiteSettings(): Promise<SiteSettings> {
   if (!isSupabaseConfigured()) {
@@ -105,6 +159,7 @@ export async function getSiteSettings(): Promise<SiteSettings> {
         }
       }
       cachedSiteSettings = settings as SiteSettings;
+      savePersistentSettings(cachedSiteSettings);
       return cachedSiteSettings;
     }
   } catch (err: any) {
@@ -118,11 +173,13 @@ export async function updateSiteSettings(
   partial: Partial<SiteSettings>,
   updatedBy?: string
 ): Promise<SiteSettings> {
-  // Update in-memory state immediately so UI and backend routes have instantaneous response
+  // Update in-memory state and disk immediately
   cachedSiteSettings = {
     ...cachedSiteSettings,
     ...partial,
   };
+
+  savePersistentSettings(cachedSiteSettings);
 
   if (isSupabaseConfigured()) {
     try {
@@ -227,7 +284,7 @@ async function resolveEventInfo(eventIdentifier: string): Promise<{ id: string; 
 
 export async function validateRegistrationEvents(
   eventIds: string[]
-): Promise<{ valid: boolean; error?: string; events?: Array<{ id: string; category: string; price: number; isActive: boolean; name: string }> }> {
+): Promise<{ valid: boolean; error?: string; events?: Array<{ id: string; code?: string; slug?: string; category: string; price: number; isActive: boolean; name: string }> }> {
   const uniqueIds = [...new Set(eventIds.filter(Boolean))];
   if (uniqueIds.length === 0) {
     return { valid: false, error: 'No events selected.' };
@@ -242,6 +299,8 @@ export async function validateRegistrationEvents(
       valid: true,
       events: matched.map((e) => ({
         id: e.id,
+        code: e.slug,
+        slug: e.slug,
         name: e.title,
         category: e.category,
         price: e.feePerPerson,
@@ -270,6 +329,8 @@ export async function validateRegistrationEvents(
     }
     matchedEvents.push({
       id: full.id,
+      code: full.code,
+      slug: full.code,
       name: full.name,
       category: String(full.category).toLowerCase(),
       price: Number(full.price || 0),
@@ -1057,11 +1118,16 @@ export async function listRegistrations(filters?: {
             const isWs = d.registrationType === 'workshop' || String(d.track || d.eventsText || '').toLowerCase().includes('workshop');
             const leaders = d.participants || [d.teamLeader || { fullName: 'Attendee', email: '', phone: '', college: '' }];
 
+            const rawEvtStr = String(d.events || d.eventsText || d.event || d.selectedWorkshopId || d.track || '').toLowerCase();
+            const isSilicon = rawEvtStr.includes('silicon') || rawEvtStr.includes('vlsi') || rawEvtStr.includes('gds') || rawEvtStr.includes('cadence');
+            const isVirtual = rawEvtStr.includes('virtual') || rawEvtStr.includes('instrument') || rawEvtStr.includes('labview') || rawEvtStr.includes('daq');
+            const canonicalWsId = isSilicon ? 'ws-silicon-2-gds' : isVirtual ? 'ws-virtual-instrumentation' : 'ws-embedded-system';
+
             results.push({
               id: regId,
               createdAt: d.createdAt || d.timestamp || new Date().toISOString(),
               registrationType: isWs ? 'workshop' : 'technical',
-              selectedWorkshopId: d.selectedWorkshopId || (isWs ? (d.eventsText?.toLowerCase().includes('silicon') ? '4e91a80e-4baa-4fc2-bf6c-7f95e135fc80' : d.eventsText?.toLowerCase().includes('virtual') ? 'ee27539a-2318-44da-9697-bb859ed57a50' : 'd6699fda-e9a5-404d-88e8-bd9e0610988e') : undefined),
+              selectedWorkshopId: isWs ? canonicalWsId : undefined,
               selectedTechnicalIds: d.selectedTechnicalIds || [],
               selectedNonTechnicalIds: d.selectedNonTechnicalIds || [],
               eventsText: d.eventsText || d.events,

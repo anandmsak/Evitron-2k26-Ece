@@ -212,6 +212,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     },
 
     // WORKSHOPS
+    'ws-silicon-2-gds': {
+      code: 'silicon-2-gds',
+      name: 'silicon 2gds',
+      specificTitle: 'silicon 2gds',
+      fullDisplay: 'silicon 2gds',
+      category: 'workshop',
+      badgeIcon: '⚙️',
+    },
     'silicon-2-gds': {
       code: 'silicon-2-gds',
       name: 'silicon 2gds',
@@ -228,6 +236,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       category: 'workshop',
       badgeIcon: '⚙️',
     },
+    'ws-embedded-system': {
+      code: 'embedded-system',
+      name: 'Embedded System',
+      specificTitle: 'Embedded System',
+      fullDisplay: 'Embedded System',
+      category: 'workshop',
+      badgeIcon: '⚙️',
+    },
     'embedded-system': {
       code: 'embedded-system',
       name: 'Embedded System',
@@ -241,6 +257,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       name: 'Embedded System',
       specificTitle: 'Embedded System',
       fullDisplay: 'Embedded System',
+      category: 'workshop',
+      badgeIcon: '⚙️',
+    },
+    'ws-virtual-instrumentation': {
+      code: 'virtual-instrumentation',
+      name: 'Virtual instrument',
+      specificTitle: 'Virtual instrument',
+      fullDisplay: 'Virtual instrument',
       category: 'workshop',
       badgeIcon: '⚙️',
     },
@@ -626,9 +650,28 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       const updated = await updateSiteSettings(token, { isRegistrationOpen: newStatus });
       setSettingsForm(updated);
       onRefreshSettings();
-      showNotification(`Registrations are now ${newStatus ? 'OPEN' : 'CLOSED'}.`, 'success');
+      showNotification(`Registrations are now strictly ${newStatus ? 'OPEN' : 'PERMANENTLY CLOSED'}.`, 'success');
     } catch (err: any) {
       showNotification(err.message || 'Failed to update registration status.', 'error');
+    }
+  };
+
+  // Toggle maintenance mode
+  const handleToggleMaintenance = async () => {
+    if (!token) return;
+    const newStatus = !settingsForm.isMaintenanceMode;
+    try {
+      const updated = await updateSiteSettings(token, { isMaintenanceMode: newStatus });
+      setSettingsForm(updated);
+      onRefreshSettings();
+      showNotification(
+        newStatus
+          ? '🛠️ Site Maintenance Mode is now ENABLED (visitors see "Site Under Maintenance, Please Try Again Later").'
+          : '🟢 Site Maintenance Mode is now DISABLED (portal is LIVE for public visitors).',
+        'success'
+      );
+    } catch (err: any) {
+      showNotification(err.message || 'Failed to toggle site maintenance mode.', 'error');
     }
   };
 
@@ -1060,14 +1103,28 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           {/* Quick Registration Open / Closed toggle */}
           <button
             onClick={handleToggleRegistration}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-colors ${
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-colors shadow-xs ${
               settingsForm.isRegistrationOpen
                 ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
-                : 'bg-red-700 hover:bg-red-800 text-white'
+                : 'bg-red-700 hover:bg-red-800 text-white ring-2 ring-red-300'
             }`}
+            title="Click to toggle all symposium registrations OPEN or PERMANENTLY CLOSED"
           >
-            <span className="w-2 h-2 rounded-full bg-white animate-pulse" />
-            <span>Registrations: {settingsForm.isRegistrationOpen ? 'OPEN' : 'CLOSED'}</span>
+            <span className={`w-2 h-2 rounded-full ${settingsForm.isRegistrationOpen ? 'bg-white animate-pulse' : 'bg-red-200'}`} />
+            <span>Registrations: {settingsForm.isRegistrationOpen ? 'OPEN' : 'PERMANENTLY CLOSED'}</span>
+          </button>
+
+          {/* Site Under Maintenance Button */}
+          <button
+            onClick={handleToggleMaintenance}
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all shadow-xs ${
+              settingsForm.isMaintenanceMode
+                ? 'bg-amber-600 hover:bg-amber-700 text-white ring-2 ring-amber-300 animate-pulse'
+                : 'bg-stone-800 hover:bg-stone-900 text-amber-300 border border-amber-500/30'
+            }`}
+            title="Toggle Site Under Maintenance Mode (temporarily displays 'Site Under Maintenance' screen to visitors)"
+          >
+            <span>🛠️ {settingsForm.isMaintenanceMode ? 'MAINTENANCE MODE: ACTIVE' : 'Site Under Maintenance'}</span>
           </button>
 
           <button
@@ -1078,6 +1135,24 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           </button>
         </div>
       </div>
+
+      {/* Maintenance Mode Active Banner */}
+      {settingsForm.isMaintenanceMode && (
+        <div className="mb-4 p-3.5 bg-amber-500 text-stone-950 font-bold text-xs rounded-xl shadow-md border-2 border-amber-600 flex flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <span className="text-base">⚠️</span>
+            <span>
+              <strong>SITE UNDER MAINTENANCE IS ACTIVE:</strong> Public visitors are currently seeing the <em>"Site Under Maintenance, Please Try Again Later"</em> screen. Admin console remains fully accessible.
+            </span>
+          </div>
+          <button
+            onClick={handleToggleMaintenance}
+            className="px-3 py-1 bg-stone-950 hover:bg-black text-amber-300 text-[11px] font-black rounded-lg cursor-pointer shrink-0"
+          >
+            Turn Off Maintenance & Go Live
+          </button>
+        </div>
+      )}
 
       {/* Action toast */}
       {actionNotice && (
@@ -2213,6 +2288,44 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 onChange={(e) => setSettingsForm({ ...settingsForm, announcementText: e.target.value })}
                 className="w-full px-3 py-2 border border-stone-300 rounded-md outline-none"
               />
+            </div>
+
+            {/* Emergency Site Maintenance Mode Configuration */}
+            <div className={`p-4 rounded-xl border transition-all ${settingsForm.isMaintenanceMode ? 'bg-amber-50 border-amber-300' : 'bg-stone-50 border-stone-200'}`}>
+              <div className="flex items-center justify-between gap-4 mb-2">
+                <div>
+                  <h4 className="font-extrabold text-stone-900 text-xs uppercase tracking-wider flex items-center gap-1.5">
+                    🛠️ Portal Maintenance & Temporary Lock
+                  </h4>
+                  <p className="text-[11px] text-stone-600 mt-0.5">
+                    When enabled, all visitors to public pages are shown the "Site Under Maintenance" screen with your custom message while administrative updates are being performed.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleToggleMaintenance}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-black cursor-pointer transition-all shrink-0 shadow-xs ${
+                    settingsForm.isMaintenanceMode
+                      ? 'bg-emerald-700 hover:bg-emerald-800 text-white'
+                      : 'bg-amber-600 hover:bg-amber-700 text-white'
+                  }`}
+                >
+                  {settingsForm.isMaintenanceMode ? 'Turn OFF Maintenance' : 'Turn ON Maintenance'}
+                </button>
+              </div>
+
+              <div className="mt-3">
+                <label className="block font-bold text-stone-700 mb-1">
+                  Public Maintenance Message Displayed to Users
+                </label>
+                <textarea
+                  rows={2}
+                  value={settingsForm.maintenanceMessage || ''}
+                  onChange={(e) => setSettingsForm({ ...settingsForm, maintenanceMessage: e.target.value })}
+                  placeholder="e.g. EVITRON 2K26 is currently undergoing scheduled maintenance & system upgrades. Please try again later or contact event coordinators."
+                  className="w-full px-3 py-2 bg-white border border-stone-300 rounded-md outline-none text-xs"
+                />
+              </div>
             </div>
 
             {/* Event Pricing (Fixed Price Rules) */}
