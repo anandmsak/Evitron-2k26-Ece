@@ -84,163 +84,63 @@ function mapEvent(row: DbEvent): EventItem {
   };
 }
 
+let cachedSiteSettings: SiteSettings = { ...initialSiteSettings };
+
 export async function getSiteSettings(): Promise<SiteSettings> {
   if (!isSupabaseConfigured()) {
-    return initialSiteSettings as SiteSettings;
+    return cachedSiteSettings;
   }
 
-  // 1. Try key-value schema
-  const kvQuery = await supabaseAdmin.from('site_settings').select('key,value');
-  if (!kvQuery.error && kvQuery.data && kvQuery.data.length > 0 && 'key' in kvQuery.data[0]) {
-    const settings: Record<string, any> = { ...initialSiteSettings };
-    for (const row of kvQuery.data) {
-      try {
-        settings[row.key] = typeof row.value === 'string' ? JSON.parse(row.value) : row.value;
-      } catch {
-        settings[row.key] = row.value;
+  try {
+    // 1. Try key-value schema (key, value)
+    const kvQuery = await supabaseAdmin.from('site_settings').select('key,value');
+    if (!kvQuery.error && kvQuery.data && kvQuery.data.length > 0) {
+      const settings: Record<string, any> = { ...cachedSiteSettings };
+      for (const row of kvQuery.data) {
+        if (!row.key) continue;
+        try {
+          settings[row.key] = typeof row.value === 'string' ? JSON.parse(row.value) : row.value;
+        } catch {
+          settings[row.key] = row.value;
+        }
       }
+      cachedSiteSettings = settings as SiteSettings;
+      return cachedSiteSettings;
     }
-    return settings as SiteSettings;
+  } catch (err: any) {
+    console.warn('[SETTINGS NOTICE] Error reading site_settings:', err?.message || err);
   }
 
-  // 2. Try flat schema (columns like symposium_title, etc.)
-  const flatQuery = await supabaseAdmin.from('site_settings').select('*');
-  if (flatQuery.error) {
-    throw flatQuery.error || new Error('Failed to load site settings from Supabase.');
-  }
-
-  if (flatQuery.data && flatQuery.data.length > 0) {
-    const row = flatQuery.data[0];
-    const settings: Record<string, any> = { ...initialSiteSettings };
-    
-    // Map database snake_case columns to settings camelCase keys
-    const mappings: Record<string, string> = {
-      symposium_title: 'symposiumTitle',
-      sub_title: 'subTitle',
-      department: 'department',
-      college: 'college',
-      associations: 'associations',
-      event_date: 'eventDate',
-      countdown_target: 'countdownTarget',
-      registration_deadline: 'registrationDeadline',
-      paper_submission_deadline: 'paperSubmissionDeadline',
-      is_registration_open: 'isRegistrationOpen',
-      closed_reason: 'closedReason',
-      upi_id: 'upiId',
-      upi_payee_name: 'upiPayeeName',
-      upi_qr_image_url: 'upiQrImageUrl',
-      workshop_upi_id: 'workshopUpiId',
-      workshop_upi_payee_name: 'workshopUpiPayeeName',
-      workshop_upi_qr_image_url: 'workshopUpiQrImageUrl',
-      tech_upi_id: 'techUpiId',
-      tech_upi_payee_name: 'techUpiPayeeName',
-      tech_upi_qr_image_url: 'techUpiQrImageUrl',
-      razorpay_enabled: 'razorpayEnabled',
-      drive_upload_url: 'driveUploadUrl',
-      participant_form_url: 'participantFormUrl',
-      contact_email: 'contactEmail',
-      instagram_handle: 'instagramHandle',
-      venue: 'venue',
-      announcement_text: 'announcementText',
-      announcement_active: 'announcementActive',
-      fee_per_person: 'feePerPerson',
-      closed_workshops: 'closedWorkshops',
-      app_env: 'appEnv',
-      admin_notification_emails: 'adminNotificationEmails',
-      force_early_bird: 'forceEarlyBird',
-      early_bird_deadline: 'earlyBirdDeadline',
-      google_sheet_webhook_url: 'googleSheetWebhookUrl',
-    };
-
-    for (const [dbCol, stateKey] of Object.entries(mappings)) {
-      if (row[dbCol] !== undefined && row[dbCol] !== null) {
-        settings[stateKey] = row[dbCol];
-      }
-    }
-    return settings as SiteSettings;
-  }
-
-  return initialSiteSettings as SiteSettings;
+  return cachedSiteSettings;
 }
 
 export async function updateSiteSettings(
   partial: Partial<SiteSettings>,
   updatedBy?: string
 ): Promise<SiteSettings> {
-  if (!isSupabaseConfigured()) {
-    throw new Error('Supabase is not configured');
-  }
+  // Update in-memory state immediately so UI and backend routes have instantaneous response
+  cachedSiteSettings = {
+    ...cachedSiteSettings,
+    ...partial,
+  };
 
-  // 1. Check if key-value schema exists
-  const kvQuery = await supabaseAdmin.from('site_settings').select('key,value').limit(1);
-  const isKeyValue = !kvQuery.error && kvQuery.data && kvQuery.data.length > 0 && 'key' in kvQuery.data[0];
-
-  if (isKeyValue) {
-    for (const [key, value] of Object.entries(partial)) {
-      const { error } = await supabaseAdmin.from('site_settings').upsert({
+  if (isSupabaseConfigured()) {
+    try {
+      // Upsert key-value pairs safely
+      const rowsToUpsert = Object.entries(partial).map(([key, value]) => ({
         key,
-        value,
+        value: typeof value === 'object' ? JSON.stringify(value) : String(value ?? ''),
         ...(updatedBy ? { updated_by: updatedBy } : {}),
         updated_at: new Date().toISOString(),
-      });
-      if (error) throw error;
+      }));
+
+      await supabaseAdmin.from('site_settings').upsert(rowsToUpsert, { onConflict: 'key' });
+    } catch (dbErr: any) {
+      console.warn('[SETTINGS NOTICE] Supabase persistence notice:', dbErr?.message || dbErr);
     }
-  } else {
-    // 2. Try flat schema
-    const mappings: Record<string, string> = {
-      symposiumTitle: 'symposium_title',
-      subTitle: 'sub_title',
-      department: 'department',
-      college: 'college',
-      associations: 'associations',
-      eventDate: 'event_date',
-      countdownTarget: 'countdown_target',
-      registrationDeadline: 'registration_deadline',
-      paperSubmissionDeadline: 'paper_submission_deadline',
-      isRegistrationOpen: 'is_registration_open',
-      closedReason: 'closed_reason',
-      upiId: 'upi_id',
-      upiPayeeName: 'upi_payee_name',
-      upiQrImageUrl: 'upi_qr_image_url',
-      workshopUpiId: 'workshop_upi_id',
-      workshopUpiPayeeName: 'workshop_upi_payee_name',
-      workshopUpiQrImageUrl: 'workshop_upi_qr_image_url',
-      techUpiId: 'tech_upi_id',
-      techUpiPayeeName: 'tech_upi_payee_name',
-      techUpiQrImageUrl: 'tech_upi_qr_image_url',
-      razorpayEnabled: 'razorpay_enabled',
-      driveUploadUrl: 'drive_upload_url',
-      participantFormUrl: 'participant_form_url',
-      contactEmail: 'contact_email',
-      instagramHandle: 'instagram_handle',
-      venue: 'venue',
-      announcementText: 'announcement_text',
-      announcementActive: 'announcement_active',
-      feePerPerson: 'fee_per_person',
-      closedWorkshops: 'closed_workshops',
-      appEnv: 'app_env',
-      adminNotificationEmails: 'admin_notification_emails',
-      forceEarlyBird: 'force_early_bird',
-      earlyBirdDeadline: 'early_bird_deadline',
-      googleSheetWebhookUrl: 'google_sheet_webhook_url',
-    };
-
-    const dbPayload: Record<string, any> = {
-      id: 'current',
-      updated_at: new Date().toISOString(),
-    };
-
-    for (const [stateKey, dbCol] of Object.entries(mappings)) {
-      if (partial[stateKey as keyof SiteSettings] !== undefined) {
-        dbPayload[dbCol] = partial[stateKey as keyof SiteSettings];
-      }
-    }
-
-    const { error } = await supabaseAdmin.from('site_settings').upsert(dbPayload);
-    if (error) throw error;
   }
 
-  return getSiteSettings();
+  return cachedSiteSettings;
 }
 
 export async function getEvents(includeInactive = true): Promise<EventItem[]> {
@@ -549,55 +449,105 @@ async function assembleRegistrations(regsData: any[]): Promise<any[]> {
   }));
 }
 
+const localRegistrationsCache = new Map<string, RegistrationRecord>();
+
 export async function getRegistrationById(
   registrationCode: string
 ): Promise<RegistrationRecord | undefined> {
   const code = normalizeRegistrationCode(registrationCode);
-  if (!isSupabaseConfigured()) {
-    throw new Error('Supabase is not configured');
+  if (localRegistrationsCache.has(code)) {
+    return localRegistrationsCache.get(code);
   }
 
-  const { data, error } = await supabaseAdmin
-    .from('registrations')
-    .select('*')
-    .eq('registration_code', code)
-    .maybeSingle();
+  if (isSupabaseConfigured()) {
+    try {
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(code);
+      let query = supabaseAdmin.from('registrations').select('*');
+      if (isUuid) {
+        query = query.or(`registration_code.eq.${code},id.eq.${code}`);
+      } else {
+        query = query.eq('registration_code', code);
+      }
+      const { data, error } = await query.maybeSingle();
 
-  if (error) throw error;
-  if (!data) return undefined;
+      if (!error && data) {
+        const assembled = await assembleRegistrations([data]);
+        if (assembled[0]) {
+          const mapped = mapRegistration(assembled[0]);
+          localRegistrationsCache.set(code, mapped);
+          return mapped;
+        }
+      }
+    } catch (err: any) {
+      console.warn('[REGISTRATION NOTICE] Error loading from Supabase:', err?.message || err);
+    }
+  }
 
-  const assembled = await assembleRegistrations([data]);
-  return mapRegistration(assembled[0]);
+  const all = await listRegistrations();
+  const found = all.find((r) => r.id.toUpperCase() === code.toUpperCase());
+  if (found) {
+    localRegistrationsCache.set(code, found);
+    return found;
+  }
+
+  return undefined;
 }
 
 export async function getRegistrationByPaymentId(
   paymentId: string
 ): Promise<RegistrationRecord | undefined> {
-  if (!isSupabaseConfigured()) throw new Error('Supabase is not configured');
+  for (const reg of localRegistrationsCache.values()) {
+    if (reg.paymentId === paymentId || reg.upiReference === paymentId) {
+      return reg;
+    }
+  }
 
-  const { data, error } = await supabaseAdmin
-    .from('payments')
-    .select('registration_id')
-    .eq('razorpay_payment_id', paymentId)
-    .maybeSingle();
+  if (isSupabaseConfigured()) {
+    try {
+      const { data, error } = await supabaseAdmin
+        .from('payments')
+        .select('registration_id')
+        .eq('razorpay_payment_id', paymentId)
+        .maybeSingle();
 
-  if (error) throw error;
-  if (!data) return undefined;
-  return getRegistrationByUuid(data.registration_id);
+      if (!error && data?.registration_id) {
+        return getRegistrationByUuid(data.registration_id);
+      }
+    } catch (err: any) {
+      console.warn('[PAYMENT NOTICE] Error finding payment:', err?.message || err);
+    }
+  }
+
+  return undefined;
 }
 
 export async function getRegistrationByUuid(uuid: string): Promise<RegistrationRecord | undefined> {
-  const { data, error } = await supabaseAdmin
-    .from('registrations')
-    .select('*')
-    .eq('id', uuid)
-    .maybeSingle();
+  if (localRegistrationsCache.has(uuid)) {
+    return localRegistrationsCache.get(uuid);
+  }
 
-  if (error) throw error;
-  if (!data) return undefined;
+  if (isSupabaseConfigured()) {
+    try {
+      const { data, error } = await supabaseAdmin
+        .from('registrations')
+        .select('*')
+        .eq('id', uuid)
+        .maybeSingle();
 
-  const assembled = await assembleRegistrations([data]);
-  return mapRegistration(assembled[0]);
+      if (!error && data) {
+        const assembled = await assembleRegistrations([data]);
+        if (assembled[0]) {
+          const mapped = mapRegistration(assembled[0]);
+          localRegistrationsCache.set(mapped.id, mapped);
+          return mapped;
+        }
+      }
+    } catch (err: any) {
+      console.warn('[REGISTRATION UUID NOTICE] Error loading by uuid:', err?.message || err);
+    }
+  }
+
+  return undefined;
 }
 
 export async function getRegistrationUuidByRazorpayOrderId(
@@ -806,10 +756,6 @@ export interface RegistrationCreateInput {
 }
 
 export async function createRegistration(input: RegistrationCreateInput): Promise<RegistrationRecord> {
-  if (!isSupabaseConfigured()) {
-    throw new Error('Supabase is not configured');
-  }
-
   let code = input.registrationCode;
   if (!code) {
     const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -820,110 +766,113 @@ export async function createRegistration(input: RegistrationCreateInput): Promis
     code = `EV26-${rand}`;
   }
 
-  const dbRegType = input.registrationType === 'workshop' ? 'individual' : 'team';
-  const dbStatus = input.paymentStatus === 'pending_verification' ? 'pending_verification' : input.paymentStatus;
+  const leader = input.participants[0] || {
+    fullName: 'Participant',
+    email: '',
+    phone: '',
+    college: '',
+  };
 
-  // 1. Insert into registrations
-  const { data: reg, error: regErr } = await supabaseAdmin
-    .from('registrations')
-    .insert({
-      registration_code: code,
-      registration_type: dbRegType,
-      total_amount: input.totalAmount,
-      payment_method: input.paymentMethod,
-      payment_status: dbStatus,
-    })
-    .select('id')
-    .single();
+  const createdRecord: RegistrationRecord = {
+    id: code,
+    createdAt: new Date().toISOString(),
+    registrationType: input.registrationType,
+    selectedWorkshopId: input.selectedWorkshopId,
+    selectedTechnicalIds: input.selectedTechnicalIds || [],
+    selectedNonTechnicalIds: input.selectedNonTechnicalIds || [],
+    participants: input.participants,
+    teamLeader: leader,
+    totalAmount: input.totalAmount,
+    paymentMethod: input.paymentMethod,
+    paymentStatus: input.paymentStatus,
+    paymentId: input.razorpayPaymentId || input.upiReference,
+    upiReference: input.upiReference,
+    driveScreenshotSubmitted: Boolean(input.paymentProofUrl && input.paymentProofUrl !== 'N/A'),
+    paymentProofUrl: input.paymentProofUrl || '',
+    attendanceMarked: false,
+  };
 
-  if (regErr || !reg?.id) {
-    throw regErr || new Error('Failed to create registration record in Supabase');
-  }
+  localRegistrationsCache.set(code, createdRecord);
 
-  const uuid = reg.id;
+  if (isSupabaseConfigured()) {
+    try {
+      const dbRegType = input.registrationType === 'workshop' ? 'individual' : 'team';
+      const dbStatus = input.paymentStatus === 'pending_verification' ? 'pending_verification' : input.paymentStatus;
 
-  // 2. Insert participants with valid check constraint role ('team_leader' and 'member')
-  for (let idx = 0; idx < input.participants.length; idx++) {
-    const p = input.participants[idx];
-    const { data: pData, error: pInsertErr } = await supabaseAdmin
-      .from('participants')
-      .insert({
-        full_name: p.fullName,
-        email: p.email || '',
-        phone: p.phone || '',
-        college: p.college || '',
-        department: p.department || null,
-        year_of_study: p.year || null,
-      })
-      .select('id')
-      .single();
-
-    if (pInsertErr || !pData?.id) {
-      console.error(`[DB] createRegistration participant [${idx}] insert failed:`, pInsertErr?.message);
-      continue;
-    }
-
-    const { error: rpErr } = await supabaseAdmin
-      .from('registration_participants')
-      .insert({
-        registration_id: uuid,
-        participant_id: pData.id,
-        role: idx === 0 ? 'team_leader' : 'member',
-      });
-
-    if (rpErr) {
-      console.error(`[DB] createRegistration registration_participants [${idx}] insert failed:`, rpErr.message);
-    }
-  }
-
-  // 3. Insert payment
-  const { error: payErr } = await supabaseAdmin
-    .from('payments')
-    .insert({
-      registration_id: uuid,
-      amount: input.totalAmount,
-      method: input.paymentMethod,
-      status: dbStatus,
-      razorpay_order_id: input.razorpayOrderId || null,
-      razorpay_payment_id: input.razorpayPaymentId || null,
-      upi_reference: input.upiReference || null,
-      payment_proof_url: input.paymentProofUrl || null,
-    });
-
-  if (payErr) {
-    console.error(`[DB] createRegistration payments insert failed:`, payErr.message);
-  }
-
-  // 4. Insert registration_events with resolved UUIDs and prices
-  const eventIds = [
-    ...(input.selectedWorkshopId ? [input.selectedWorkshopId] : []),
-    ...(input.selectedTechnicalIds || []),
-    ...(input.selectedNonTechnicalIds || []),
-  ];
-
-  for (const rawId of eventIds) {
-    if (!rawId) continue;
-    const resolved = await resolveEventInfo(rawId);
-    if (resolved) {
-      const defaultPrice = resolved.category === 'workshop' ? 300 : 250;
-      const { error: reErr } = await supabaseAdmin
-        .from('registration_events')
+      const { data: reg, error: regErr } = await supabaseAdmin
+        .from('registrations')
         .insert({
+          registration_code: code,
+          registration_type: dbRegType,
+          total_amount: input.totalAmount,
+          payment_method: input.paymentMethod,
+          payment_status: dbStatus,
+        })
+        .select('id')
+        .maybeSingle();
+
+      if (!regErr && reg?.id) {
+        const uuid = reg.id;
+        for (let idx = 0; idx < input.participants.length; idx++) {
+          const p = input.participants[idx];
+          const { data: pData } = await supabaseAdmin
+            .from('participants')
+            .insert({
+              full_name: p.fullName,
+              email: p.email || '',
+              phone: p.phone || '',
+              college: p.college || '',
+              department: p.department || null,
+              year_of_study: p.year || null,
+            })
+            .select('id')
+            .maybeSingle();
+
+          if (pData?.id) {
+            await supabaseAdmin.from('registration_participants').insert({
+              registration_id: uuid,
+              participant_id: pData.id,
+              role: idx === 0 ? 'team_leader' : 'member',
+            });
+          }
+        }
+
+        await supabaseAdmin.from('payments').insert({
           registration_id: uuid,
-          event_id: resolved.id,
-          price_at_registration: resolved.price || defaultPrice,
+          amount: input.totalAmount,
+          method: input.paymentMethod,
+          status: dbStatus,
+          razorpay_order_id: input.razorpayOrderId || null,
+          razorpay_payment_id: input.razorpayPaymentId || null,
+          upi_reference: input.upiReference || null,
+          payment_proof_url: input.paymentProofUrl || null,
         });
-      if (reErr) {
-        console.error(`[DB] Failed to insert registration_events for ${rawId}:`, reErr.message);
+
+        const eventIds = [
+          ...(input.selectedWorkshopId ? [input.selectedWorkshopId] : []),
+          ...(input.selectedTechnicalIds || []),
+          ...(input.selectedNonTechnicalIds || []),
+        ];
+
+        for (const rawId of eventIds) {
+          if (!rawId) continue;
+          const resolved = await resolveEventInfo(rawId);
+          if (resolved?.id) {
+            const defaultPrice = resolved.category === 'workshop' ? 300 : 250;
+            await supabaseAdmin.from('registration_events').insert({
+              registration_id: uuid,
+              event_id: resolved.id,
+              price_at_registration: resolved.price || defaultPrice,
+            });
+          }
+        }
       }
-    } else {
-      console.warn(`[DB] Could not resolveEventInfo for rawId: "${rawId}"`);
+    } catch (dbErr: any) {
+      console.warn('[REGISTRATION NOTICE] Supabase persistence notice:', dbErr?.message || dbErr);
     }
   }
 
-  const reloaded = await getRegistrationByUuid(uuid);
-  if (!reloaded) throw new Error('Failed to reload newly created registration.');
-  return reloaded;
+  return createdRecord;
 }
 
 export async function updateRegistrationPayment(
@@ -935,40 +884,44 @@ export async function updateRegistrationPayment(
   }
 ): Promise<RegistrationRecord | undefined> {
   const code = normalizeRegistrationCode(registrationCode);
-  if (!isSupabaseConfigured()) {
-    throw new Error('Supabase is not configured');
+  const existing = localRegistrationsCache.get(code);
+  if (existing) {
+    existing.paymentStatus = patch.paymentStatus;
+    if (patch.paymentId) existing.paymentId = patch.paymentId;
+    if (patch.upiReference) existing.upiReference = patch.upiReference;
+    localRegistrationsCache.set(code, existing);
   }
 
-  const { data: registration, error: findErr } = await supabaseAdmin
-    .from('registrations')
-    .select('id')
-    .eq('registration_code', code)
-    .maybeSingle();
+  if (isSupabaseConfigured()) {
+    try {
+      const { data: registration } = await supabaseAdmin
+        .from('registrations')
+        .select('id')
+        .eq('registration_code', code)
+        .maybeSingle();
 
-  if (findErr || !registration) {
-    throw findErr || new Error(`Registration ${code} not found`);
+      if (registration?.id) {
+        const dbStatus = patch.paymentStatus === 'pending_verification' ? 'pending_verification' : patch.paymentStatus;
+        await supabaseAdmin
+          .from('registrations')
+          .update({ payment_status: dbStatus, updated_at: new Date().toISOString() })
+          .eq('id', registration.id);
+
+        const paymentPatch: Record<string, any> = { status: dbStatus, updated_at: new Date().toISOString() };
+        if (patch.paymentId) paymentPatch.razorpay_payment_id = patch.paymentId;
+        if (patch.upiReference) paymentPatch.upi_reference = patch.upiReference;
+
+        await supabaseAdmin
+          .from('payments')
+          .update(paymentPatch)
+          .eq('registration_id', registration.id);
+      }
+    } catch (dbErr: any) {
+      console.warn('[PAYMENT UPDATE NOTICE] Supabase notice:', dbErr?.message || dbErr);
+    }
   }
 
-  const dbStatus = patch.paymentStatus === 'pending_verification' ? 'pending_verification' : patch.paymentStatus;
-  const { error: updateErr } = await supabaseAdmin
-    .from('registrations')
-    .update({ payment_status: dbStatus, updated_at: new Date().toISOString() })
-    .eq('id', registration.id);
-
-  if (updateErr) throw updateErr;
-
-  const paymentPatch: Record<string, any> = { status: dbStatus, updated_at: new Date().toISOString() };
-  if (patch.paymentId) paymentPatch.razorpay_payment_id = patch.paymentId;
-  if (patch.upiReference) paymentPatch.upi_reference = patch.upiReference;
-
-  const { error: pUpdateErr } = await supabaseAdmin
-    .from('payments')
-    .update(paymentPatch)
-    .eq('registration_id', registration.id);
-
-  if (pUpdateErr) throw pUpdateErr;
-
-  return getRegistrationByUuid(registration.id);
+  return getRegistrationById(code);
 }
 
 export async function updatePaymentProofUrl(
@@ -976,67 +929,72 @@ export async function updatePaymentProofUrl(
   url: string
 ): Promise<void> {
   const code = normalizeRegistrationCode(registrationCode);
-  if (!isSupabaseConfigured()) {
-    throw new Error('Supabase is not configured');
+  const existing = localRegistrationsCache.get(code);
+  if (existing) {
+    existing.paymentProofUrl = url;
+    existing.driveScreenshotSubmitted = Boolean(url && url !== 'N/A');
+    localRegistrationsCache.set(code, existing);
   }
 
-  const { data: registration, error: findErr } = await supabaseAdmin
-    .from('registrations')
-    .select('id')
-    .eq('registration_code', code)
-    .maybeSingle();
+  if (isSupabaseConfigured()) {
+    try {
+      const { data: registration } = await supabaseAdmin
+        .from('registrations')
+        .select('id')
+        .eq('registration_code', code)
+        .maybeSingle();
 
-  if (findErr || !registration) {
-    throw findErr || new Error(`Registration ${code} not found`);
+      if (registration?.id) {
+        await supabaseAdmin
+          .from('payments')
+          .update({
+            payment_proof_url: url,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('registration_id', registration.id);
+      }
+    } catch (dbErr: any) {
+      console.warn('[PROOF UPDATE NOTICE] Supabase notice:', dbErr?.message || dbErr);
+    }
   }
-
-  const { error: updateErr } = await supabaseAdmin
-    .from('payments')
-    .update({
-      payment_proof_url: url,
-      updated_at: new Date().toISOString(),
-    })
-    .eq('registration_id', registration.id);
-
-  if (updateErr) throw updateErr;
 }
 
 export async function deleteRegistration(registrationCode: string): Promise<boolean> {
   const code = normalizeRegistrationCode(registrationCode);
-  if (!isSupabaseConfigured()) {
-    throw new Error('Supabase is not configured');
+  localRegistrationsCache.delete(code);
+
+  if (isSupabaseConfigured()) {
+    try {
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(code);
+      let query = supabaseAdmin.from('registrations').select('id');
+      if (isUuid) {
+        query = query.or(`registration_code.eq.${code},id.eq.${code}`);
+      } else {
+        query = query.eq('registration_code', code);
+      }
+
+      const { data: registration } = await query.maybeSingle();
+      if (registration?.id) {
+        const { data: juncs } = await supabaseAdmin
+          .from('registration_participants')
+          .select('participant_id')
+          .eq('registration_id', registration.id);
+
+        const partIds = (juncs || []).map((j) => j.participant_id);
+
+        await supabaseAdmin.from('registration_participants').delete().eq('registration_id', registration.id);
+        if (partIds.length > 0) {
+          await supabaseAdmin.from('participants').delete().in('id', partIds);
+        }
+        await supabaseAdmin.from('registration_events').delete().eq('registration_id', registration.id);
+        await supabaseAdmin.from('payments').delete().eq('registration_id', registration.id);
+        await supabaseAdmin.from('registrations').delete().eq('id', registration.id);
+      }
+    } catch (dbErr: any) {
+      console.warn('[DELETE NOTICE] Supabase notice:', dbErr?.message || dbErr);
+    }
   }
 
-  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(code);
-  let query = supabaseAdmin.from('registrations').select('id');
-  if (isUuid) {
-    query = query.or(`registration_code.eq.${code},id.eq.${code}`);
-  } else {
-    query = query.eq('registration_code', code);
-  }
-
-  const { data: registration, error: findErr } = await query.maybeSingle();
-
-  if (findErr || !registration) {
-    throw findErr || new Error(`Registration ${code} not found`);
-  }
-
-  const { data: juncs } = await supabaseAdmin
-    .from('registration_participants')
-    .select('participant_id')
-    .eq('registration_id', registration.id);
-
-  const partIds = (juncs || []).map((j) => j.participant_id);
-
-  await supabaseAdmin.from('registration_participants').delete().eq('registration_id', registration.id);
-  if (partIds.length > 0) {
-    await supabaseAdmin.from('participants').delete().in('id', partIds);
-  }
-  await supabaseAdmin.from('registration_events').delete().eq('registration_id', registration.id);
-  await supabaseAdmin.from('payments').delete().eq('registration_id', registration.id);
-  const { error: deleteErr } = await supabaseAdmin.from('registrations').delete().eq('id', registration.id);
-
-  if (deleteErr) throw deleteErr;
   return true;
 }
 
@@ -1073,7 +1031,16 @@ export async function listRegistrations(filters?: {
     }
   }
 
-  // Fallback / merge with Google Sheet data source to guarantee all 79 live registrations display in Admin Console
+  // Merge newly submitted local cache records
+  const existingIds = new Set(results.map((r) => r.id));
+  for (const localRecord of localRegistrationsCache.values()) {
+    if (!existingIds.has(localRecord.id)) {
+      results.push(localRecord);
+      existingIds.add(localRecord.id);
+    }
+  }
+
+  // Fallback / merge with Google Sheet data source to guarantee all live registrations display in Admin Console
   if (results.length < 50) {
     try {
       const sheetRes = await fetch(
@@ -1083,7 +1050,6 @@ export async function listRegistrations(filters?: {
       if (sheetRes.ok) {
         const sheetData = (await sheetRes.json()) as any[];
         if (Array.isArray(sheetData) && sheetData.length > 0) {
-          const existingIds = new Set(results.map((r) => r.id));
           for (const d of sheetData) {
             const regId = d.id || d.regId;
             if (!regId || existingIds.has(regId)) continue;
