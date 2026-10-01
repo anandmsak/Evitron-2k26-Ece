@@ -564,9 +564,10 @@ export const RegistrationPage: React.FC<RegistrationPageProps> = ({ events, sett
     ? (settings.workshopUpiPayeeName || settings.upiPayeeName)
     : (settings.techUpiPayeeName || settings.upiPayeeName);
 
-  const activeQrImageUrl = isWorkshopTrack
-    ? (settings.workshopUpiQrImageUrl || settings.upiQrImageUrl)
-    : (settings.techUpiQrImageUrl || settings.upiQrImageUrl);
+  const activeQrImageUrl =
+    (isWorkshopTrack
+      ? (settings.workshopUpiQrImageUrl || settings.upiQrImageUrl)
+      : (settings.techUpiQrImageUrl || settings.upiQrImageUrl)) || '/default-upi-qr.jpeg';
 
   const isPaperPresentationSelected =
     chosenTrack === 'technical' &&

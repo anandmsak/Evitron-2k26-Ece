@@ -1777,12 +1777,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 <div>
                   <label className="block font-bold text-stone-700 mb-1">Workshop QR Code Image</label>
                   <div className="flex items-center gap-4">
-                    <div className="w-16 h-16 bg-white border border-stone-300 rounded-lg p-1 flex items-center justify-center shrink-0 overflow-hidden">
-                      {settingsForm.workshopUpiQrImageUrl ? (
-                        <img src={settingsForm.workshopUpiQrImageUrl} alt="Workshop QR" className="w-full h-full object-contain" />
-                      ) : (
-                        <QrCode className="w-6 h-6 text-stone-300" />
-                      )}
+                    <div className="w-16 h-16 bg-white border border-stone-300 rounded-lg p-1 flex items-center justify-center shrink-0 overflow-hidden shadow-xs">
+                      <img
+                        src={settingsForm.workshopUpiQrImageUrl || '/default-upi-qr.jpeg'}
+                        alt="Workshop QR"
+                        className="w-full h-full object-contain"
+                      />
                     </div>
                     <div className="flex-1">
                       <input
@@ -1792,15 +1792,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         className="block w-full text-[11px] text-stone-600 file:mr-2 file:py-1 file:px-2.5 file:rounded file:border-0 file:text-[11px] file:font-bold file:bg-[#B22222] file:text-white hover:file:bg-[#961c1c] cursor-pointer"
                       />
                       {workshopQrError && <p className="text-[10px] text-rose-600 mt-1">{workshopQrError}</p>}
-                      {settingsForm.workshopUpiQrImageUrl && (
-                        <button
-                          type="button"
-                          onClick={() => setSettingsForm({ ...settingsForm, workshopUpiQrImageUrl: '' })}
-                          className="text-[10px] text-stone-500 hover:text-rose-600 font-semibold mt-1 cursor-pointer"
-                        >
-                          Remove Workshop QR
-                        </button>
-                      )}
+                      <button
+                        type="button"
+                        onClick={() => setSettingsForm({ ...settingsForm, workshopUpiQrImageUrl: '/default-upi-qr.jpeg' })}
+                        className="text-[10px] text-stone-500 hover:text-rose-600 font-semibold mt-1 cursor-pointer block"
+                      >
+                        Reset to Default BHIM QR
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -1840,12 +1838,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 <div>
                   <label className="block font-bold text-stone-700 mb-1">Technical Events QR Code Image</label>
                   <div className="flex items-center gap-4">
-                    <div className="w-16 h-16 bg-white border border-stone-300 rounded-lg p-1 flex items-center justify-center shrink-0 overflow-hidden">
-                      {settingsForm.techUpiQrImageUrl ? (
-                        <img src={settingsForm.techUpiQrImageUrl} alt="Tech QR" className="w-full h-full object-contain" />
-                      ) : (
-                        <QrCode className="w-6 h-6 text-stone-300" />
-                      )}
+                    <div className="w-16 h-16 bg-white border border-stone-300 rounded-lg p-1 flex items-center justify-center shrink-0 overflow-hidden shadow-xs">
+                      <img
+                        src={settingsForm.techUpiQrImageUrl || '/default-upi-qr.jpeg'}
+                        alt="Tech QR"
+                        className="w-full h-full object-contain"
+                      />
                     </div>
                     <div className="flex-1">
                       <input
@@ -1855,15 +1853,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         className="block w-full text-[11px] text-stone-600 file:mr-2 file:py-1 file:px-2.5 file:rounded file:border-0 file:text-[11px] file:font-bold file:bg-stone-900 file:text-white hover:file:bg-stone-800 cursor-pointer"
                       />
                       {techQrError && <p className="text-[10px] text-rose-600 mt-1">{techQrError}</p>}
-                      {settingsForm.techUpiQrImageUrl && (
-                        <button
-                          type="button"
-                          onClick={() => setSettingsForm({ ...settingsForm, techUpiQrImageUrl: '' })}
-                          className="text-[10px] text-stone-500 hover:text-rose-600 font-semibold mt-1 cursor-pointer"
-                        >
-                          Remove Tech QR
-                        </button>
-                      )}
+                      <button
+                        type="button"
+                        onClick={() => setSettingsForm({ ...settingsForm, techUpiQrImageUrl: '/default-upi-qr.jpeg' })}
+                        className="text-[10px] text-stone-500 hover:text-rose-600 font-semibold mt-1 cursor-pointer block"
+                      >
+                        Reset to Default BHIM QR
+                      </button>
                     </div>
                   </div>
                 </div>

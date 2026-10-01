@@ -178,12 +178,11 @@ app.get('/api/health', wrap(async (_req, res) => {
 app.get('/api/settings', wrap(async (_req, res) => {
   const settings = await repository.getSiteSettings();
   const currentEnv = getAppEnv(settings.appEnv);
-  let upiQrImage = settings.upiQrImageUrl;
+  const defaultQrUrl = '/default-upi-qr.jpeg';
 
-  if (!upiQrImage && settings.upiId) {
-    const sampleUri = buildUpiUri(settings.upiId, settings.upiPayeeName, settings.feePerPerson, 'EVITRON 2K26 Registration');
-    upiQrImage = await generateQrDataUrl(sampleUri);
-  }
+  const upiQrImage = settings.upiQrImageUrl || defaultQrUrl;
+  const workshopUpiQrImage = settings.workshopUpiQrImageUrl || upiQrImage || defaultQrUrl;
+  const techUpiQrImage = settings.techUpiQrImageUrl || upiQrImage || defaultQrUrl;
 
   const razorpayHealth = await checkRazorpayHealth(currentEnv);
 
@@ -191,6 +190,8 @@ app.get('/api/settings', wrap(async (_req, res) => {
     ...settings,
     appEnv: currentEnv,
     upiQrImageUrl: upiQrImage,
+    workshopUpiQrImageUrl: workshopUpiQrImage,
+    techUpiQrImageUrl: techUpiQrImage,
     razorpayKeyId: razorpayHealth.status === 'CONNECTED' ? getRazorpayKeyId() : '',
     razorpayConnected: razorpayHealth.status === 'CONNECTED',
     razorpayLiveConnected: razorpayHealth.liveConnected,
