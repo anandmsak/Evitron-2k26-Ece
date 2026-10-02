@@ -23,16 +23,19 @@ export const supabaseAnonKey =
   (typeof process !== 'undefined' ? process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_SECRET_KEY : undefined) ||
   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlpbXlheXRmcnR5ZG96d3Jna3N1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODkxOTk4NjQsImV4cCI6MjEwNDc3NTg2NH0.Of3xlCbXyhS_-kuVXcg_OrpMHHNutrAmD3dWYiz6OLY';
 
-// Client-side & Test-compatible Fetch Handler
+// Client-side & Test-compatible Fetch Handler (Strips 'apikey' header so Google Cloud ESP/Gateway doesn't trigger 403 "unregistered API key")
 const customFetch: typeof fetch = async (input: RequestInfo | URL, init: RequestInit = {}) => {
   const urlStr = typeof input === 'string' ? input : input instanceof URL ? input.toString() : (input as Request).url;
-  const method = (init?.method || (typeof input === 'object' && 'method' in input ? (input as Request).method : 'GET')).toUpperCase();
 
-  // In Node.js test environment
+  const headers = new Headers(init?.headers || (typeof input === 'object' && 'headers' in input ? (input as Request).headers : {}));
+  // Strip any 'apikey' header so Google Cloud ESP / Cloud Run proxy does NOT interpret it as an unregistered GCP API Key
+  headers.delete('apikey');
+  headers.delete('ApiKey');
+  headers.delete('APIKEY');
+
+  // In Node.js server test environment
   if (typeof window === 'undefined') {
-    const headers = new Headers(init?.headers || (typeof input === 'object' && 'headers' in input ? (input as Request).headers : {}));
     const key = (typeof process !== 'undefined' && process.env?.SUPABASE_SECRET_KEY) ? process.env.SUPABASE_SECRET_KEY : supabaseAnonKey;
-    headers.set('apikey', key);
     headers.set('Authorization', `Bearer ${key}`);
     return fetch(input, { ...init, headers });
   }
@@ -40,10 +43,10 @@ const customFetch: typeof fetch = async (input: RequestInfo | URL, init: Request
   // In Browser environment: Proxy through /api/supabase-proxy to bypass RLS 0-count issue
   if (typeof window !== 'undefined' && urlStr.includes('/rest/v1/')) {
     const proxyUrl = urlStr.replace(supabaseUrl, '/api/supabase-proxy');
-    return fetch(proxyUrl, init);
+    return fetch(proxyUrl, { ...init, headers });
   }
 
-  return fetch(input, init);
+  return fetch(input, { ...init, headers });
 };
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {

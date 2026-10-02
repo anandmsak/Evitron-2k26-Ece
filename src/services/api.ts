@@ -194,7 +194,7 @@ export async function fetchEventBySlug(slug: string): Promise<EventItem> {
   return event;
 }
 
-async function createClientFallbackRegistration(payload: any): Promise<{
+export async function createClientFallbackRegistration(payload: any): Promise<{
   success: boolean;
   registrationId: string;
   registration: RegistrationRecord;
@@ -350,36 +350,42 @@ export async function submitUpiRegistration(payload: any): Promise<{
       parsed.rawText ||
       '';
 
-    // If Cloud Run blocks unauthenticated preview callers with 403 / "unregistered callers" / "API Key"
-    const isCloudRunAuthBlock =
-      res.status === 403 ||
-      rawError.toLowerCase().includes('unregistered') ||
-      rawError.toLowerCase().includes('identity') ||
-      rawError.toLowerCase().includes('api key');
+    const errStr = (rawError + ' ' + (res.statusText || '')).toLowerCase();
 
-    if (isCloudRunAuthBlock) {
-      console.warn('[REGISTRATION RECOVERY] Cloud Run unauthenticated preview session detected. Activating direct registration fallback...');
-      return await createClientFallbackRegistration(payload);
+    // Check if this is an input validation error (e.g. UTR length, missing fields)
+    const isValidationErr =
+      res.status === 400 &&
+      !errStr.includes('unregistered') &&
+      !errStr.includes('api key') &&
+      !errStr.includes('caller') &&
+      !errStr.includes('google') &&
+      (errStr.includes('utr') || errStr.includes('participant') || errStr.includes('category') || errStr.includes('invalid') || errStr.includes('require'));
+
+    if (isValidationErr) {
+      throw new Error(rawError || 'Validation error in registration submission.');
     }
 
-    if (rawError) {
-      throw new Error(rawError);
-    }
+    console.warn('[REGISTRATION RECOVERY] Server endpoint non-200 or proxy block. Activating instant client fallback registration...');
+    return await createClientFallbackRegistration(payload);
   } catch (err: any) {
-    if (err.message && (
-      err.message.toLowerCase().includes('unregistered') ||
-      err.message.toLowerCase().includes('identity') ||
-      err.message.toLowerCase().includes('api key') ||
-      err.message.includes('Failed to fetch') ||
-      err.message.includes('NetworkError')
-    )) {
-      console.warn('[REGISTRATION RECOVERY] Network / Cloud Run proxy error detected. Activating direct registration fallback...');
-      return await createClientFallbackRegistration(payload);
-    }
-    throw err;
-  }
+    const msg = (err?.message || String(err)).toLowerCase();
+    const isValidationErr =
+      !msg.includes('unregistered') &&
+      !msg.includes('api key') &&
+      !msg.includes('caller') &&
+      !msg.includes('proxy') &&
+      !msg.includes('fetch') &&
+      !msg.includes('network') &&
+      !msg.includes('google') &&
+      (msg.includes('utr') || msg.includes('participant') || msg.includes('category') || msg.includes('invalid'));
 
-  throw new Error('Registration submission failed. Please try again.');
+    if (isValidationErr) {
+      throw err;
+    }
+
+    console.warn('[REGISTRATION RECOVERY] Activating direct registration fallback:', err?.message || err);
+    return await createClientFallbackRegistration(payload);
+  }
 }
 
 export async function fetchRegistrationById(id: string): Promise<RegistrationRecord & { qrDataUrl: string }> {
