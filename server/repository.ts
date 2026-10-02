@@ -1205,7 +1205,20 @@ export async function listRegistrations(filters?: {
         if (Array.isArray(sheetData) && sheetData.length > 0) {
           for (const d of sheetData) {
             const regId = d.id || d.regId;
-            if (!regId || existingIds.has(regId)) continue;
+            if (!regId) continue;
+
+            const sheetProof = (d.paymentProofUrl || d.paymentProof || '').trim();
+            const existingInResults = results.find((r) => r.id === regId || r.id.toLowerCase() === regId.toLowerCase());
+
+            if (existingInResults) {
+              if (sheetProof.startsWith('http')) {
+                existingInResults.paymentProofUrl = sheetProof;
+                existingInResults.driveScreenshotSubmitted = true;
+                localRegistrationsCache.set(regId, existingInResults);
+                localRegistrationsCache.set(normalizeRegistrationCode(regId), existingInResults);
+              }
+              continue;
+            }
 
             const isWs = d.registrationType === 'workshop' || String(d.track || d.eventsText || '').toLowerCase().includes('workshop');
             const leaders = d.participants || [d.teamLeader || { fullName: 'Attendee', email: '', phone: '', college: '' }];
@@ -1215,7 +1228,7 @@ export async function listRegistrations(filters?: {
             const isVirtual = rawEvtStr.includes('virtual') || rawEvtStr.includes('instrument') || rawEvtStr.includes('labview') || rawEvtStr.includes('daq');
             const canonicalWsId = isSilicon ? 'ws-silicon-2-gds' : isVirtual ? 'ws-virtual-instrumentation' : 'ws-embedded-system';
 
-            results.push({
+            const newSheetRecord: RegistrationRecord = {
               id: regId,
               createdAt: d.createdAt || d.timestamp || new Date().toISOString(),
               registrationType: isWs ? 'workshop' : 'technical',
@@ -1230,12 +1243,18 @@ export async function listRegistrations(filters?: {
               paymentStatus: String(d.paymentStatus || '').toLowerCase() === 'paid' ? 'paid' : 'pending_verification',
               paymentId: d.paymentId || d.paymentRef,
               upiReference: d.upiReference || d.paymentRef,
-              driveScreenshotSubmitted: Boolean(d.paymentProofUrl && d.paymentProofUrl !== 'N/A'),
-              paymentProofUrl: d.paymentProofUrl,
+              driveScreenshotSubmitted: Boolean(sheetProof && sheetProof !== 'N/A'),
+              paymentProofUrl: sheetProof || undefined,
               attendanceMarked: Boolean(d.attendanceMarked || d.attendance === 'Present'),
               attendanceTimestamp: d.attendanceTimestamp,
-            });
+            };
+
+            results.push(newSheetRecord);
             existingIds.add(regId);
+            if (sheetProof.startsWith('http')) {
+              localRegistrationsCache.set(regId, newSheetRecord);
+              localRegistrationsCache.set(normalizeRegistrationCode(regId), newSheetRecord);
+            }
           }
         }
       }

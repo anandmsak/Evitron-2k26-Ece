@@ -137,18 +137,18 @@ export function formatGoogleSheetPayload(reg: RegistrationRecord, eventTitles?: 
   const p3 = reg.participants?.[2];
   const p4 = reg.participants?.[3];
 
-  let proofDisplay = 'N/A';
-  if (reg.paymentProofUrl) {
+  let proofDisplay: string | undefined = undefined;
+  if (reg.paymentProofUrl && reg.paymentProofUrl !== 'N/A' && reg.paymentProofUrl !== 'HAS_PROOF') {
     if (reg.paymentProofUrl.startsWith('http')) {
       proofDisplay = reg.paymentProofUrl;
-    } else if (reg.paymentProofUrl.startsWith('data:image')) {
+    } else if (reg.paymentProofUrl.startsWith('data:image') || reg.paymentProofUrl.startsWith('data:application')) {
       proofDisplay = 'Screenshot Attached (View in Admin Portal)';
     } else {
       proofDisplay = reg.paymentProofUrl;
     }
   }
 
-  return {
+  const payload: Record<string, any> = {
     regId: reg.id,
     createdAt: formattedDate,
     timestamp: formattedDate,
@@ -168,10 +168,15 @@ export function formatGoogleSheetPayload(reg: RegistrationRecord, eventTitles?: 
     paymentMethod: (reg.paymentMethod || 'UPI').toUpperCase(),
     paymentStatus: (reg.paymentStatus === 'paid' ? 'PAID' : 'PENDING').toUpperCase(),
     paymentRef: reg.upiReference || reg.paymentId || 'N/A',
-    paymentProof: proofDisplay,
-    paymentProofUrl: proofDisplay,
     attendance: reg.attendanceMarked ? 'Present' : 'Absent',
   };
+
+  if (proofDisplay) {
+    payload.paymentProof = proofDisplay;
+    payload.paymentProofUrl = proofDisplay;
+  }
+
+  return payload;
 }
 
 export async function syncRegistrationToGoogleSheet(
