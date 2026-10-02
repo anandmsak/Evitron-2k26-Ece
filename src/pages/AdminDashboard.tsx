@@ -630,6 +630,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     try {
       const res = await syncGoogleSheetsApi(token);
       showNotification(res.message || 'Successfully synchronized all registrations with Google Sheet!', 'success');
+      await refreshLive();
     } catch (err: any) {
       showNotification(`Failed to sync with Google Sheet: ${err.message}`, 'error');
     } finally {

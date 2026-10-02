@@ -544,6 +544,16 @@ const handleRegistrationSubmit = async (req: express.Request, res: express.Respo
 app.post('/api/register-upi', wrap(handleRegistrationSubmit));
 app.post('/api/register', wrap(handleRegistrationSubmit));
 
+// Ingest / sync registration directly into Supabase (e.g. from client fallback)
+app.post('/api/sync-registration', wrap(async (req, res) => {
+  const { registration } = req.body;
+  if (!registration || !registration.id) {
+    return res.status(400).json({ error: 'Invalid registration payload' });
+  }
+  const success = await repository.ingestRegistrationIntoSupabase(registration);
+  res.json({ success, registrationId: registration.id });
+}));
+
 // GET single registration by Registration ID
 app.get('/api/registration/:id', wrap(async (req, res) => {
   const reg = await repository.getRegistrationById(req.params.id);
@@ -779,13 +789,14 @@ app.patch('/api/admin/registrations/:id/status', requireAdmin, wrap(async (req, 
 }));
 
 app.post('/api/admin/sync-google-sheet', requireAdmin, wrap(async (_req, res) => {
+  const pullResult = await repository.syncRegistrationsFromGoogleSheet(true);
   const registrations = await repository.listRegistrations();
   const sorted = [...registrations].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
-  const result = await syncAllRegistrationsToGoogleSheet(sorted);
+  const pushResult = await syncAllRegistrationsToGoogleSheet(sorted);
   res.json({
     success: true,
-    count: result.syncedCount,
-    message: `Synchronized ${result.syncedCount} of ${sorted.length} registration record(s) to Google Sheets.`,
+    count: registrations.length,
+    message: `Synchronized with Google Sheets (${pullResult.synced} newly imported to Supabase, ${pushResult.syncedCount} confirmed in Sheet). Total: ${registrations.length} registrations.`,
   });
 }));
 

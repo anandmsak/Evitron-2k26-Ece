@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { supabaseAdmin, isSupabaseConfigured, uploadPaymentScreenshotToSupabase } from './supabase.js';
-import { formatIsoTimestamp } from './googleSheet.js';
+import { formatIsoTimestamp, fetchRegistrationsFromGoogleSheet } from './googleSheet.js';
 import {
   EventItem,
   Participant,
@@ -485,10 +485,17 @@ export function mapRegistration(row: DbRegistration, truncateProof = false): Reg
   const rawProofUrl = payment?.payment_proof_url || anyRow.payment_proof_url || row.payment_proof_url || undefined;
   const paymentProofUrl = rawProofUrl && rawProofUrl !== 'N/A' && rawProofUrl !== 'HAS_PROOF' ? String(rawProofUrl).trim() : undefined;
 
-  const rawEventsText = anyRow.registration_events || anyRow.registered_events || (eventNames.length > 0 ? eventNames.join(', ') : undefined);
+  const rawEventsText =
+    typeof anyRow.registered_events === 'string'
+      ? anyRow.registered_events
+      : typeof anyRow.registration_events === 'string'
+      ? anyRow.registration_events
+      : eventNames.length > 0
+      ? eventNames.join(', ')
+      : undefined;
 
   // If workshop and not yet resolved, assign based on rawEventsText
-  if (!regWorkshopId && rawEventsText) {
+  if (!regWorkshopId && rawEventsText && typeof rawEventsText === 'string') {
     const lowerEv = rawEventsText.toLowerCase();
     if (lowerEv.includes('silicon')) regWorkshopId = 'silicon 2 gds';
     else if (lowerEv.includes('embedded')) regWorkshopId = 'embedded system';
@@ -1011,11 +1018,223 @@ export function parseRegistrationTimestamp(val: unknown, regId?: string): number
   return Date.now();
 }
 
+/**
+ * Ingests a complete registration record into Supabase PostgreSQL tables
+ * (registrations, participants, registration_participants, payments, registration_events)
+ */
+export async function ingestRegistrationIntoSupabase(record: RegistrationRecord): Promise<boolean> {
+  const code = normalizeRegistrationCode(record.id);
+  localRegistrationsCache.set(code, record);
+  localRegistrationsCache.set(record.id, record);
+
+  if (!isSupabaseConfigured()) return true;
+
+  try {
+    // Check if registration already exists in Supabase
+    const { data: existing } = await supabaseAdmin
+      .from('registrations')
+      .select('id, payment_status, attendance_marked')
+      .eq('registration_code', code)
+      .maybeSingle();
+
+    const dbRegType = record.registrationType === 'workshop' ? 'individual' : 'team';
+    const dbStatus = record.paymentStatus === 'pending_verification' ? 'pending_verification' : record.paymentStatus;
+    const isAttended = Boolean(record.attendanceMarked);
+
+    if (existing?.id) {
+      // Sync any status/attendance updates if changed
+      const patch: Record<string, any> = {};
+      if (existing.payment_status !== dbStatus) patch.payment_status = dbStatus;
+      if (Boolean(existing.attendance_marked) !== isAttended) patch.attendance_marked = isAttended;
+      if (Object.keys(patch).length > 0) {
+        patch.updated_at = new Date().toISOString();
+        await supabaseAdmin.from('registrations').update(patch).eq('id', existing.id);
+      }
+      return true;
+    }
+
+    // Insert new registration
+    const { data: reg, error: regErr } = await supabaseAdmin
+      .from('registrations')
+      .insert({
+        registration_code: code,
+        registration_type: dbRegType,
+        total_amount: record.totalAmount,
+        payment_method: (record.paymentMethod || 'upi').toLowerCase(),
+        payment_status: dbStatus,
+        attendance_marked: isAttended,
+        created_at: new Date(record.createdAt).toISOString(),
+      })
+      .select('id')
+      .maybeSingle();
+
+    if (regErr || !reg?.id) {
+      console.warn('[INGEST SUPABASE ERROR] Registration insert:', regErr?.message);
+      return false;
+    }
+
+    const uuid = reg.id;
+    const parts = record.participants?.length > 0 ? record.participants : [record.teamLeader];
+
+    for (let idx = 0; idx < parts.length; idx++) {
+      const p = parts[idx];
+      if (!p || !p.fullName) continue;
+
+      const { data: pData } = await supabaseAdmin
+        .from('participants')
+        .insert({
+          full_name: p.fullName,
+          email: p.email || '',
+          phone: p.phone || '',
+          college: p.college || '',
+          department: p.department || null,
+          year_of_study: p.year || null,
+        })
+        .select('id')
+        .maybeSingle();
+
+      if (pData?.id) {
+        await supabaseAdmin.from('registration_participants').insert({
+          registration_id: uuid,
+          participant_id: pData.id,
+          role: idx === 0 ? 'team_leader' : 'member',
+        });
+      }
+    }
+
+    const proofUrl =
+      record.paymentProofUrl && record.paymentProofUrl !== 'N/A' && record.paymentProofUrl !== 'HAS_PROOF'
+        ? record.paymentProofUrl
+        : null;
+
+    await supabaseAdmin.from('payments').insert({
+      registration_id: uuid,
+      amount: record.totalAmount,
+      method: (record.paymentMethod || 'upi').toLowerCase(),
+      status: dbStatus,
+      upi_reference: record.upiReference || record.paymentId || null,
+      payment_proof_url: proofUrl,
+    });
+
+    const eventIds = [
+      ...(record.selectedWorkshopId ? [record.selectedWorkshopId] : []),
+      ...(record.selectedTechnicalIds || []),
+      ...(record.selectedNonTechnicalIds || []),
+    ];
+
+    if (eventIds.length === 0 && record.eventsText) {
+      const text = record.eventsText.toLowerCase();
+      if (text.includes('silicon')) eventIds.push('silicon 2 gds');
+      if (text.includes('embedded')) eventIds.push('embedded system');
+      if (text.includes('virtual')) eventIds.push('virtual instrument');
+      if (text.includes('techpaper') || text.includes('paper')) eventIds.push('techpaper');
+      if (text.includes('evolvex') || text.includes('project')) eventIds.push('evolvex');
+      if (text.includes('tractron') || text.includes('tracktron')) eventIds.push('tractron');
+      if (text.includes('mind') || text.includes('maze')) eventIds.push('mind maze');
+      if (text.includes('prompt')) eventIds.push('promptify');
+      if (text.includes('mem')) eventIds.push('memix');
+      if (text.includes('detective') || text.includes('404')) eventIds.push('detective 404');
+    }
+
+    for (const rawId of eventIds) {
+      if (!rawId) continue;
+      const resolved = await resolveEventInfo(rawId);
+      if (resolved?.id) {
+        const defaultPrice = resolved.category === 'workshop' ? 300 : 250;
+        await supabaseAdmin.from('registration_events').insert({
+          registration_id: uuid,
+          event_id: resolved.id,
+          price_at_registration: resolved.price || defaultPrice,
+        });
+      }
+    }
+
+    return true;
+  } catch (err: any) {
+    console.warn('[INGEST SUPABASE EXCEPTION]', err?.message || err);
+    return false;
+  }
+}
+
+let lastSheetSyncTime = 0;
+
+/**
+ * Automatically syncs registrations from Google Sheet into Supabase.
+ * Any registration in Google Sheet that is not yet in Supabase will be ingested.
+ */
+export async function syncRegistrationsFromGoogleSheet(
+  force = false
+): Promise<{ synced: number; total: number }> {
+  const now = Date.now();
+  if (!force && now - lastSheetSyncTime < 20000) {
+    return { synced: 0, total: 0 };
+  }
+  lastSheetSyncTime = now;
+
+  try {
+    const sheetRows = await fetchRegistrationsFromGoogleSheet();
+    if (!sheetRows || sheetRows.length === 0) return { synced: 0, total: 0 };
+
+    let existingCodes = new Set<string>();
+    if (isSupabaseConfigured()) {
+      const { data: existingRegs } = await supabaseAdmin
+        .from('registrations')
+        .select('registration_code');
+      existingCodes = new Set((existingRegs || []).map((r) => String(r.registration_code).trim().toUpperCase()));
+    }
+
+    let syncedCount = 0;
+    for (const row of sheetRows) {
+      if (!row || !row.id || !String(row.id).startsWith('EV26-')) continue;
+
+      const code = String(row.id).trim().toUpperCase();
+      // Skip if already in database
+      if (existingCodes.has(code)) {
+        continue;
+      }
+
+      const record: RegistrationRecord = {
+        id: code,
+        createdAt: row.createdAt || new Date().toISOString(),
+        registrationType: String(row.registrationType || '').toLowerCase().includes('workshop') ? 'workshop' : 'technical',
+        selectedWorkshopId: row.selectedWorkshopId,
+        selectedTechnicalIds: row.selectedTechnicalIds || [],
+        selectedNonTechnicalIds: row.selectedNonTechnicalIds || [],
+        eventsText: row.eventsText || '',
+        teamLeader: row.teamLeader || { fullName: 'Attendee', email: '', phone: '', college: '' },
+        participants: row.participants || [row.teamLeader || { fullName: 'Attendee', email: '', phone: '', college: '' }],
+        totalAmount: Number(row.totalAmount || (String(row.registrationType || '').toLowerCase().includes('workshop') ? 300 : 500)),
+        paymentMethod: (row.paymentMethod || 'upi').toLowerCase(),
+        paymentStatus: String(row.paymentStatus || '').toLowerCase() === 'paid' ? 'paid' : 'pending_verification',
+        paymentId: row.paymentId || row.upiReference,
+        upiReference: row.upiReference || row.paymentId,
+        driveScreenshotSubmitted: Boolean(row.paymentProofUrl && row.paymentProofUrl !== 'N/A'),
+        paymentProofUrl: row.paymentProofUrl && row.paymentProofUrl !== 'N/A' ? row.paymentProofUrl : undefined,
+        attendanceMarked: Boolean(row.attendanceMarked || String(row.attendance || '').toLowerCase() === 'present'),
+      };
+
+      const success = await ingestRegistrationIntoSupabase(record);
+      if (success) {
+        syncedCount++;
+        existingCodes.add(code);
+      }
+    }
+
+    return { synced: syncedCount, total: sheetRows.length };
+  } catch (err: any) {
+    console.warn('[SHEET SYNC EXCEPTION]', err?.message || err);
+    return { synced: 0, total: 0 };
+  }
+}
+
 export async function listRegistrations(filters?: {
   registrationType?: 'workshop' | 'technical';
   paymentStatus?: RegistrationRecord['paymentStatus'];
   search?: string;
 }): Promise<RegistrationRecord[]> {
+  // Trigger background sync with Google Sheet if interval passed
+  syncRegistrationsFromGoogleSheet(false).catch(() => {});
+
   let results: RegistrationRecord[] = [];
 
   if (isSupabaseConfigured()) {

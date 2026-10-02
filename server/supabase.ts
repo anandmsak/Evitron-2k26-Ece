@@ -43,7 +43,24 @@ const adminCustomFetch: typeof fetch = async (input: RequestInfo | URL, init: Re
   const urlStr = typeof input === 'string' ? input : input instanceof URL ? input.toString() : (input as Request).url;
   const method = (init.method || (typeof input === 'object' && 'method' in input ? (input as Request).method : 'GET')).toUpperCase();
 
-  // If this is a read query on registrations (select, filter, count)
+  const headers = new Headers(init.headers || (typeof input === 'object' && 'headers' in input ? (input as Request).headers : {}));
+  if (supabaseKey) {
+    headers.set('apikey', supabaseKey);
+    headers.set('Authorization', `Bearer ${supabaseKey}`);
+  }
+
+  // Try live Supabase PostgREST query first using master credentials
+  try {
+    const liveResponse = await fetch(input, { ...init, headers });
+    if (liveResponse.ok) {
+      return liveResponse;
+    }
+    console.warn(`[SUPABASE NOTICE] Live status ${liveResponse.status} for ${urlStr}`);
+  } catch (err: any) {
+    console.warn(`[SUPABASE NETWORK EXCEPTION] ${urlStr}:`, err?.message || err);
+  }
+
+  // If live query failed and this is a read query on registrations (select, filter, count), gracefully fallback to local CSV
   if ((method === 'GET' || method === 'HEAD') && urlStr.includes('/rest/v1/registrations')) {
     const postgrestResult = handleRegistrationsPostgrest(urlStr, method, init.headers);
     if (postgrestResult.handled) {
@@ -54,12 +71,6 @@ const adminCustomFetch: typeof fetch = async (input: RequestInfo | URL, init: Re
     }
   }
 
-  // Pass-through to live Supabase server for all other tables or mutations (insert, update, delete)
-  const headers = new Headers(init.headers || (typeof input === 'object' && 'headers' in input ? (input as Request).headers : {}));
-  if (supabaseKey) {
-    headers.set('apikey', supabaseKey);
-    headers.set('Authorization', `Bearer ${supabaseKey}`);
-  }
   return fetch(input, { ...init, headers });
 };
 

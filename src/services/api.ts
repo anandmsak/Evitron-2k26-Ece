@@ -306,6 +306,15 @@ async function createClientFallbackRegistration(payload: any): Promise<{
     console.warn('[CLIENT SHEET SYNC EXCEPTION]', sheetErr);
   }
 
+  // 3. Resiliently sync to backend / Supabase
+  try {
+    fetch(`${API_BASE}/api/sync-registration`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ registration: record }),
+    }).catch((e) => console.warn('[CLIENT DB SYNC NOTICE]', e));
+  } catch {}
+
   return {
     success: true,
     registrationId: regId,

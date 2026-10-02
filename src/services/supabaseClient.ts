@@ -30,18 +30,6 @@ const customFetch: typeof fetch = async (input: RequestInfo | URL, init: Request
 
   // In Node.js test environment
   if (typeof window === 'undefined') {
-    if ((method === 'GET' || method === 'HEAD') && urlStr.includes('/rest/v1/registrations')) {
-      try {
-        const mod = await import('../../server/liveDataset.js');
-        const res = mod.handleRegistrationsPostgrest(urlStr, method, init?.headers);
-        if (res.handled) {
-          return new Response(JSON.stringify(res.body), {
-            status: res.status,
-            headers: res.headers,
-          });
-        }
-      } catch {}
-    }
     const headers = new Headers(init?.headers || (typeof input === 'object' && 'headers' in input ? (input as Request).headers : {}));
     const key = (typeof process !== 'undefined' && process.env?.SUPABASE_SECRET_KEY) ? process.env.SUPABASE_SECRET_KEY : supabaseAnonKey;
     headers.set('apikey', key);

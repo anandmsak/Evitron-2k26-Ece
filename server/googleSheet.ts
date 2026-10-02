@@ -253,10 +253,36 @@ export async function syncAllRegistrationsToGoogleSheet(
 ): Promise<{ success: boolean; syncedCount: number; errorCount: number }> {
   let syncedCount = 0;
   let errorCount = 0;
-  const total = registrations.length;
 
-  for (let i = 0; i < registrations.length; i++) {
-    const r = registrations[i];
+  // Fetch existing rows from Google Sheet to avoid redundant network calls
+  let existingSheetMap = new Map<string, any>();
+  try {
+    const existing = await fetchRegistrationsFromGoogleSheet(customWebhookUrl);
+    for (const item of existing) {
+      if (item && item.id) {
+        existingSheetMap.set(String(item.id).trim().toUpperCase(), item);
+      }
+    }
+  } catch {}
+
+  const pending = registrations.filter((r) => {
+    const code = String(r.id).trim().toUpperCase();
+    const inSheet = existingSheetMap.get(code);
+    if (!inSheet) return true; // not in sheet -> must sync
+    // Check if status changed
+    const sheetStatus = String(inSheet.paymentStatus || '').toLowerCase();
+    const localStatus = String(r.paymentStatus || '').toLowerCase();
+    if (sheetStatus !== localStatus) return true;
+    return false;
+  });
+
+  const total = pending.length;
+  if (total === 0) {
+    return { success: true, syncedCount: registrations.length, errorCount: 0 };
+  }
+
+  for (let i = 0; i < pending.length; i++) {
+    const r = pending[i];
     const res = await syncRegistrationToGoogleSheet(r, undefined, customWebhookUrl);
     if (res.success) {
       syncedCount++;
@@ -266,10 +292,32 @@ export async function syncAllRegistrationsToGoogleSheet(
     if (onProgress) {
       onProgress(i + 1, total);
     }
-    if (i < registrations.length - 1) {
-      await new Promise((resolve) => setTimeout(resolve, 200));
+    if (i < pending.length - 1) {
+      await new Promise((resolve) => setTimeout(resolve, 150));
     }
   }
 
-  return { success: true, syncedCount, errorCount };
+  return { success: true, syncedCount: registrations.length, errorCount };
 }
+
+export async function fetchRegistrationsFromGoogleSheet(
+  customWebhookUrl?: string
+): Promise<any[]> {
+  const webhookUrl = getWebhookUrl(customWebhookUrl);
+  if (!webhookUrl) return [];
+
+  try {
+    const url = `${webhookUrl}?action=getRegistrations`;
+    const res = await fetch(url, { redirect: 'follow' });
+    if (res.ok) {
+      const data = await res.json();
+      if (Array.isArray(data)) {
+        return data;
+      }
+    }
+  } catch (err: any) {
+    console.warn('[GOOGLE SHEET PULL EXCEPTION]', err?.message || err);
+  }
+  return [];
+}
+
