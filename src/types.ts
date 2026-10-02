@@ -55,7 +55,7 @@ export interface RegistrationRecord {
   participants: Participant[]; // 1 for workshop, 2 to 4 for technical
   teamLeader: Participant;
   totalAmount: number;
-  paymentMethod: 'razorpay' | 'upi';
+  paymentMethod: 'upi';
   paymentStatus: 'paid' | 'pending_verification' | 'failed';
   paymentId?: string;
   upiReference?: string;
@@ -86,7 +86,6 @@ export interface SiteSettings {
   techUpiId?: string;
   techUpiPayeeName?: string;
   techUpiQrImageUrl?: string;
-  razorpayEnabled: boolean;
   driveUploadUrl: string;
   participantFormUrl?: string;
   contactEmail: string;
@@ -96,14 +95,6 @@ export interface SiteSettings {
   announcementActive: boolean;
   feePerPerson: number;
   appEnv: 'development' | 'production';
-  showRazorpayPayment?: boolean;
-  razorpayKeyId?: string;
-  razorpayConnected?: boolean;
-  razorpayLiveConnected?: boolean;
-  razorpayTestConnected?: boolean;
-  razorpayStatus?: 'CONNECTED' | 'NOT CONNECTED';
-  razorpayStatusDetails?: string;
-  razorpayKeyMode?: 'LIVE' | 'TEST' | 'NONE';
   googleSheetWebhookUrl?: string;
   adminNotificationEmails?: string[];
   forceEarlyBird?: boolean;

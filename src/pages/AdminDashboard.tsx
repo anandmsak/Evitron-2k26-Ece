@@ -500,50 +500,39 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       events: [] as Array<{ code: string; name: string; specificTitle: string; fullDisplay: string; category: 'workshop' | 'technical' | 'non-technical'; badgeIcon: string }>,
     };
 
-    if (isWorkshop) {
-      const rawWs = r.selectedWorkshopId || r.eventsText || 'Embedded System';
-      result.events.push(resolveEventMeta(rawWs, 'workshop'));
-      return result;
-    }
-
-    // Technical Track: Resolve specific technical and non-technical events
     const seenCodes = new Set<string>();
 
-    const techIds = (r.selectedTechnicalIds || []).filter(Boolean);
-    const nonTechIds = (r.selectedNonTechnicalIds || []).filter(Boolean);
-
-    techIds.forEach((id) => {
-      const meta = resolveEventMeta(id, 'technical');
-      const key = meta.code.toLowerCase();
-      if (!seenCodes.has(key)) {
-        seenCodes.add(key);
+    const addEventMeta = (keyOrName: string, categoryFallback?: 'workshop' | 'technical' | 'non-technical') => {
+      if (!keyOrName) return;
+      const meta = resolveEventMeta(keyOrName, categoryFallback);
+      const codeKey = meta.code.toLowerCase();
+      if (!seenCodes.has(codeKey)) {
+        seenCodes.add(codeKey);
         result.events.push(meta);
       }
-    });
+    };
 
-    nonTechIds.forEach((id) => {
-      const meta = resolveEventMeta(id, 'non-technical');
-      const key = meta.code.toLowerCase();
-      if (!seenCodes.has(key)) {
-        seenCodes.add(key);
-        result.events.push(meta);
-      }
-    });
-
-    if (r.eventsText) {
-      const parts = r.eventsText.split(',').map((s) => s.trim()).filter(Boolean);
-      parts.forEach((p) => {
-        const meta = resolveEventMeta(p);
-        const key = meta.code.toLowerCase();
-        if (!seenCodes.has(key)) {
-          seenCodes.add(key);
-          result.events.push(meta);
-        }
-      });
+    // Parse events from eventsText or registrationEvents or registeredEvents
+    const anyReg = r as any;
+    const combinedEventText = anyReg.registration_events || anyReg.registered_events || anyReg.eventsText || r.eventsText || '';
+    if (combinedEventText) {
+      const parts = combinedEventText.split(',').map((s: string) => s.trim()).filter(Boolean);
+      parts.forEach((p: string) => addEventMeta(p));
     }
 
+    if (r.selectedWorkshopId) {
+      addEventMeta(r.selectedWorkshopId, 'workshop');
+    }
+
+    (r.selectedTechnicalIds || []).filter(Boolean).forEach((id) => addEventMeta(id, 'technical'));
+    (r.selectedNonTechnicalIds || []).filter(Boolean).forEach((id) => addEventMeta(id, 'non-technical'));
+
     if (result.events.length === 0) {
-      result.events.push(resolveEventMeta('techpaper', 'technical'));
+      if (isWorkshop) {
+        addEventMeta('embedded system', 'workshop');
+      } else {
+        addEventMeta('techpaper', 'technical');
+      }
     }
 
     return result;
@@ -864,19 +853,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     reader.readAsDataURL(file);
   };
 
-  // Toggle Razorpay visibility on the Registration page
-  const handleToggleRazorpayVisibility = async () => {
-    if (!token) return;
-    const newValue = !(settingsForm.razorpayEnabled !== false);
-    try {
-      const updated = await updateSiteSettings(token, { razorpayEnabled: newValue });
-      setSettingsForm(updated);
-      onRefreshSettings();
-      showNotification(`Razorpay payment option is now ${newValue ? 'VISIBLE' : 'HIDDEN'} on the registration page.`, 'success');
-    } catch (err: any) {
-      showNotification(err.message || 'Failed to update Razorpay visibility.', 'error');
-    }
-  };
+
 
   // Switch Development / Production environment
   const handleToggleEnvironment = (newEnv: 'development' | 'production') => {
@@ -1340,10 +1317,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       </span>
                       <div className="flex items-center gap-3">
                         <span className="font-mono font-bold text-stone-900 bg-stone-100 px-2.5 py-1 rounded text-[10px] border border-stone-200 shadow-2xs">
-                          {evt.category === 'workshops'
-                            ? `${participantCount} Participant${participantCount !== 1 ? 's' : ''}`
-                            : `${teamCount} Team${teamCount !== 1 ? 's' : ''} (${participantCount} Individual${participantCount !== 1 ? 's' : ''})`
-                          }
+                          {`${teamCount} Team${teamCount !== 1 ? 's' : ''} (${participantCount} Participant${participantCount !== 1 ? 's' : ''})`}
                         </span>
                         <span className="text-stone-400 font-bold text-[10px]">
                           {isExpanded ? '▲ COLLAPSE' : '▼ VIEW ROSTER'}
@@ -1736,66 +1710,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 <div className="text-[11px] text-rose-900 font-semibold bg-rose-100/70 p-2 rounded border border-rose-200">
                   Security guarantee: Any test key or missing credential immediately halts payment.
                 </div>
-              </div>
-            </div>
-
-            {/* Gateway Diagnostic Health Card */}
-            <div className="p-4 bg-stone-50 rounded-xl border border-stone-200 text-xs space-y-2">
-              <div className="flex items-center justify-between border-b border-stone-200 pb-2">
-                <span className="font-bold text-stone-700">Razorpay API Gateway Connection:</span>
-                {(settingsForm.appEnv === 'development' ? settingsForm.razorpayConnected : settingsForm.razorpayLiveConnected) ? (
-                  <span className="font-bold text-emerald-800 bg-emerald-100 border border-emerald-200 px-2 py-0.5 rounded flex items-center gap-1">
-                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                    CONNECTED ({settingsForm.razorpayKeyMode || 'AUTHENTICATED'})
-                  </span>
-                ) : (
-                  <span className="font-bold text-amber-800 bg-amber-100 border border-amber-300 px-2 py-0.5 rounded flex items-center gap-1">
-                    <AlertCircle className="w-3.5 h-3.5 text-amber-600" />
-                    NOT CONNECTED
-                  </span>
-                )}
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px] text-stone-600 pt-1">
-                <div>
-                  <span className="font-semibold text-stone-800">Target Environment:</span>{' '}
-                  <span className="font-mono uppercase">{settingsForm.appEnv || 'development'}</span>
-                </div>
-                <div>
-                  <span className="font-semibold text-stone-800">Key Mode:</span>{' '}
-                  <span className="font-mono">{settingsForm.razorpayKeyMode || 'NONE'}</span>
-                </div>
-              </div>
-
-              <div className="text-[11px] text-stone-600 pt-1 border-t border-stone-200">
-                <span className="font-semibold text-stone-800 block mb-0.5">Diagnostic Details:</span>
-                <p className="text-stone-700 bg-white p-2.5 rounded border border-stone-200 leading-relaxed font-mono text-[10px]">
-                  {settingsForm.razorpayStatusDetails || 'Checking gateway status...'}
-                </p>
-              </div>
-
-              <div className="pt-2 text-[11px] text-stone-500 leading-relaxed">
-                To update credentials, set <code>RAZORPAY_KEY_ID</code> and <code>RAZORPAY_KEY_SECRET</code> in the project settings or environment variables.
-              </div>
-
-              <div className="mt-4 pt-4 border-t border-stone-200 flex items-center justify-between gap-3 flex-wrap">
-                <div>
-                  <span className="text-xs font-bold text-stone-800 block">Razorpay Visibility on Registration Page</span>
-                  <p className="text-[11px] text-stone-500">
-                    Hide Razorpay entirely and show only the UPI QR option to registrants.
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={handleToggleRazorpayVisibility}
-                  className={`shrink-0 px-4 py-2 text-xs font-bold rounded-lg cursor-pointer transition-colors ${
-                    settingsForm.razorpayEnabled !== false
-                      ? 'bg-emerald-100 text-emerald-800 border border-emerald-300 hover:bg-emerald-200'
-                      : 'bg-rose-100 text-rose-800 border border-rose-300 hover:bg-rose-200'
-                  }`}
-                >
-                  {settingsForm.razorpayEnabled !== false ? 'Visible — Click to Hide' : 'Hidden — Click to Unhide'}
-                </button>
               </div>
             </div>
           </div>

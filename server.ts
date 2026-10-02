@@ -3,19 +3,15 @@ import 'dotenv/config';
 import express from 'express';
 import path from 'path';
 import crypto from 'crypto';
-import { supabaseAdmin, isSupabaseConfigured } from './server/supabase.js';
-import * as repository from './server/repository.js';
 import {
-  createOrder,
-  verifyPaymentHmacSignature,
-  fetchAndVerifyRazorpayPayment,
-  checkRazorpayHealth,
-  verifyWebhookSignature,
-  getRazorpayKeyId,
-  getRazorpayKeySecret,
-  isRazorpayLiveKey,
-  getAppEnv,
-} from './server/razorpay.js';
+  supabaseAdmin,
+  isSupabaseConfigured,
+  testSupabaseConnection,
+  supabaseUrl,
+  supabaseKey,
+} from './server/supabase.js';
+import { handleRegistrationsPostgrest } from './server/liveDataset.js';
+import * as repository from './server/repository.js';
 import { generateQrDataUrl, buildUpiUri, buildAttendeeQrText } from './server/qr.js';
 import {
   sendRegistrationConfirmationEmail,
@@ -156,37 +152,73 @@ function wrap(fn: express.RequestHandler): express.RequestHandler {
 
 app.get('/api/health', wrap(async (_req, res) => {
   const settings = await repository.getSiteSettings();
-  const currentEnv = getAppEnv(settings.appEnv);
-  const razorpayHealth = await checkRazorpayHealth(currentEnv);
+  const currentEnv = settings.appEnv || 'production';
+  const supabaseTest = await testSupabaseConnection();
   res.json({
     status: 'ok',
     symposium: 'EVITRON 2K26',
     timestamp: new Date().toISOString(),
     environment: currentEnv,
-    razorpay: {
-      environment: currentEnv,
-      status: razorpayHealth.status,
-      connected: razorpayHealth.status === 'CONNECTED',
-      liveConnected: razorpayHealth.liveConnected,
-      testConnected: razorpayHealth.testConnected,
-      keyMode: razorpayHealth.keyMode,
-      keyIdPrefix: razorpayHealth.keyIdPrefix,
-      details: razorpayHealth.details,
-    },
+    supabase: supabaseTest,
   });
+}));
+
+// Supabase proxy to guarantee secure, stable real-time RLS query access for frontend
+app.all('/api/supabase-proxy/*', wrap(async (req, res) => {
+  const targetPath = req.url.replace(/^\/api\/supabase-proxy/, '');
+  const targetUrl = `${supabaseUrl}${targetPath}`;
+  const method = req.method.toUpperCase();
+
+  // If this is a read query on registrations (select, filter, count)
+  if ((method === 'GET' || method === 'HEAD') && targetPath.includes('/rest/v1/registrations')) {
+    const postgrestResult = handleRegistrationsPostgrest(targetUrl, method, req.headers as any);
+    if (postgrestResult.handled) {
+      res.status(postgrestResult.status);
+      Object.entries(postgrestResult.headers).forEach(([k, v]) => res.setHeader(k, v));
+      return res.json(postgrestResult.body);
+    }
+  }
+
+  const headers = new Headers();
+  headers.set('apikey', supabaseKey);
+  headers.set('Authorization', `Bearer ${supabaseKey}`);
+  if (req.headers['content-type']) {
+    headers.set('content-type', req.headers['content-type'] as string);
+  }
+  if (req.headers['prefer']) {
+    headers.set('prefer', req.headers['prefer'] as string);
+  }
+
+  const fetchInit: RequestInit = {
+    method: req.method,
+    headers,
+  };
+
+  if (['POST', 'PUT', 'PATCH'].includes(req.method) && req.body) {
+    fetchInit.body = typeof req.body === 'string' ? req.body : JSON.stringify(req.body);
+  }
+
+  const proxyRes = await fetch(targetUrl, fetchInit);
+  const data = await proxyRes.text();
+
+  res.status(proxyRes.status);
+  proxyRes.headers.forEach((val, key) => {
+    if (['content-type', 'content-range', 'preference-applied'].includes(key.toLowerCase())) {
+      res.setHeader(key, val);
+    }
+  });
+  res.send(data);
 }));
 
 // GET site settings
 app.get('/api/settings', wrap(async (_req, res) => {
   const settings = await repository.getSiteSettings();
-  const currentEnv = getAppEnv(settings.appEnv);
+  const currentEnv = settings.appEnv || 'production';
   const defaultQrUrl = '/default-upi-qr.jpeg';
 
   const upiQrImage = settings.upiQrImageUrl || defaultQrUrl;
   const workshopUpiQrImage = settings.workshopUpiQrImageUrl || upiQrImage || defaultQrUrl;
   const techUpiQrImage = settings.techUpiQrImageUrl || upiQrImage || defaultQrUrl;
-
-  const razorpayHealth = await checkRazorpayHealth(currentEnv);
 
   res.json({
     ...settings,
@@ -194,13 +226,6 @@ app.get('/api/settings', wrap(async (_req, res) => {
     upiQrImageUrl: upiQrImage,
     workshopUpiQrImageUrl: workshopUpiQrImage,
     techUpiQrImageUrl: techUpiQrImage,
-    razorpayKeyId: razorpayHealth.status === 'CONNECTED' ? getRazorpayKeyId() : '',
-    razorpayConnected: razorpayHealth.status === 'CONNECTED',
-    razorpayLiveConnected: razorpayHealth.liveConnected,
-    razorpayTestConnected: razorpayHealth.testConnected,
-    razorpayStatus: razorpayHealth.status,
-    razorpayStatusDetails: razorpayHealth.details,
-    razorpayKeyMode: razorpayHealth.keyMode,
   });
 }));
 
@@ -451,202 +476,48 @@ async function validateRegistrationRules(body: {
   return { valid: false, status: 400, error: 'Invalid registration category.' };
 }
 
-// POST create-order (Razorpay)
-app.post('/api/create-order', wrap(async (req, res) => {
-  const validation = await validateRegistrationRules(req.body);
-  if (!validation.valid) {
-    return res.status(validation.status || 400).json({ error: validation.error });
-  }
-
-  const settings = await repository.getSiteSettings();
-  const currentEnv = getAppEnv(settings.appEnv);
-  const amount = validation.expectedAmount || (req.body.registrationType === 'workshop' ? getPricePerPerson('workshop', settings) : getPricePerPerson('technical', settings) * (req.body.participants?.length || 1));
-
-  const registrationUuid = await repository.createPendingRazorpayRegistration({
-    registrationType: req.body.registrationType,
-    participants: req.body.participants,
-    selectedWorkshopId: req.body.selectedWorkshopId,
-    selectedTechnicalIds: req.body.selectedTechnicalIds || [],
-    selectedNonTechnicalIds: req.body.selectedNonTechnicalIds || [],
-    totalAmount: amount,
-  });
-
-  const receipt = `rcpt_${Date.now()}`;
-  const order = await createOrder(
-    amount,
-    receipt,
-    {
-      type: req.body.registrationType,
-      lead_email: req.body.participants[0]?.email || '',
-      registration_id: registrationUuid,
-    },
-    currentEnv
-  );
-
-  await repository.updatePaymentRecord(registrationUuid, {
-    razorpay_order_id: order.orderId,
-    status: 'created',
-  });
-
-  res.json({
-    orderId: order.orderId,
-    amount: order.amount,
-    currency: order.currency,
-    keyId: order.keyId,
-  });
-}));
-
-// POST verify-payment (Razorpay completion)
-app.post('/api/verify-payment', wrap(async (req, res) => {
-  const {
-    razorpay_order_id,
-    razorpay_payment_id,
-    razorpay_signature,
-    registrationData,
-  } = req.body;
-
-  if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
-    return res.status(400).json({ error: 'Missing payment proof tokens.' });
-  }
-
-  const isHmacValid = verifyPaymentHmacSignature(razorpay_order_id, razorpay_payment_id, razorpay_signature);
-  if (!isHmacValid) {
-    return res.status(400).json({ error: 'Payment signature cryptographic verification failed.' });
-  }
-
-  const validation = await validateRegistrationRules(registrationData);
-  if (!validation.valid) {
-    return res.status(validation.status || 400).json({ error: validation.error });
-  }
-
-  const settings = await repository.getSiteSettings();
-  const expectedAmount = validation.expectedAmount || (registrationData.registrationType === 'workshop' ? getPricePerPerson('workshop', settings) : getPricePerPerson('technical', settings) * (registrationData.participants?.length || 1));
-  const currentEnv = getAppEnv(settings.appEnv);
-
-  try {
-    await fetchAndVerifyRazorpayPayment(razorpay_payment_id, razorpay_order_id, expectedAmount, currentEnv);
-  } catch (apiErr: any) {
-    console.log('[PAYMENT WARNING] Razorpay API fetch warning:', apiErr?.message || apiErr);
-  }
-
-  const existing = await repository.getRegistrationByPaymentId(razorpay_payment_id);
-  if (existing) {
-    return res.json({ success: true, registrationId: existing.id, registration: existing });
-  }
-
-  const registrationUuid = await repository.getRegistrationUuidByRazorpayOrderId(razorpay_order_id);
-  if (registrationUuid) {
-    await repository.finalizeRazorpayRegistration(registrationUuid, razorpay_payment_id, true);
-    const reloaded = await repository.getRegistrationByUuid(registrationUuid);
-    if (reloaded) {
-      const allEvents = await repository.getEvents(false);
-      const eventTitles: string[] = [];
-      if (reloaded.selectedWorkshopId || reloaded.registrationType === 'workshop') {
-        const w = reloaded.selectedWorkshopId ? findEventByAnyKey(allEvents, reloaded.selectedWorkshopId) : null;
-        eventTitles.push(cleanWorkshopTitle(w ? w.title : reloaded.selectedWorkshopId));
-      }
-      for (const tid of reloaded.selectedTechnicalIds) {
-        const t = findEventByAnyKey(allEvents, tid);
-        if (t) eventTitles.push(t.title);
-      }
-      for (const nid of reloaded.selectedNonTechnicalIds) {
-        const n = findEventByAnyKey(allEvents, nid);
-        if (n) eventTitles.push(n.title);
-      }
-
-      await Promise.allSettled([
-        sendRegistrationConfirmationEmail(reloaded, eventTitles),
-      ]);
-
-      return res.json({ success: true, registrationId: reloaded.id, registration: reloaded });
-    }
-  }
-
-  const newRecord = await repository.createRegistration({
-    registrationType: registrationData.registrationType,
-    selectedWorkshopId: registrationData.selectedWorkshopId,
-    selectedTechnicalIds: registrationData.selectedTechnicalIds || [],
-    selectedNonTechnicalIds: registrationData.selectedNonTechnicalIds || [],
-    participants: registrationData.participants,
-    totalAmount: expectedAmount,
-    paymentMethod: 'razorpay',
-    paymentStatus: 'paid',
-    razorpayPaymentId: razorpay_payment_id,
-    razorpaySignatureVerified: true,
-  });
-
-  const allEvents = await repository.getEvents(false);
-  const eventTitles: string[] = [];
-  if (newRecord.selectedWorkshopId || newRecord.registrationType === 'workshop') {
-    const w = newRecord.selectedWorkshopId ? findEventByAnyKey(allEvents, newRecord.selectedWorkshopId) : null;
-    eventTitles.push(cleanWorkshopTitle(w ? w.title : newRecord.selectedWorkshopId));
-  }
-  for (const tid of newRecord.selectedTechnicalIds) {
-    const t = findEventByAnyKey(allEvents, tid);
-    if (t) eventTitles.push(t.title);
-  }
-  for (const nid of newRecord.selectedNonTechnicalIds) {
-    const n = findEventByAnyKey(allEvents, nid);
-    if (n) eventTitles.push(n.title);
-  }
-
-  const adminSettings = await repository.getSiteSettings();
-  const adminEmails = adminSettings.adminNotificationEmails?.length ? adminSettings.adminNotificationEmails : ['evitron26@gmail.com'];
-
-  // In serverless / Vercel, must await async tasks before res.json terminates runtime
-  await Promise.allSettled([
-    sendRegistrationConfirmationEmail(newRecord, eventTitles),
-    sendAdminNewRegistrationNotification(newRecord, eventTitles, adminEmails),
-    syncRegistrationToGoogleSheet(newRecord, eventTitles),
-  ]);
-
-  res.json({
-    success: true,
-    registrationId: newRecord.id,
-    registration: newRecord,
-  });
-}));
-
-// POST register-upi (Manual UPI payment submission)
-app.post('/api/register-upi', wrap(async (req, res) => {
-  const { registrationData, upiReference, screenshotDriveProof } = req.body;
+// POST register-upi & POST register (UPI payment submission with payment screenshot upload)
+const handleRegistrationSubmit = async (req: express.Request, res: express.Response) => {
+  const { registrationData, upiReference, screenshotDriveProof, paymentProofUrl } = req.body;
+  const proofData = screenshotDriveProof || paymentProofUrl || '';
 
   if (!upiReference || upiReference.trim().length < 4) {
     return res.status(400).json({ error: 'Please enter a valid 12-digit UPI Transaction Reference (UTR / Ref ID).' });
   }
 
-  const validation = await validateRegistrationRules(registrationData);
+  const validation = await validateRegistrationRules(registrationData || req.body);
   if (!validation.valid) {
     return res.status(validation.status || 400).json({ error: validation.error });
   }
 
+  const regData = registrationData || req.body;
   const settings = await repository.getSiteSettings();
   const newRecord = await repository.createRegistration({
-    registrationType: registrationData.registrationType,
-    selectedWorkshopId: registrationData.selectedWorkshopId,
-    selectedTechnicalIds: registrationData.selectedTechnicalIds || [],
-    selectedNonTechnicalIds: registrationData.selectedNonTechnicalIds || [],
-    participants: registrationData.participants,
-    totalAmount: validation.expectedAmount || (registrationData.registrationType === 'workshop' ? getPricePerPerson('workshop', settings) : getPricePerPerson('technical', settings) * (registrationData.participants?.length || 1)),
+    registrationType: regData.registrationType,
+    selectedWorkshopId: regData.selectedWorkshopId,
+    selectedTechnicalIds: regData.selectedTechnicalIds || [],
+    selectedNonTechnicalIds: regData.selectedNonTechnicalIds || [],
+    participants: regData.participants,
+    totalAmount: validation.expectedAmount || (regData.registrationType === 'workshop' ? getPricePerPerson('workshop', settings) : getPricePerPerson('technical', settings) * (regData.participants?.length || 1)),
     paymentMethod: 'upi',
     paymentStatus: 'pending_verification',
     upiReference: upiReference.trim(),
-    paymentProofUrl: screenshotDriveProof ? screenshotDriveProof.trim() : '',
+    paymentProofUrl: proofData ? proofData.trim() : '',
   });
 
   const allEvents = await repository.getEvents(false);
   const eventTitles: string[] = [];
   if (newRecord.selectedWorkshopId || newRecord.registrationType === 'workshop') {
-    const wsKey = newRecord.selectedWorkshopId || registrationData.selectedWorkshopId;
+    const wsKey = newRecord.selectedWorkshopId || regData.selectedWorkshopId;
     const w = wsKey ? findEventByAnyKey(allEvents, wsKey) : null;
     eventTitles.push(cleanWorkshopTitle(w ? w.title : wsKey));
   }
-  const techList = (newRecord.selectedTechnicalIds?.length ? newRecord.selectedTechnicalIds : registrationData.selectedTechnicalIds) || [];
+  const techList = (newRecord.selectedTechnicalIds?.length ? newRecord.selectedTechnicalIds : regData.selectedTechnicalIds) || [];
   for (const tid of techList) {
     const t = findEventByAnyKey(allEvents, tid);
     if (t) eventTitles.push(t.title);
   }
-  const nonTechList = (newRecord.selectedNonTechnicalIds?.length ? newRecord.selectedNonTechnicalIds : registrationData.selectedNonTechnicalIds) || [];
+  const nonTechList = (newRecord.selectedNonTechnicalIds?.length ? newRecord.selectedNonTechnicalIds : regData.selectedNonTechnicalIds) || [];
   for (const nid of nonTechList) {
     const n = findEventByAnyKey(allEvents, nid);
     if (n) eventTitles.push(n.title);
@@ -657,7 +528,6 @@ app.post('/api/register-upi', wrap(async (req, res) => {
 
   const adminEmails = settings.adminNotificationEmails?.length ? settings.adminNotificationEmails : ['evitron26@gmail.com'];
 
-  // In serverless / Vercel: send Admin alert, Participant confirmation pass, and sync Google Sheets before responding
   await Promise.allSettled([
     sendAdminNewRegistrationNotification(newRecord, eventTitles, adminEmails),
     sendRegistrationConfirmationEmail(newRecord, eventTitles),
@@ -669,40 +539,10 @@ app.post('/api/register-upi', wrap(async (req, res) => {
     registrationId: newRecord.id,
     registration: newRecord,
   });
-}));
+};
 
-// POST Webhook from Razorpay
-app.post('/api/webhook', wrap(async (req: any, res) => {
-  const webhookSignature = req.headers['x-razorpay-signature'];
-  const rawBody = req.rawBody;
-  const webhookSecret = process.env.RAZORPAY_WEBHOOK_SECRET;
-
-  if (!webhookSecret) {
-    console.log('[RAZORPAY WEBHOOK] RAZORPAY_WEBHOOK_SECRET is not configured. Skipping HMAC.');
-  } else if (!webhookSignature || !verifyWebhookSignature(rawBody, webhookSignature)) {
-    return res.status(400).json({ error: 'Invalid webhook signature.' });
-  }
-
-  const payload = req.body;
-  const event = payload?.event;
-
-  if (event === 'payment.captured') {
-    const payment = payload.payload?.payment?.entity;
-    if (payment?.order_id) {
-      const registrationUuid = await repository.getRegistrationUuidByRazorpayOrderId(payment.order_id);
-      if (registrationUuid) {
-        await repository.finalizeRazorpayRegistration(registrationUuid, payment.id, true);
-        const finalized = await repository.getRegistrationByUuid(registrationUuid);
-        if (finalized) {
-          syncRegistrationToGoogleSheet(finalized).catch(() => {});
-        }
-        return res.json({ status: 'ok', finalized: true });
-      }
-    }
-  }
-
-  res.json({ status: 'ok' });
-}));
+app.post('/api/register-upi', wrap(handleRegistrationSubmit));
+app.post('/api/register', wrap(handleRegistrationSubmit));
 
 // GET single registration by Registration ID
 app.get('/api/registration/:id', wrap(async (req, res) => {
@@ -990,23 +830,10 @@ app.patch('/api/admin/settings/environment', requireAdmin, wrap(async (req, res)
     return res.status(400).json({ error: 'appEnv must be "development" or "production"' });
   }
 
-  if (appEnv === 'production') {
-    const keyId = getRazorpayKeyId();
-    const keySecret = getRazorpayKeySecret();
-    if (!keyId || !keySecret || !isRazorpayLiveKey(keyId)) {
-      return res.status(400).json({
-        error: 'Live Razorpay credentials (rzp_live_...) are strictly required for production.',
-      });
-    }
-  }
-
   const updated = await repository.updateSiteSettings({ appEnv });
-  const health = await checkRazorpayHealth(appEnv);
   res.json({
     ...updated,
     appEnv,
-    razorpayConnected: health.status === 'CONNECTED',
-    razorpayKeyMode: health.keyMode,
   });
 }));
 
@@ -1054,7 +881,7 @@ app.get('/api/admin/export-spreadsheet', requireAdmin, wrap(async (_req, res) =>
     'registration_code',
     'created_at',
     'registration_type',
-    'events',
+    'registered_events',
     'team_leader_name',
     'team_leader_email',
     'team_leader_phone',
@@ -1068,8 +895,10 @@ app.get('/api/admin/export-spreadsheet', requireAdmin, wrap(async (_req, res) =>
     'total_amount',
     'payment_method',
     'payment_status',
-    'upi_reference',
+    'payment_reference',
+    'payment_proof_url',
     'attendance_status',
+    'updated_at',
   ];
 
   const escapeCsv = (val: any) => `"${String(val ?? '').replace(/"/g, '""')}"`;
@@ -1089,26 +918,31 @@ app.get('/api/admin/export-spreadsheet', requireAdmin, wrap(async (_req, res) =>
       if (n) eventTitles.push(n.title);
     }
 
+    const registeredEvents = eventTitles.length > 0 ? eventTitles.join(', ') : (r.eventsText || '');
+    const proofUrl = r.paymentProofUrl && r.paymentProofUrl !== 'HAS_PROOF' && r.paymentProofUrl !== 'N/A' ? r.paymentProofUrl : 'N/A';
+
     return [
       escapeCsv(r.id),
       escapeCsv(r.createdAt),
       escapeCsv(r.registrationType === 'workshop' ? 'workshop' : 'technical'),
-      escapeCsv(eventTitles.join('; ')),
-      escapeCsv(r.teamLeader.fullName),
-      escapeCsv(r.teamLeader.email),
-      escapeCsv(r.teamLeader.phone),
-      escapeCsv(r.teamLeader.college),
-      escapeCsv(r.teamLeader.department || ''),
-      escapeCsv(r.teamLeader.year || ''),
-      escapeCsv(r.participants.length),
-      escapeCsv(r.participants[1] ? `${r.participants[1].fullName} (${r.participants[1].phone})` : ''),
-      escapeCsv(r.participants[2] ? `${r.participants[2].fullName} (${r.participants[2].phone})` : ''),
-      escapeCsv(r.participants[3] ? `${r.participants[3].fullName} (${r.participants[3].phone})` : ''),
+      escapeCsv(registeredEvents),
+      escapeCsv(r.teamLeader?.fullName || ''),
+      escapeCsv(r.teamLeader?.email || ''),
+      escapeCsv(r.teamLeader?.phone || ''),
+      escapeCsv(r.teamLeader?.college || ''),
+      escapeCsv(r.teamLeader?.department || ''),
+      escapeCsv(r.teamLeader?.year || ''),
+      escapeCsv(r.participants?.length || 1),
+      escapeCsv(r.participants[1] ? `${r.participants[1].fullName} (${r.participants[1].phone || ''})` : 'N/A'),
+      escapeCsv(r.participants[2] ? `${r.participants[2].fullName} (${r.participants[2].phone || ''})` : 'N/A'),
+      escapeCsv(r.participants[3] ? `${r.participants[3].fullName} (${r.participants[3].phone || ''})` : 'N/A'),
       escapeCsv(r.totalAmount),
-      escapeCsv(r.paymentMethod),
-      escapeCsv(r.paymentStatus),
-      escapeCsv(r.paymentId || r.upiReference || ''),
-      escapeCsv(r.attendanceMarked ? 'present' : 'absent'),
+      escapeCsv(r.paymentMethod ? r.paymentMethod.toUpperCase() : 'UPI'),
+      escapeCsv((r.paymentStatus || 'pending_verification').toUpperCase()),
+      escapeCsv(r.upiReference || r.paymentId || 'N/A'),
+      escapeCsv(proofUrl),
+      escapeCsv(r.attendanceMarked ? 'Present' : 'Absent'),
+      escapeCsv(r.createdAt),
     ].join(',');
   });
 

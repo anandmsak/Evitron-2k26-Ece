@@ -147,7 +147,7 @@ function saveLocalEvents(events: EventItem[]): void {
 // PUBLIC API ENDPOINTS
 // ----------------------------------------------------
 
-export async function fetchSiteSettings(): Promise<SiteSettings & { razorpayKeyId?: string }> {
+export async function fetchSiteSettings(): Promise<SiteSettings> {
   try {
     const res = await fetch(`${API_BASE}/api/settings`);
     const parsed = await parseJsonSafely(res);
@@ -192,43 +192,6 @@ export async function fetchEventBySlug(slug: string): Promise<EventItem> {
   const event = localEvents.find((e) => e.slug === slug);
   if (!event) throw new Error('Event not found');
   return event;
-}
-
-export async function createOrder(payload: any): Promise<{
-  orderId: string;
-  amount: number;
-  currency: string;
-  keyId: string;
-}> {
-  const res = await fetch(`${API_BASE}/api/create-order`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
-  });
-
-  const parsed = await parseJsonSafely(res);
-  if (res.ok && parsed.isJson) {
-    return parsed.data;
-  }
-  throw new Error(parsed.data?.error || 'Failed to initialize payment gateway order');
-}
-
-export async function verifyPayment(payload: any): Promise<{
-  success: boolean;
-  registrationId: string;
-  registration: RegistrationRecord;
-}> {
-  const res = await fetch(`${API_BASE}/api/verify-payment`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
-  });
-
-  const parsed = await parseJsonSafely(res);
-  if (res.ok && parsed.isJson) {
-    return parsed.data;
-  }
-  throw new Error(parsed.data?.error || 'Payment verification failed');
 }
 
 export async function submitUpiRegistration(payload: any): Promise<{
@@ -566,11 +529,6 @@ export async function updateEnvironment(
   newEnv: 'development' | 'production'
 ): Promise<SiteSettings> {
   if (token.startsWith('evitron_local_')) {
-    if (newEnv === 'production') {
-      throw new Error(
-        'Cannot switch to PRODUCTION in offline/local mode — a live backend is required to verify Razorpay credentials.'
-      );
-    }
     const current = getLocalSettings();
     const updated = { ...current, appEnv: newEnv };
     saveLocalSettings(updated);

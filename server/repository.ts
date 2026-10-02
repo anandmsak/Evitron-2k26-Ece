@@ -1,6 +1,7 @@
 import fs from 'fs';
 import path from 'path';
-import { supabaseAdmin, isSupabaseConfigured } from './supabase.js';
+import { supabaseAdmin, isSupabaseConfigured, uploadPaymentScreenshotToSupabase } from './supabase.js';
+import { formatIsoTimestamp } from './googleSheet.js';
 import {
   EventItem,
   Participant,
@@ -20,8 +21,7 @@ const SETTINGS_FILE_PATH = path.resolve(process.cwd(), 'data', 'site_settings.js
 const SYMPOSIUM_DB_PATH = path.resolve(process.cwd(), 'data', 'symposium_db.json');
 
 const RUNTIME_ONLY_KEYS = [
-  CLOSURE_KEY, 'closureStateLoaded', 'razorpayKeyId', 'razorpayConnected', 'razorpayLiveConnected',
-  'razorpayTestConnected', 'razorpayStatus', 'razorpayStatusDetails', 'razorpayKeyMode',
+  CLOSURE_KEY, 'closureStateLoaded',
 ];
 
 function stripRuntime<T extends Record<string, any>>(obj: T): T {
@@ -419,8 +419,23 @@ function normalizeRegistrationCode(value: string): string {
   return value.trim().toUpperCase();
 }
 
+function parseMemberDetailString(str?: string, defaultCollege = '', defaultDept = '', defaultYear = ''): Participant | null {
+  if (!str || str === 'N/A' || str.trim() === '') return null;
+  const match = str.match(/^(.*?)(?:\s*\((.*?)\))?$/);
+  if (!match) return { fullName: str, phone: '', email: '', college: defaultCollege, department: defaultDept, year: defaultYear };
+  return {
+    fullName: match[1].trim(),
+    phone: (match[2] || '').trim(),
+    email: '',
+    college: defaultCollege,
+    department: defaultDept,
+    year: defaultYear,
+  };
+}
+
 export function mapRegistration(row: DbRegistration, truncateProof = false): RegistrationRecord {
-  const pRows = Array.isArray(row.participants)
+  const anyRow = row as any;
+  let pRows = Array.isArray(row.participants)
     ? [...row.participants].sort((a, b) => {
         const aOrder = Number(a.participant_order || 99);
         const bOrder = Number(b.participant_order || 99);
@@ -429,11 +444,22 @@ export function mapRegistration(row: DbRegistration, truncateProof = false): Reg
       })
     : [];
 
-  const participantsList = pRows.map(participantFromRow);
-  const leaderRow = pRows.find((p: any) => p.is_team_leader) || pRows[0];
-  const leader = leaderRow
+  let participantsList = pRows.map(participantFromRow);
+  let leaderRow = pRows.find((p: any) => p.is_team_leader) || pRows[0];
+  let leader = leaderRow
     ? participantFromRow(leaderRow)
-    : { fullName: 'Attendee', email: '', phone: '', college: '' };
+    : { fullName: anyRow.team_leader_name || 'Attendee', email: anyRow.team_leader_email || '', phone: anyRow.team_leader_phone || '', college: anyRow.college_name || '', department: anyRow.department, year: anyRow.year_of_study };
+
+  // If no relational participant rows, extract directly from CSV columns
+  if (participantsList.length === 0 && anyRow.team_leader_name) {
+    participantsList.push(leader);
+    for (const memKey of ['member_2_details', 'member_3_details', 'member_4_details']) {
+      const parsedMem = parseMemberDetailString(anyRow[memKey], anyRow.college_name, anyRow.department, anyRow.year_of_study);
+      if (parsedMem && parsedMem.fullName && parsedMem.fullName !== 'N/A') {
+        participantsList.push(parsedMem);
+      }
+    }
+  }
 
   const payment = Array.isArray(row.payments) ? row.payments[0] : row.payments;
 
@@ -456,51 +482,70 @@ export function mapRegistration(row: DbRegistration, truncateProof = false): Reg
     }
   }
 
-  const rawProofUrl = payment?.payment_proof_url || undefined;
-  const hasProof = Boolean(rawProofUrl || row.drive_screenshot_submitted);
-  const paymentProofUrl = truncateProof && hasProof ? 'HAS_PROOF' : rawProofUrl;
+  const rawProofUrl = payment?.payment_proof_url || anyRow.payment_proof_url || row.payment_proof_url || undefined;
+  const paymentProofUrl = rawProofUrl && rawProofUrl !== 'N/A' && rawProofUrl !== 'HAS_PROOF' ? String(rawProofUrl).trim() : undefined;
+
+  const rawEventsText = anyRow.registration_events || anyRow.registered_events || (eventNames.length > 0 ? eventNames.join(', ') : undefined);
+
+  // If workshop and not yet resolved, assign based on rawEventsText
+  if (!regWorkshopId && rawEventsText) {
+    const lowerEv = rawEventsText.toLowerCase();
+    if (lowerEv.includes('silicon')) regWorkshopId = 'silicon 2 gds';
+    else if (lowerEv.includes('embedded')) regWorkshopId = 'embedded system';
+    else if (lowerEv.includes('virtual')) regWorkshopId = 'virtual instrument';
+  }
 
   return {
-    id: row.registration_code,
-    createdAt: row.created_at,
-    registrationType: row.registration_type === 'individual' ? 'workshop' : 'technical',
+    id: row.registration_code || row.id,
+    createdAt: formatIsoTimestamp(row.created_at),
+    registrationType: row.registration_type === 'individual' || row.registration_type === 'workshop' ? 'workshop' : 'technical',
     selectedWorkshopId: regWorkshopId,
     selectedTechnicalIds: regTechnicalIds,
     selectedNonTechnicalIds: regNonTechnicalIds,
-    eventsText: eventNames.length > 0 ? eventNames.join(', ') : undefined,
+    eventsText: rawEventsText,
     participants: participantsList,
     teamLeader: leader,
     totalAmount: Number(row.total_amount || 0),
-    paymentMethod: row.payment_method === 'razorpay' ? 'razorpay' : 'upi',
+    paymentMethod: 'upi',
     paymentStatus: row.payment_status === 'pending' ? 'pending_verification' : (row.payment_status || 'pending_verification'),
-    paymentId: payment?.razorpay_payment_id || undefined,
-    upiReference: payment?.upi_reference || undefined,
-    driveScreenshotSubmitted: Boolean(rawProofUrl || payment?.upi_reference),
+    paymentId: payment?.upi_reference || anyRow.payment_reference || anyRow.payment_id || undefined,
+    upiReference: payment?.upi_reference || anyRow.payment_reference || anyRow.upi_reference || undefined,
+    driveScreenshotSubmitted: Boolean(paymentProofUrl || payment?.upi_reference || anyRow.payment_reference),
     paymentProofUrl,
-    attendanceMarked: Boolean(row.attendance_marked),
-    attendanceTimestamp: row.attendance_marked_at || undefined,
+    attendanceMarked: Boolean(row.attendance_marked || anyRow.attendance_status?.toLowerCase() === 'present'),
+    attendanceTimestamp: row.attendance_marked_at ? formatIsoTimestamp(row.attendance_marked_at) : undefined,
   };
 }
 
 async function assembleRegistrations(regsData: any[]): Promise<any[]> {
   if (!regsData || regsData.length === 0) return [];
   const regIds = regsData.map((r) => r.id);
+  const uuidRegIds = regIds.filter((id) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(id)));
 
-  const [partsRes, paymentsRes, regEventsRes] = await Promise.all([
-    supabaseAdmin
-      .from('registration_participants')
-      .select('registration_id, role, participants(*)')
-      .in('registration_id', regIds),
-    supabaseAdmin.from('payments').select('*').in('registration_id', regIds),
-    supabaseAdmin.from('registration_events').select('*, events(*)').in('registration_id', regIds),
-  ]);
+  let partsData: any[] = [];
+  let paymentsData: any[] = [];
+  let regEventsData: any[] = [];
 
-  if (partsRes.error) throw partsRes.error;
-  if (paymentsRes.error) throw paymentsRes.error;
-  if (regEventsRes.error) throw regEventsRes.error;
+  if (uuidRegIds.length > 0) {
+    try {
+      const [partsRes, paymentsRes, regEventsRes] = await Promise.all([
+        supabaseAdmin
+          .from('registration_participants')
+          .select('registration_id, role, participants(*)')
+          .in('registration_id', uuidRegIds),
+        supabaseAdmin.from('payments').select('*').in('registration_id', uuidRegIds),
+        supabaseAdmin.from('registration_events').select('*, events(*)').in('registration_id', uuidRegIds),
+      ]);
+      partsData = partsRes.data || [];
+      paymentsData = paymentsRes.data || [];
+      regEventsData = regEventsRes.data || [];
+    } catch (e: any) {
+      console.warn('[DB] assembleRegistrations junction notice:', e?.message || e);
+    }
+  }
 
   const participantsMap = new Map<string, any[]>();
-  for (const item of (partsRes.data || [])) {
+  for (const item of partsData) {
     const p = item.participants;
     if (!p) continue;
     const list = participantsMap.get(item.registration_id) || [];
@@ -512,14 +557,14 @@ async function assembleRegistrations(regsData: any[]): Promise<any[]> {
   }
 
   const paymentsMap = new Map<string, any[]>();
-  for (const p of (paymentsRes.data || [])) {
+  for (const p of paymentsData) {
     const list = paymentsMap.get(p.registration_id) || [];
     list.push(p);
     paymentsMap.set(p.registration_id, list);
   }
 
   const regEventsMap = new Map<string, any[]>();
-  for (const re of (regEventsRes.data || [])) {
+  for (const re of regEventsData) {
     const list = regEventsMap.get(re.registration_id) || [];
     list.push(re);
     regEventsMap.set(re.registration_id, list);
@@ -527,9 +572,9 @@ async function assembleRegistrations(regsData: any[]): Promise<any[]> {
 
   return regsData.map((row) => ({
     ...row,
-    participants: participantsMap.get(row.id) || [],
-    payments: paymentsMap.get(row.id) || [],
-    registration_events: regEventsMap.get(row.id) || [],
+    participants: participantsMap.get(row.id) || row.participants || [],
+    payments: paymentsMap.get(row.id) || row.payments || [],
+    registration_events: regEventsMap.get(row.id) || row.registration_events || [],
   }));
 }
 
@@ -634,207 +679,16 @@ export async function getRegistrationByUuid(uuid: string): Promise<RegistrationR
   return undefined;
 }
 
-export async function getRegistrationUuidByRazorpayOrderId(
-  razorpayOrderId: string
-): Promise<string | undefined> {
-  if (!isSupabaseConfigured()) return undefined;
-  const { data, error } = await supabaseAdmin
-    .from('payments')
-    .select('registration_id')
-    .eq('razorpay_order_id', razorpayOrderId)
-    .eq('method', 'razorpay')
-    .maybeSingle();
-
-  if (error) return undefined;
-  return data?.registration_id;
-}
-
-export async function finalizeRazorpayRegistration(
-  registrationUuid: string,
-  razorpayPaymentId: string,
-  signatureVerified: boolean
-): Promise<void> {
-  if (!isSupabaseConfigured()) return;
-  const { error } = await supabaseAdmin.rpc(
-    'finalize_razorpay_registration',
-    {
-      p_registration_id: registrationUuid,
-      p_razorpay_payment_id: razorpayPaymentId,
-      p_signature_verified: signatureVerified,
-    }
-  );
-  if (error) throw error;
-}
-
-async function selfHealParticipants(registrationUuid: string, inputParticipants: Participant[]): Promise<void> {
-  // Query exact old participant IDs first before inserting new ones
-  const { data: existingRows } = await supabaseAdmin
-    .from('participants')
-    .select('id')
-    .eq('registration_id', registrationUuid);
-  const oldIds = (existingRows || []).map((r) => r.id);
-
-  const newInsertedIds: string[] = [];
-
-  // 1. Insert new participants first
-  for (let idx = 0; idx < inputParticipants.length; idx++) {
-    const p = inputParticipants[idx];
-    const { data: pData, error: pInsertErr } = await supabaseAdmin
-      .from('participants')
-      .insert({
-        registration_id: registrationUuid,
-        full_name: p.fullName,
-        email: p.email || '',
-        phone: p.phone || '',
-        college: p.college || '',
-        department: p.department || null,
-        year_of_study: p.year || null,
-        is_team_leader: idx === 0,
-        participant_order: idx + 1,
-      })
-      .select('id')
-      .maybeSingle();
-
-    if (pInsertErr || !pData?.id) {
-      console.error(`[DB] selfHealParticipants participant [${idx}] insert failed:`, pInsertErr?.message || 'No ID returned');
-      continue;
-    }
-    newInsertedIds.push(pData.id);
-  }
-
-  // 2. Delete the old participants by ID
-  if (oldIds.length > 0) {
-    const { error: pDelErr } = await supabaseAdmin
-      .from('participants')
-      .delete()
-      .in('id', oldIds);
-
-    if (pDelErr) {
-      console.warn('[DB] selfHealParticipants participants delete warning:', pDelErr.message);
-    }
-  }
-}
-
-export async function createPendingRazorpayRegistration(input: {
-  registrationType: RegistrationRecord['registrationType'];
-  participants: Participant[];
-  selectedWorkshopId?: string;
-  selectedTechnicalIds: string[];
-  selectedNonTechnicalIds: string[];
-  totalAmount: number;
-}): Promise<string> {
-  if (!isSupabaseConfigured()) {
-    throw new Error('Supabase is not configured');
-  }
-
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-  let code = '';
-  for (let i = 0; i < 6; i++) {
-    code += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  const registrationCode = `EV26-${code}`;
-
-  const eventIds = [
-    ...(input.selectedWorkshopId ? [input.selectedWorkshopId] : []),
-    ...input.selectedTechnicalIds,
-    ...input.selectedNonTechnicalIds,
-  ];
-  const dbRegType = input.registrationType === 'workshop' ? 'individual' : 'team';
-
-  // 1. Insert into registrations
-  const { data: reg, error: regErr } = await supabaseAdmin
-    .from('registrations')
-    .insert({
-      registration_code: registrationCode,
-      registration_type: dbRegType,
-      total_amount: input.totalAmount,
-      payment_method: 'razorpay',
-      payment_status: 'pending',
-    })
-    .select('id')
-    .single();
-
-  if (regErr || !reg?.id) {
-    throw regErr || new Error('Failed to create registration record in Supabase');
-  }
-
-  const uuid = reg.id;
-
-  // 2. Insert participants with valid check constraint role ('team_leader' and 'member')
-  for (let idx = 0; idx < input.participants.length; idx++) {
-    const p = input.participants[idx];
-    const { data: pData, error: pInsertErr } = await supabaseAdmin
-      .from('participants')
-      .insert({
-        full_name: p.fullName,
-        email: p.email || '',
-        phone: p.phone || '',
-        college: p.college || '',
-        department: p.department || null,
-        year_of_study: p.year || null,
-      })
-      .select('id')
-      .single();
-
-    if (pInsertErr || !pData?.id) {
-      console.error(`[DB] createPendingRazorpayRegistration participant [${idx}] insert failed:`, pInsertErr?.message);
-      continue;
-    }
-
-    const { error: rpErr } = await supabaseAdmin
-      .from('registration_participants')
-      .insert({
-        registration_id: uuid,
-        participant_id: pData.id,
-        role: idx === 0 ? 'team_leader' : 'member',
-      });
-
-    if (rpErr) {
-      console.error(`[DB] createPendingRazorpayRegistration registration_participants [${idx}] insert failed:`, rpErr.message);
-    }
-  }
-
-  // 3. Insert initial payment record
-  await supabaseAdmin
-    .from('payments')
-    .insert({
-      registration_id: uuid,
-      amount: input.totalAmount,
-      method: 'razorpay',
-      status: 'pending',
-    });
-
-  // 4. Insert registration_events with resolved UUIDs and prices
-  for (const rawId of eventIds) {
-    const resolved = await resolveEventInfo(rawId);
-    if (resolved) {
-      const defaultPrice = resolved.category === 'workshop' ? 300 : 250;
-      await supabaseAdmin
-        .from('registration_events')
-        .insert({
-          registration_id: uuid,
-          event_id: resolved.id,
-          price_at_registration: resolved.price || defaultPrice,
-        });
-    }
-  }
-
-  return uuid;
-}
-
 export interface RegistrationCreateInput {
   registrationCode?: string;
   registrationType: 'workshop' | 'technical';
-  paymentMethod: 'razorpay' | 'upi';
+  paymentMethod: 'upi';
   paymentStatus: 'paid' | 'pending_verification' | 'failed';
   totalAmount: number;
   selectedWorkshopId?: string;
   selectedTechnicalIds: string[];
   selectedNonTechnicalIds: string[];
   participants: Participant[];
-  razorpayOrderId?: string;
-  razorpayPaymentId?: string;
-  razorpaySignatureVerified?: boolean;
   upiReference?: string;
   paymentProofUrl?: string;
 }
@@ -857,9 +711,17 @@ export async function createRegistration(input: RegistrationCreateInput): Promis
     college: '',
   };
 
+  const isoTime = formatIsoTimestamp(new Date());
+
+  // Upload screenshot to Supabase Storage if base64/data URL provided
+  let uploadedProofUrl = input.paymentProofUrl || '';
+  if (uploadedProofUrl && uploadedProofUrl.startsWith('data:')) {
+    uploadedProofUrl = await uploadPaymentScreenshotToSupabase(code, uploadedProofUrl);
+  }
+
   const createdRecord: RegistrationRecord = {
     id: code,
-    createdAt: new Date().toISOString(),
+    createdAt: isoTime,
     registrationType: input.registrationType,
     selectedWorkshopId: input.selectedWorkshopId,
     selectedTechnicalIds: input.selectedTechnicalIds || [],
@@ -867,12 +729,12 @@ export async function createRegistration(input: RegistrationCreateInput): Promis
     participants: input.participants,
     teamLeader: leader,
     totalAmount: input.totalAmount,
-    paymentMethod: input.paymentMethod,
+    paymentMethod: 'upi',
     paymentStatus: input.paymentStatus,
-    paymentId: input.razorpayPaymentId || input.upiReference,
+    paymentId: input.upiReference,
     upiReference: input.upiReference,
-    driveScreenshotSubmitted: Boolean(input.paymentProofUrl && input.paymentProofUrl !== 'N/A'),
-    paymentProofUrl: input.paymentProofUrl || '',
+    driveScreenshotSubmitted: Boolean(uploadedProofUrl && uploadedProofUrl !== 'N/A'),
+    paymentProofUrl: uploadedProofUrl,
     attendanceMarked: false,
   };
 
@@ -889,7 +751,7 @@ export async function createRegistration(input: RegistrationCreateInput): Promis
           registration_code: code,
           registration_type: dbRegType,
           total_amount: input.totalAmount,
-          payment_method: input.paymentMethod,
+          payment_method: 'upi',
           payment_status: dbStatus,
         })
         .select('id')
@@ -924,12 +786,10 @@ export async function createRegistration(input: RegistrationCreateInput): Promis
         await supabaseAdmin.from('payments').insert({
           registration_id: uuid,
           amount: input.totalAmount,
-          method: input.paymentMethod,
+          method: 'upi',
           status: dbStatus,
-          razorpay_order_id: input.razorpayOrderId || null,
-          razorpay_payment_id: input.razorpayPaymentId || null,
           upi_reference: input.upiReference || null,
-          payment_proof_url: input.paymentProofUrl || null,
+          payment_proof_url: uploadedProofUrl || null,
         });
 
         const eventIds = [
@@ -1177,7 +1037,7 @@ export async function listRegistrations(filters?: {
       const { data, error } = await query;
       if (!error && data && data.length > 0) {
         const assembled = await assembleRegistrations(data);
-        results = assembled.map((row) => mapRegistration(row, true));
+        results = assembled.map((row) => mapRegistration(row, false));
       }
     } catch (e: any) {
       console.warn('[DB] Supabase query notice:', e?.message || e);
@@ -1190,76 +1050,6 @@ export async function listRegistrations(filters?: {
     if (!existingIds.has(localRecord.id)) {
       results.push(localRecord);
       existingIds.add(localRecord.id);
-    }
-  }
-
-  // Fallback / merge with Google Sheet data source to guarantee all live registrations display in Admin Console
-  if (results.length < 50) {
-    try {
-      const sheetRes = await fetch(
-        'https://script.google.com/macros/s/AKfycbwQFDmE-3bG517qhy5jP6my90QCKsps5GLn2q7ih3vHJmTq96PikBitSCJgIqyxOqRoaQ/exec?action=getRegistrations',
-        { redirect: 'follow' }
-      );
-      if (sheetRes.ok) {
-        const sheetData = (await sheetRes.json()) as any[];
-        if (Array.isArray(sheetData) && sheetData.length > 0) {
-          for (const d of sheetData) {
-            const regId = d.id || d.regId;
-            if (!regId) continue;
-
-            const sheetProof = (d.paymentProofUrl || d.paymentProof || '').trim();
-            const existingInResults = results.find((r) => r.id === regId || r.id.toLowerCase() === regId.toLowerCase());
-
-            if (existingInResults) {
-              if (sheetProof.startsWith('http')) {
-                existingInResults.paymentProofUrl = sheetProof;
-                existingInResults.driveScreenshotSubmitted = true;
-                localRegistrationsCache.set(regId, existingInResults);
-                localRegistrationsCache.set(normalizeRegistrationCode(regId), existingInResults);
-              }
-              continue;
-            }
-
-            const isWs = d.registrationType === 'workshop' || String(d.track || d.eventsText || '').toLowerCase().includes('workshop');
-            const leaders = d.participants || [d.teamLeader || { fullName: 'Attendee', email: '', phone: '', college: '' }];
-
-            const rawEvtStr = String(d.events || d.eventsText || d.event || d.selectedWorkshopId || d.track || '').toLowerCase();
-            const isSilicon = rawEvtStr.includes('silicon') || rawEvtStr.includes('vlsi') || rawEvtStr.includes('gds') || rawEvtStr.includes('cadence');
-            const isVirtual = rawEvtStr.includes('virtual') || rawEvtStr.includes('instrument') || rawEvtStr.includes('labview') || rawEvtStr.includes('daq');
-            const canonicalWsId = isSilicon ? 'ws-silicon-2-gds' : isVirtual ? 'ws-virtual-instrumentation' : 'ws-embedded-system';
-
-            const newSheetRecord: RegistrationRecord = {
-              id: regId,
-              createdAt: d.createdAt || d.timestamp || new Date().toISOString(),
-              registrationType: isWs ? 'workshop' : 'technical',
-              selectedWorkshopId: isWs ? canonicalWsId : undefined,
-              selectedTechnicalIds: d.selectedTechnicalIds || [],
-              selectedNonTechnicalIds: d.selectedNonTechnicalIds || [],
-              eventsText: d.eventsText || d.events,
-              participants: leaders,
-              teamLeader: d.teamLeader || leaders[0] || { fullName: 'Attendee', email: '', phone: '', college: '' },
-              totalAmount: Number(d.totalAmount || d.amount || 0),
-              paymentMethod: String(d.paymentMethod || 'UPI').toLowerCase() === 'razorpay' ? 'razorpay' : 'upi',
-              paymentStatus: String(d.paymentStatus || '').toLowerCase() === 'paid' ? 'paid' : 'pending_verification',
-              paymentId: d.paymentId || d.paymentRef,
-              upiReference: d.upiReference || d.paymentRef,
-              driveScreenshotSubmitted: Boolean(sheetProof && sheetProof !== 'N/A'),
-              paymentProofUrl: sheetProof || undefined,
-              attendanceMarked: Boolean(d.attendanceMarked || d.attendance === 'Present'),
-              attendanceTimestamp: d.attendanceTimestamp,
-            };
-
-            results.push(newSheetRecord);
-            existingIds.add(regId);
-            if (sheetProof.startsWith('http')) {
-              localRegistrationsCache.set(regId, newSheetRecord);
-              localRegistrationsCache.set(normalizeRegistrationCode(regId), newSheetRecord);
-            }
-          }
-        }
-      }
-    } catch (sheetErr: any) {
-      console.warn('[DB] Google Sheet fallback notice:', sheetErr.message);
     }
   }
 
@@ -1320,19 +1110,22 @@ export function calculateStatsFromRegistrations(registrations: RegistrationRecor
   const eventTeamCounts: Record<string, number> = {};
   for (const r of registrations) {
     const pCount = r.participants.length || 1;
-    if (r.selectedWorkshopId) {
-      eventCounts[r.selectedWorkshopId] = (eventCounts[r.selectedWorkshopId] || 0) + pCount;
-      eventTeamCounts[r.selectedWorkshopId] = (eventTeamCounts[r.selectedWorkshopId] || 0) + 1;
+    const seenEvents = new Set<string>();
+    const allEventKeys: string[] = [];
+
+    if (r.selectedWorkshopId) allEventKeys.push(r.selectedWorkshopId);
+    (r.selectedTechnicalIds || []).forEach((id) => allEventKeys.push(id));
+    (r.selectedNonTechnicalIds || []).forEach((id) => allEventKeys.push(id));
+    if (r.eventsText) {
+      r.eventsText.split(',').map((s) => s.trim().toLowerCase()).filter(Boolean).forEach((ev) => allEventKeys.push(ev));
     }
-    const tIds = r.selectedTechnicalIds || [];
-    for (const tid of tIds) {
-      eventCounts[tid] = (eventCounts[tid] || 0) + pCount;
-      eventTeamCounts[tid] = (eventTeamCounts[tid] || 0) + 1;
-    }
-    const nIds = r.selectedNonTechnicalIds || [];
-    for (const nid of nIds) {
-      eventCounts[nid] = (eventCounts[nid] || 0) + pCount;
-      eventTeamCounts[nid] = (eventTeamCounts[nid] || 0) + 1;
+
+    for (const key of allEventKeys) {
+      if (!seenEvents.has(key)) {
+        seenEvents.add(key);
+        eventCounts[key] = (eventCounts[key] || 0) + pCount;
+        eventTeamCounts[key] = (eventTeamCounts[key] || 0) + 1;
+      }
     }
   }
 

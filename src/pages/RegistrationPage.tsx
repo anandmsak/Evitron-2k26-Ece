@@ -22,7 +22,7 @@ import {
 } from 'lucide-react';
 import { EventItem, Participant, RegistrationRecord, SiteSettings } from '../types';
 import { defaultSettings } from '../data/defaultSettings';
-import { createOrder, verifyPayment, submitUpiRegistration } from '../services/api';
+import { submitUpiRegistration } from '../services/api';
 import { getPricePerPerson, isEarlyBirdActive } from '../utils/pricing';
 import { isEventClosedStrict, isClosureStateReady } from '../utils/closureUtils';
 import QRCode from 'qrcode';
@@ -678,107 +678,7 @@ export const RegistrationPage: React.FC<RegistrationPageProps> = ({ events, sett
     }
   };
 
-  // Handle Razorpay Checkout (Real Online Gateway Integration Only)
-  const handleRazorpayCheckout = async () => {
-    setIsProcessing(true);
-    setErrorMsg(null);
 
-    const isDevMode = settings.appEnv === 'development';
-    const isConnected = isDevMode ? settings.razorpayConnected : settings.razorpayLiveConnected;
-
-    // If Razorpay gateway is not connected for active environment, stop immediately
-    if (!isConnected) {
-      if (isDevMode) {
-        setErrorMsg(
-          'Razorpay Test Mode credentials are currently pending verification. Please pay using Option 1 (Instant UPI QR) on the left for instant registration.'
-        );
-      } else {
-        setErrorMsg(
-          'Razorpay Live Gateway is not connected. Please pay using Option 1 (Instant UPI QR) on the left or contact the symposium coordinators.'
-        );
-      }
-      setIsProcessing(false);
-      return;
-    }
-
-    try {
-      const payload = getRegistrationPayload();
-      const order = await createOrder(payload);
-
-      // Ensure standard Razorpay SDK script is loaded for live gateway orders
-      const win = window as any;
-      if (!win.Razorpay) {
-        await new Promise<void>((resolve, reject) => {
-          const script = document.createElement('script');
-          script.src = 'https://checkout.razorpay.com/v1/checkout.js';
-          script.async = true;
-          script.onload = () => resolve();
-          script.onerror = () =>
-            reject(new Error('Failed to load Razorpay Checkout SDK. Please check your internet connection.'));
-          document.body.appendChild(script);
-        });
-      }
-
-      if (!win.Razorpay) {
-        throw new Error('Razorpay Checkout SDK could not be initialized.');
-      }
-
-      const options = {
-        key: order.keyId,
-        amount: order.amount,
-        currency: order.currency,
-        name: 'EVITRON 2K26',
-        description: chosenTrack === 'workshop' ? 'Workshop Registration Pass' : 'Technical Symposium Team Pass',
-        order_id: order.orderId,
-        handler: async (response: any) => {
-          try {
-            setIsProcessing(true);
-            const verifyRes = await verifyPayment({
-              razorpay_order_id: response.razorpay_order_id,
-              razorpay_payment_id: response.razorpay_payment_id,
-              razorpay_signature: response.razorpay_signature,
-              registrationData: payload,
-            });
-            setConfirmedRegistration(verifyRes.registration);
-            const qrRes = await fetch(`/api/registration/${verifyRes.registrationId}`);
-            if (qrRes.ok) {
-              const full = await qrRes.json();
-              setTicketQrDataUrl(full.qrDataUrl);
-            }
-            setStep('success');
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-          } catch (vErr: any) {
-            setErrorMsg(vErr.message || 'Payment signature verification failed.');
-          } finally {
-            setIsProcessing(false);
-          }
-        },
-        prefill: {
-          name: participants[0].fullName,
-          email: participants[0].email,
-          contact: participants[0].phone,
-        },
-        theme: {
-          color: '#B22222',
-        },
-        modal: {
-          ondismiss: () => {
-            setIsProcessing(false);
-          },
-        },
-      };
-
-      const rzp = new win.Razorpay(options);
-      rzp.on('payment.failed', function (resp: any) {
-        setIsProcessing(false);
-        setErrorMsg(resp.error?.description || 'Payment was unsuccessful or cancelled.');
-      });
-      rzp.open();
-    } catch (err: any) {
-      setErrorMsg(err.message || 'Failed to initialize payment gateway. Live credentials (rzp_live_...) are required.');
-      setIsProcessing(false);
-    }
-  };
 
 
 
