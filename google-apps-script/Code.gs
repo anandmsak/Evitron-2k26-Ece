@@ -4,8 +4,8 @@
  * Mahendra Engineering College (Autonomous)
  * 
  * High-Performance, Concurrency-Hardened Google Apps Script Webhook
- * Built to withstand 50+ simultaneous registrations without lag, row-collapsing,
- * or column-shifting.
+ * Built to withstand 50+ simultaneous registrations and instant Event-Day QR Check-Ins
+ * without lag, row-collapsing, or column-shifting.
  */
 
 const SHEET_NAME = 'Registrations';
@@ -39,7 +39,6 @@ const STANDARD_HEADERS = [
  * - "silicon 2gds"
  * - "Embedded System"
  * - "Virtual instrument"
- * Strips all lengthy descriptions and taglines.
  */
 function cleanWorkshopTitle(raw) {
   if (!raw) return '';
@@ -57,17 +56,7 @@ function cleanWorkshopTitle(raw) {
 }
 
 /**
- * Clean short event names without lengthy descriptions or taglines:
- * - techpaper
- * - tractron
- * - evolvex
- * - silicon 2gds
- * - Embedded System
- * - Virtual instrument
- * - mind maze
- * - promptify
- * - memix
- * - detective 404
+ * Clean short event names without lengthy descriptions or taglines
  */
 function cleanEventShortName(raw) {
   if (!raw) return '';
@@ -124,8 +113,7 @@ function parseSheetDateToISO(cellValue) {
 }
 
 /**
- * Handle incoming POST requests from the EVITRON 2K26 app server
- * High-concurrency optimized with non-blocking Drive uploads and header-mapped atomic row writes.
+ * Handle incoming POST requests from the EVITRON 2K26 app server & QR Scanner apps
  */
 function doPost(e) {
   if (!e || !e.postData || !e.postData.contents) {
@@ -143,14 +131,83 @@ function doPost(e) {
     ).setMimeType(ContentService.MimeType.JSON);
   }
 
-  const regId = String(data.regId || '').trim();
+  // Accept regId, id, code, or full scanned QR text
+  let rawInputId = String(data.regId || data.id || data.code || data.data || data.qrText || '').trim();
+  if (!rawInputId && typeof data === 'string') {
+    rawInputId = data.trim();
+  }
+
+  // Extract EV26-XXXXXX from whatever text was scanned
+  const idMatch = rawInputId.match(/EV26-[A-Z0-9]{6}/i);
+  const regId = idMatch ? idMatch[0].toUpperCase() : rawInputId.toUpperCase();
+
   if (!regId) {
     return ContentService.createTextOutput(
-      JSON.stringify({ status: 'error', message: 'Missing regId in payload.' })
+      JSON.stringify({ status: 'error', message: 'Missing Registration ID in payload.' })
     ).setMimeType(ContentService.MimeType.JSON);
   }
 
-  // Handle deletion request
+  // ========================================================
+  // 1. ATTENDANCE SCANNER POST HANDLER
+  // ========================================================
+  if (
+    data.action === 'markAttendance' ||
+    data.action === 'attendance' ||
+    data.action === 'scan' ||
+    data.type === 'attendance' ||
+    String(data.attendance || '').toLowerCase() === 'present'
+  ) {
+    const lock = LockService.getScriptLock();
+    if (lock.tryLock(25000)) {
+      try {
+        const ss = SpreadsheetApp.getActiveSpreadsheet();
+        let sheet = ss.getSheetByName(SHEET_NAME) || ss.getSheets()[0];
+        const rows = sheet.getDataRange().getValues();
+        const nowKolkata = new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
+
+        for (let r = 1; r < rows.length; r++) {
+          if (String(rows[r][0]).trim().toUpperCase() === regId) {
+            // Col 20: Attendance Status, Col 21: Last Updated
+            sheet.getRange(r + 1, 20).setValue('Present');
+            sheet.getRange(r + 1, 21).setValue(nowKolkata);
+            SpreadsheetApp.flush();
+
+            return ContentService.createTextOutput(
+              JSON.stringify({
+                status: 'success',
+                message: 'Attendance successfully marked PRESENT for ' + regId,
+                regId: regId,
+                leaderName: rows[r][4],
+                college: rows[r][7],
+                track: rows[r][2],
+                events: rows[r][3],
+                attendance: 'Present',
+                updatedAt: nowKolkata
+              })
+            ).setMimeType(ContentService.MimeType.JSON);
+          }
+        }
+
+        return ContentService.createTextOutput(
+          JSON.stringify({
+            status: 'error',
+            message: 'Registration ID ' + regId + ' was not found in the sheet.'
+          })
+        ).setMimeType(ContentService.MimeType.JSON);
+
+      } finally {
+        lock.releaseLock();
+      }
+    } else {
+      return ContentService.createTextOutput(
+        JSON.stringify({ status: 'error', message: 'Spreadsheet lock busy. Please retry scan.' })
+      ).setMimeType(ContentService.MimeType.JSON);
+    }
+  }
+
+  // ========================================================
+  // 2. REGISTRATION DELETION HANDLER
+  // ========================================================
   if (data.action === 'delete' || data.isDelete) {
     const lock = LockService.getScriptLock();
     if (lock.tryLock(25000)) {
@@ -159,7 +216,7 @@ function doPost(e) {
         let sheet = ss.getSheetByName(SHEET_NAME) || ss.getSheets()[0];
         const rows = sheet.getDataRange().getValues();
         for (let r = 1; r < rows.length; r++) {
-          if (String(rows[r][0]).trim().toUpperCase() === regId.toUpperCase()) {
+          if (String(rows[r][0]).trim().toUpperCase() === regId) {
             sheet.deleteRow(r + 1);
             return ContentService.createTextOutput(
               JSON.stringify({ status: 'success', action: 'deleted', regId: regId })
@@ -175,7 +232,11 @@ function doPost(e) {
     ).setMimeType(ContentService.MimeType.JSON);
   }
 
-  // 1. Process Google Drive upload outside of the sheet lock to prevent sheet queuing bottleneck
+  // ========================================================
+  // 3. NEW OR UPDATED REGISTRATION HANDLER
+  // ========================================================
+
+  // Drive upload outside lock
   let driveLink = 'N/A';
   if (data.paymentProofData && String(data.paymentProofData).indexOf('data:') === 0) {
     try {
@@ -187,7 +248,7 @@ function doPost(e) {
     driveLink = String(data.paymentProofData).trim();
   }
 
-  // 2. Format Event and Track names cleanly with short names
+  // Format Event and Track names cleanly
   const isWorkshop = String(data.track || '').toLowerCase().indexOf('workshop') !== -1 ||
     String(data.events || '').toLowerCase().indexOf('workshop') !== -1 ||
     String(data.selectedWorkshopId || '').length > 0;
@@ -212,7 +273,6 @@ function doPost(e) {
     }
   }
 
-  // 3. Acquire short atomic sheet lock (<100ms lock duration)
   const lock = LockService.getScriptLock();
   let lockAcquired = false;
   try {
@@ -234,7 +294,6 @@ function doPost(e) {
       sheet = ss.insertSheet(SHEET_NAME);
     }
 
-    // Initialize headers if sheet is brand new
     if (sheet.getLastRow() === 0) {
       sheet.appendRow(STANDARD_HEADERS);
       const hRange = sheet.getRange(1, 1, 1, STANDARD_HEADERS.length);
@@ -244,7 +303,6 @@ function doPost(e) {
       sheet.setFrozenRows(1);
     }
 
-    // Read row 1 headers to dynamically map every column by name
     const lastCol = Math.max(sheet.getLastColumn(), STANDARD_HEADERS.length);
     const headerRow = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
     const headerMap = {};
@@ -253,7 +311,6 @@ function doPost(e) {
       if (hName) headerMap[hName] = c;
     }
 
-    // Helper to resolve column index for standard or synonymous header names
     function getColIdx(names, fallbackIdx) {
       for (let i = 0; i < names.length; i++) {
         const key = names[i].toLowerCase();
@@ -262,7 +319,6 @@ function doPost(e) {
       return fallbackIdx;
     }
 
-    // Prepare dictionary of field values safely
     const nowKolkata = new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
 
     function formatTimestampValue(rawVal) {
@@ -304,7 +360,6 @@ function doPost(e) {
       { names: ['Last Updated', 'updated at'], val: nowKolkata, defIdx: 20 }
     ];
 
-    // Construct the row array matching the actual sheet's column order
     const rowValues = new Array(headerRow.length).fill('');
     for (let f = 0; f < fields.length; f++) {
       const idx = getColIdx(fields[f].names, fields[f].defIdx);
@@ -313,7 +368,6 @@ function doPost(e) {
       }
     }
 
-    // Fast ID lookup using only Column 1
     const lastRow = sheet.getLastRow();
     let existingRowIndex = -1;
     const idColIdx = getColIdx(['Registration ID', 'reg id', 'id'], 0);
@@ -328,13 +382,10 @@ function doPost(e) {
       }
     }
 
-    // Atomic update or append without altering other columns or shifting headers
     if (existingRowIndex > 0) {
-      // Non-destructive update: Preserve existing values if new values are empty or omitted
       const existingValues = sheet.getRange(existingRowIndex, 1, 1, rowValues.length).getValues()[0];
       for (let c = 0; c < rowValues.length; c++) {
         const incomingVal = rowValues[c];
-        // If incoming value is blank, keep existing sheet cell so team leader name and data are NEVER lost!
         if (incomingVal === '' || incomingVal === null || incomingVal === undefined) {
           rowValues[c] = existingValues[c];
         }
@@ -344,7 +395,6 @@ function doPost(e) {
       sheet.appendRow(rowValues);
     }
 
-    // Flush all pending operations immediately while lock is still held
     SpreadsheetApp.flush();
 
     return ContentService.createTextOutput(
@@ -370,12 +420,72 @@ function doPost(e) {
 }
 
 /**
- * Handle GET requests for health-check or retrieving registration list
+ * Handle GET requests:
+ * 1. Mark attendance via direct URL scan
+ * 2. Retrieve registration list (?action=getRegistrations)
+ * 3. Health check
  */
 function doGet(e) {
-  const action = e && e.parameter && e.parameter.action;
-  
-  if (action === 'getRegistrations') {
+  const params = (e && e.parameter) ? e.parameter : {};
+
+  // ========================================================
+  // 1. ATTENDANCE SCAN VIA SIMPLE GET URL
+  // Example: .../exec?action=markAttendance&regId=EV26-A1B2C3
+  // OR simply: .../exec?regId=EV26-A1B2C3
+  // ========================================================
+  const rawId = String(params.regId || params.id || params.code || params.data || '').trim();
+  const isAttendanceReq = params.action === 'markAttendance' || params.action === 'attendance' || params.action === 'scan' || rawId.length > 0;
+
+  if (isAttendanceReq && rawId) {
+    const match = rawId.match(/EV26-[A-Z0-9]{6}/i);
+    const targetId = match ? match[0].toUpperCase() : rawId.toUpperCase();
+
+    const lock = LockService.getScriptLock();
+    if (lock.tryLock(25000)) {
+      try {
+        const ss = SpreadsheetApp.getActiveSpreadsheet();
+        let sheet = ss.getSheetByName(SHEET_NAME) || ss.getSheets()[0];
+        const rows = sheet.getDataRange().getValues();
+        const nowKolkata = new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
+
+        for (let r = 1; r < rows.length; r++) {
+          if (String(rows[r][0]).trim().toUpperCase() === targetId) {
+            sheet.getRange(r + 1, 20).setValue('Present'); // Col 20
+            sheet.getRange(r + 1, 21).setValue(nowKolkata); // Col 21
+            SpreadsheetApp.flush();
+
+            return ContentService.createTextOutput(
+              JSON.stringify({
+                status: 'success',
+                message: 'Attendance marked PRESENT',
+                regId: targetId,
+                leaderName: rows[r][4],
+                college: rows[r][7],
+                track: rows[r][2],
+                events: rows[r][3],
+                attendance: 'Present',
+                updatedAt: nowKolkata
+              })
+            ).setMimeType(ContentService.MimeType.JSON);
+          }
+        }
+
+        return ContentService.createTextOutput(
+          JSON.stringify({
+            status: 'error',
+            message: 'Registration ID ' + targetId + ' not found in sheet.'
+          })
+        ).setMimeType(ContentService.MimeType.JSON);
+      } finally {
+        lock.releaseLock();
+      }
+    }
+  }
+
+  // ========================================================
+  // 2. GET REGISTRATIONS DATA
+  // ========================================================
+  if (params.action === 'getRegistrations') {
     try {
       const ss = SpreadsheetApp.getActiveSpreadsheet();
       let sheet = ss.getSheetByName(SHEET_NAME);
@@ -393,7 +503,6 @@ function doGet(e) {
         return ContentService.createTextOutput(JSON.stringify([])).setMimeType(ContentService.MimeType.JSON);
       }
 
-      // Read headers from row 1
       const sheetHeaders = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
       const headerMap = {};
       for (let i = 0; i < sheetHeaders.length; i++) {
@@ -481,28 +590,13 @@ function doGet(e) {
         }
 
         const eventsLower = rawEventsText.toLowerCase();
-        if (eventsLower.indexOf('techpaper') !== -1 || eventsLower.indexOf('paper') !== -1) {
-          selectedTechnicalIds.push('techpaper');
-        }
-        if (eventsLower.indexOf('evolvex') !== -1 || eventsLower.indexOf('project') !== -1) {
-          selectedTechnicalIds.push('evolvex');
-        }
-        if (eventsLower.indexOf('tracktron') !== -1 || eventsLower.indexOf('robot') !== -1 || eventsLower.indexOf('line follower') !== -1) {
-          selectedTechnicalIds.push('tracktron');
-        }
-
-        if (eventsLower.indexOf('mind maze') !== -1 || eventsLower.indexOf('mind') !== -1) {
-          selectedNonTechnicalIds.push('mind-maze');
-        }
-        if (eventsLower.indexOf('promptify') !== -1 || eventsLower.indexOf('prompt') !== -1) {
-          selectedNonTechnicalIds.push('promptify');
-        }
-        if (eventsLower.indexOf('memix') !== -1 || eventsLower.indexOf('meme') !== -1) {
-          selectedNonTechnicalIds.push('memix');
-        }
-        if (eventsLower.indexOf('detective') !== -1 || eventsLower.indexOf('404') !== -1) {
-          selectedNonTechnicalIds.push('detective-404');
-        }
+        if (eventsLower.indexOf('techpaper') !== -1 || eventsLower.indexOf('paper') !== -1) selectedTechnicalIds.push('techpaper');
+        if (eventsLower.indexOf('evolvex') !== -1 || eventsLower.indexOf('project') !== -1) selectedTechnicalIds.push('evolvex');
+        if (eventsLower.indexOf('tracktron') !== -1 || eventsLower.indexOf('robot') !== -1 || eventsLower.indexOf('line follower') !== -1) selectedTechnicalIds.push('tracktron');
+        if (eventsLower.indexOf('mind maze') !== -1 || eventsLower.indexOf('mind') !== -1) selectedNonTechnicalIds.push('mind-maze');
+        if (eventsLower.indexOf('promptify') !== -1 || eventsLower.indexOf('prompt') !== -1) selectedNonTechnicalIds.push('promptify');
+        if (eventsLower.indexOf('memix') !== -1 || eventsLower.indexOf('meme') !== -1) selectedNonTechnicalIds.push('memix');
+        if (eventsLower.indexOf('detective') !== -1 || eventsLower.indexOf('404') !== -1) selectedNonTechnicalIds.push('detective-404');
 
         const rawCreatedAt = getVal(['Timestamp', 'date'], '');
         const totalAmountVal = Number(getVal(['Total Fee (INR)', 'amount', 'fee'], isWorkshop ? 300 : participants.length * 250));
@@ -551,10 +645,13 @@ function doGet(e) {
     }
   }
 
+  // ========================================================
+  // 3. DEFAULT HEALTH CHECK
+  // ========================================================
   return ContentService.createTextOutput(
     JSON.stringify({
       status: 'active',
-      service: 'EVITRON 2K26 High-Performance Google Sheets Registration Webhook',
+      service: 'EVITRON 2K26 High-Performance Google Sheets Registration & Attendance Webhook',
       timestamp: new Date().toISOString()
     })
   ).setMimeType(ContentService.MimeType.JSON);
