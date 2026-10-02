@@ -32,6 +32,7 @@ import {
   fetchAdminRegistrations,
   updateRegistrationStatus,
   updateSiteSettings,
+  setWorkshopClosureApi,
   updateEnvironment,
   updateEventDetails,
   markAttendanceApi,
@@ -680,7 +681,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     e.preventDefault();
     if (!token) return;
     try {
-      const updated = await updateSiteSettings(token, settingsForm);
+      const { closedWorkshops, closureStateLoaded, ...rest } = settingsForm;
+      const updated = await updateSiteSettings(token, rest);
       setSettingsForm(updated);
       onRefreshSettings();
       showNotification('Site settings updated successfully.', 'success');
@@ -708,7 +710,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         participantFormUrl: settingsForm.participantFormUrl,
         googleSheetWebhookUrl: settingsForm.googleSheetWebhookUrl,
         adminNotificationEmails: settingsForm.adminNotificationEmails,
-        closedWorkshops: settingsForm.closedWorkshops,
       });
       setSettingsForm(updated);
       onRefreshSettings();
@@ -2067,19 +2068,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                           <button
                             type="button"
                             onClick={async () => {
-                              const currentClosed = settingsForm.closedWorkshops || [];
-                              let nextClosed: string[] = [];
-                              if (isClosed) {
-                                nextClosed = currentClosed.filter((id) => !ws.keys.includes(id) && !isEventClosedStrict(id, ws.keys, events));
-                              } else {
-                                nextClosed = Array.from(new Set([...currentClosed, ...ws.keys]));
-                              }
-                              
                               try {
-                                const updated = await updateSiteSettings(token, { closedWorkshops: nextClosed });
-                                setSettingsForm(updated);
+                                const next = await setWorkshopClosureApi(token, isClosed ? 'open' : 'close', ws.keys);
+                                setSettingsForm((prev) => ({ ...prev, closedWorkshops: next, closureStateLoaded: true }));
                                 onRefreshSettings();
-                                showNotification(`Registration for ${ws.name} is now strictly ${!isClosed ? 'CLOSED' : 'OPEN'}.`, 'success');
+                                showNotification(`Registration for ${ws.name} is now strictly ${isClosed ? 'OPEN' : 'CLOSED'}.`, 'success');
                               } catch (err: any) {
                                 showNotification(err.message || 'Failed to persist workshop closure.', 'error');
                               }

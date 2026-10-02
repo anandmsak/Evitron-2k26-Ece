@@ -26,6 +26,8 @@ import {
 import { syncRegistrationToGoogleSheet, syncAllRegistrationsToGoogleSheet, deleteRegistrationFromGoogleSheet } from './server/googleSheet.js';
 import { Participant, RegistrationRecord } from './src/types.js';
 import { getPricePerPerson, isEarlyBirdActive } from './server/pricing.js';
+import { readClosedWorkshops, closeWorkshops, openWorkshops } from './server/closureStore.js';
+import { isEventClosedStrict } from './src/utils/closureUtils.js';
 
 function findEventByAnyKey(allEvents: any[], eventKey: string) {
   if (!eventKey || !Array.isArray(allEvents)) return undefined;
@@ -236,45 +238,16 @@ async function validateRegistrationRules(body: {
   }
 
   // Enforce workshop and event closures on the backend strictly
-  const closedEvents = settings.closedWorkshops || [];
+  let closedEvents: string[];
+  try {
+    closedEvents = await readClosedWorkshops(); // always from durable store, fail closed
+  } catch (err: any) {
+    console.error('[CLOSURE] validation read failed:', err?.message || err);
+    return { valid: false, status: 503, error: 'Unable to verify event availability right now. Please try again in a moment.' };
+  }
   const { selectedWorkshopId, selectedTechnicalIds = [], selectedNonTechnicalIds = [] } = body;
   const dbEvents = await repository.getEvents(false);
-
-  const isClosedStrict = (key: string | undefined) => {
-    if (!key || closedEvents.length === 0) return false;
-    const clean = key.trim().toLowerCase();
-    const stripped = clean.replace(/^(ws|tech|non|nontech)-/i, '');
-
-    for (const c of closedEvents) {
-      if (!c) continue;
-      const cClean = c.trim().toLowerCase();
-      const cStripped = cClean.replace(/^(ws|tech|non|nontech)-/i, '');
-
-      if (clean === cClean || stripped === cStripped) return true;
-      if (
-        (stripped.includes('silicon') && cClean.includes('silicon')) ||
-        (stripped.includes('embedded') && cClean.includes('embedded')) ||
-        (stripped.includes('virtual') && cClean.includes('virtual')) ||
-        (stripped.includes('paper') && cClean.includes('paper')) ||
-        (stripped.includes('evolvex') && cClean.includes('evolvex')) ||
-        (stripped.includes('tracktron') && cClean.includes('tracktron')) ||
-        (stripped.includes('mind') && cClean.includes('mind')) ||
-        (stripped.includes('prompt') && cClean.includes('prompt')) ||
-        (stripped.includes('mem') && cClean.includes('mem')) ||
-        (stripped.includes('detective') && cClean.includes('detective'))
-      ) {
-        return true;
-      }
-
-      if (dbEvents && dbEvents.length > 0) {
-        const e1 = findEventByAnyKey(dbEvents, key);
-        const e2 = findEventByAnyKey(dbEvents, c);
-        if (e1 && e2 && (e1.id === e2.id || e1.slug === e2.slug)) return true;
-        if (e1 && (e1.id.toLowerCase() === cClean || e1.slug?.toLowerCase() === cClean)) return true;
-      }
-    }
-    return false;
-  };
+  const isClosedStrict = (key: string | undefined) => isEventClosedStrict(key, closedEvents, dbEvents);
 
   if (selectedWorkshopId && isClosedStrict(selectedWorkshopId)) {
     return {
@@ -375,6 +348,12 @@ async function validateRegistrationRules(body: {
       status: 400,
       error: eventValidation.error || 'One or more selected events are invalid.',
     };
+  }
+
+  for (const e of eventValidation.events || []) {
+    if (isEventClosedStrict(e.id, closedEvents, dbEvents) || isEventClosedStrict((e as any).code, closedEvents, dbEvents)) {
+      return { valid: false, status: 400, error: `Registration for "${e.name}" is STRICTLY CLOSED by event administration.` };
+    }
   }
 
   const events = eventValidation.events || [];
@@ -1037,6 +1016,23 @@ const handleUpdateSettings = async (req: express.Request, res: express.Response)
 };
 app.patch('/api/admin/settings', requireAdmin, wrap(handleUpdateSettings));
 app.put('/api/admin/settings', requireAdmin, wrap(handleUpdateSettings));
+
+const handleWorkshopClosure = async (req: express.Request, res: express.Response, defaultAction?: 'close' | 'open') => {
+  const action = defaultAction || req.params.action;
+  const keys = req.body?.keys;
+  if (action !== 'close' && action !== 'open') return res.status(404).json({ error: 'Unknown action' });
+  if (!Array.isArray(keys) || keys.length === 0 || keys.length > 20 ||
+      keys.some((k) => typeof k !== 'string' || !k.trim() || k.length > 100)) {
+    return res.status(400).json({ error: 'keys must be a non-empty array of strings.' });
+  }
+  const events = await repository.getEvents(false).catch(() => []);
+  const closedWorkshops = action === 'close' ? await closeWorkshops(keys) : await openWorkshops(keys, events);
+  res.json({ success: true, closedWorkshops });
+};
+
+app.post('/api/admin/closures/:action', requireAdmin, wrap((req, res) => handleWorkshopClosure(req, res)));
+app.post('/api/admin/workshops/close', requireAdmin, wrap((req, res) => handleWorkshopClosure(req, res, 'close')));
+app.post('/api/admin/workshops/open', requireAdmin, wrap((req, res) => handleWorkshopClosure(req, res, 'open')));
 
 app.patch('/api/admin/events/:id', requireAdmin, wrap(async (req, res) => {
   const updated = await repository.updateEvent(req.params.id, req.body);

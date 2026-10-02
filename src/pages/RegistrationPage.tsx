@@ -24,7 +24,7 @@ import { EventItem, Participant, RegistrationRecord, SiteSettings } from '../typ
 import { defaultSettings } from '../data/defaultSettings';
 import { createOrder, verifyPayment, submitUpiRegistration } from '../services/api';
 import { getPricePerPerson, isEarlyBirdActive } from '../utils/pricing';
-import { isEventClosedStrict } from '../utils/closureUtils';
+import { isEventClosedStrict, isClosureStateReady } from '../utils/closureUtils';
 import QRCode from 'qrcode';
 
 interface RegistrationPageProps {
@@ -302,45 +302,11 @@ export const RegistrationPage: React.FC<RegistrationPageProps> = ({ events, sett
   const technicalEvents = events.filter((e) => e.category === 'technical' || e.category === 'technicals');
   const nonTechnicalEvents = events.filter((e) => e.category === 'non-technical' || e.category === 'non_technical');
 
-  // If registrations are globally closed by admin
-  if (!settings.isRegistrationOpen) {
-    return (
-      <div className="py-16 max-w-2xl mx-auto px-4 text-center">
-        <div className="bg-amber-50 border border-amber-200 rounded-xl p-8 shadow-xs">
-          <div className="w-12 h-12 rounded-full bg-amber-100 text-amber-800 flex items-center justify-center mx-auto mb-4">
-            <ShieldAlert className="w-6 h-6" />
-          </div>
-          <h1 className="text-2xl font-extrabold text-stone-900 mb-2">Registrations Closed</h1>
-          <p className="text-sm text-stone-600 mb-6 leading-relaxed">
-            {settings.closedReason || 'Online registrations for EVITRON 2K26 are currently closed.'}
-          </p>
-          <div className="text-xs text-stone-500 border-t border-amber-200 pt-4">
-            For spot registration inquiries or coordinator assistance, please contact:{' '}
-            <span className="font-semibold text-stone-800">{settings.contactEmail}</span>
-          </div>
-          <div className="mt-6">
-            <button
-              onClick={() => onNavigate('/')}
-              className="px-5 py-2.5 bg-stone-900 text-white text-xs font-bold rounded-lg"
-            >
-              Return to Homepage
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // ----------------------------------------------------
-  // EVENT SELECTION LOGIC (STRICT RULE ENFORCEMENT)
-  // 1. Workshop: strictly 1 workshop only. No tech, no non-tech. (Individual pass: 1 person).
-  // 2. Technical: strictly 1 technical event only (Team of 2 to 4 members).
-  // 3. Non-Technical: strictly at most 1 non-technical event, ONLY IF 1 technical event is selected.
-  //    Non-technical alone can NEVER be selected.
-  // ----------------------------------------------------
+  const closureReady = isClosureStateReady(propSettings);
 
   // Auto-clear closed workshop or event selections immediately when settings update
   React.useEffect(() => {
+    if (!closureReady) return;
     const closedList = settings.closedWorkshops || [];
     if (closedList.length === 0) return;
 
@@ -369,7 +335,39 @@ export const RegistrationPage: React.FC<RegistrationPageProps> = ({ events, sett
         setErrorMsg('The selected non-technical event is STRICTLY CLOSED by event administration.');
       }
     }
-  }, [settings.closedWorkshops, selectedWorkshopId, selectedTechnicalIds, selectedNonTechnicalIds, events, chosenTrack]);
+  }, [closureReady, settings.closedWorkshops, selectedWorkshopId, selectedTechnicalIds, selectedNonTechnicalIds, events, chosenTrack]);
+
+  if (!closureReady) {
+    return (
+      <div className="py-24 text-center text-xs text-stone-500">
+        <div className="w-8 h-8 mx-auto mb-3 border-4 border-stone-200 border-t-[#B22222] rounded-full animate-spin" />
+        Checking live registration availability...
+      </div>
+    );
+  }
+
+  // If registrations are globally closed by admin
+  if (!settings.isRegistrationOpen) {
+    return (
+      <div className="py-16 max-w-xl mx-auto px-4 text-center">
+        <div className="bg-stone-900 text-white p-8 rounded-3xl shadow-xl border border-stone-800 space-y-4">
+          <div className="w-12 h-12 bg-red-600/20 text-red-500 rounded-full flex items-center justify-center mx-auto">
+            <ShieldAlert className="w-6 h-6" />
+          </div>
+          <h2 className="text-xl font-extrabold tracking-tight">Registrations Closed</h2>
+          <p className="text-stone-400 text-xs leading-relaxed">
+            All event registrations are currently closed by the administration.
+          </p>
+          <button
+            onClick={() => onNavigate('/')}
+            className="px-5 py-2.5 bg-[#B22222] hover:bg-[#961c1c] text-white text-xs font-bold rounded-xl cursor-pointer transition-colors"
+          >
+            Return to Home Page
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   const handleSelectWorkshop = (id: string) => {
     if (isEventClosedStrict(id, settings.closedWorkshops, events)) {
@@ -1884,3 +1882,5 @@ export const RegistrationPage: React.FC<RegistrationPageProps> = ({ events, sett
     </div>
   );
 };
+
+export default RegistrationPage;

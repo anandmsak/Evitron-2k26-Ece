@@ -10,6 +10,8 @@ import {
 import { initialSiteSettings } from '../src/data/defaultSettings.js';
 import { initialEvents } from '../src/data/defaultEvents.js';
 
+import { readClosedWorkshops, CLOSURE_KEY } from './closureStore.js';
+
 type DbEvent = Record<string, any>;
 type DbParticipant = Record<string, any>;
 type DbRegistration = Record<string, any>;
@@ -17,13 +19,36 @@ type DbRegistration = Record<string, any>;
 const SETTINGS_FILE_PATH = path.resolve(process.cwd(), 'data', 'site_settings.json');
 const SYMPOSIUM_DB_PATH = path.resolve(process.cwd(), 'data', 'symposium_db.json');
 
+const RUNTIME_ONLY_KEYS = [
+  CLOSURE_KEY, 'closureStateLoaded', 'razorpayKeyId', 'razorpayConnected', 'razorpayLiveConnected',
+  'razorpayTestConnected', 'razorpayStatus', 'razorpayStatusDetails', 'razorpayKeyMode',
+];
+
+function stripRuntime<T extends Record<string, any>>(obj: T): T {
+  const copy: any = { ...obj };
+  for (const k of RUNTIME_ONLY_KEYS) delete copy[k];
+  return copy;
+}
+
+async function withClosures(base: SiteSettings): Promise<SiteSettings> {
+  const rest: any = { ...base };
+  delete rest[CLOSURE_KEY];
+  try {
+    const closedWorkshops = await readClosedWorkshops();
+    return { ...rest, closedWorkshops, closureStateLoaded: true };
+  } catch (err: any) {
+    console.error('[CLOSURE] Could not load closure state:', err?.message || err);
+    return { ...rest, closureStateLoaded: false };
+  }
+}
+
 function loadPersistentSettings(): SiteSettings {
   try {
     if (fs.existsSync(SETTINGS_FILE_PATH)) {
       const raw = fs.readFileSync(SETTINGS_FILE_PATH, 'utf8');
       const parsed = JSON.parse(raw);
       if (parsed && typeof parsed === 'object') {
-        return { ...initialSiteSettings, ...parsed };
+        return stripRuntime({ ...initialSiteSettings, ...parsed });
       }
     }
   } catch (err) {
@@ -35,29 +60,31 @@ function loadPersistentSettings(): SiteSettings {
       const raw = fs.readFileSync(SYMPOSIUM_DB_PATH, 'utf8');
       const parsed = JSON.parse(raw);
       if (parsed?.settings && typeof parsed.settings === 'object') {
-        return { ...initialSiteSettings, ...parsed.settings };
+        return stripRuntime({ ...initialSiteSettings, ...parsed.settings });
       }
     }
   } catch (err) {
     console.warn('[SYMPOSIUM_DB READ NOTICE]', err);
   }
 
-  return { ...initialSiteSettings };
+  return stripRuntime({ ...initialSiteSettings });
 }
 
 function savePersistentSettings(settings: SiteSettings) {
   try {
     const dir = path.dirname(SETTINGS_FILE_PATH);
-    if (!fs.existsSync(dir)) {
-      fs.mkdirSync(dir, { recursive: true });
-    }
-    fs.writeFileSync(SETTINGS_FILE_PATH, JSON.stringify(settings, null, 2), 'utf8');
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+
+    const rest = stripRuntime(settings as any);
+    let existing: any = null;
+    try { existing = JSON.parse(fs.readFileSync(SETTINGS_FILE_PATH, 'utf8')); } catch {}
+    const out = Array.isArray(existing?.[CLOSURE_KEY]) ? { ...rest, [CLOSURE_KEY]: existing[CLOSURE_KEY] } : rest;
+    fs.writeFileSync(SETTINGS_FILE_PATH, JSON.stringify(out, null, 2), 'utf8');
 
     if (fs.existsSync(SYMPOSIUM_DB_PATH)) {
       try {
-        const raw = fs.readFileSync(SYMPOSIUM_DB_PATH, 'utf8');
-        const db = JSON.parse(raw) || {};
-        db.settings = { ...(db.settings || {}), ...settings };
+        const db = JSON.parse(fs.readFileSync(SYMPOSIUM_DB_PATH, 'utf8')) || {};
+        db.settings = { ...(db.settings || {}), ...rest }; // rest has no closedWorkshops, so db's copy is untouched
         fs.writeFileSync(SYMPOSIUM_DB_PATH, JSON.stringify(db, null, 2), 'utf8');
       } catch {}
     }
@@ -140,7 +167,7 @@ function mapEvent(row: DbEvent): EventItem {
 
 let cachedSiteSettings: SiteSettings = loadPersistentSettings();
 
-export async function getSiteSettings(): Promise<SiteSettings> {
+async function getBaseSettings(): Promise<SiteSettings> {
   if (!isSupabaseConfigured()) {
     return cachedSiteSettings;
   }
@@ -151,7 +178,7 @@ export async function getSiteSettings(): Promise<SiteSettings> {
     if (!kvQuery.error && kvQuery.data && kvQuery.data.length > 0) {
       const settings: Record<string, any> = { ...cachedSiteSettings };
       for (const row of kvQuery.data) {
-        if (!row.key) continue;
+        if (!row.key || row.key === CLOSURE_KEY) continue;
         try {
           settings[row.key] = typeof row.value === 'string' ? JSON.parse(row.value) : row.value;
         } catch {
@@ -169,35 +196,31 @@ export async function getSiteSettings(): Promise<SiteSettings> {
   return cachedSiteSettings;
 }
 
+export async function getSiteSettings(): Promise<SiteSettings> {
+  return withClosures(await getBaseSettings());
+}
+
 export async function updateSiteSettings(
   partial: Partial<SiteSettings>,
   updatedBy?: string
 ): Promise<SiteSettings> {
-  // Update in-memory state and disk immediately
-  cachedSiteSettings = {
-    ...cachedSiteSettings,
-    ...partial,
-  };
-
+  const safe = stripRuntime(partial as any) as Partial<SiteSettings>; // closure list can NEVER be set here
+  cachedSiteSettings = { ...cachedSiteSettings, ...safe };
   savePersistentSettings(cachedSiteSettings);
 
-  if (isSupabaseConfigured()) {
-    try {
-      // Upsert key-value pairs safely
-      const rowsToUpsert = Object.entries(partial).map(([key, value]) => ({
-        key,
-        value: typeof value === 'object' ? JSON.stringify(value) : String(value ?? ''),
-        ...(updatedBy ? { updated_by: updatedBy } : {}),
-        updated_at: new Date().toISOString(),
-      }));
-
-      await supabaseAdmin.from('site_settings').upsert(rowsToUpsert, { onConflict: 'key' });
-    } catch (dbErr: any) {
-      console.warn('[SETTINGS NOTICE] Supabase persistence notice:', dbErr?.message || dbErr);
+  if (isSupabaseConfigured() && Object.keys(safe).length > 0) {
+    const rows = Object.entries(safe).map(([key, value]) => ({
+      key,
+      value: typeof value === 'object' ? JSON.stringify(value) : String(value ?? ''),
+      ...(updatedBy ? { updated_by: updatedBy } : {}),
+      updated_at: new Date().toISOString(),
+    }));
+    const { error } = await supabaseAdmin.from('site_settings').upsert(rows, { onConflict: 'key' });
+    if (error && !error.message.includes('row-level security')) {
+      console.warn('[SETTINGS] Supabase upsert notice:', error.message);
     }
   }
-
-  return cachedSiteSettings;
+  return withClosures(cachedSiteSettings);
 }
 
 export async function getEvents(includeInactive = true): Promise<EventItem[]> {

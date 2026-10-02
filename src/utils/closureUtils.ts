@@ -1,5 +1,9 @@
 // src/utils/closureUtils.ts
-import { EventItem } from '../types';
+import { EventItem, SiteSettings } from '../types';
+
+export function isClosureStateReady(s?: Partial<SiteSettings> | null): boolean {
+  return !!s && s.closureStateLoaded === true && Array.isArray(s.closedWorkshops);
+}
 
 /**
  * Very hard & strict check to determine if an event/workshop is closed.

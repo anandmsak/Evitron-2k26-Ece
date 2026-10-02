@@ -37,7 +37,6 @@ export const initialSiteSettings: SiteSettings = {
   adminNotificationEmails: ['evitron26@gmail.com'],
   forceEarlyBird: true,
   earlyBirdDeadline: '2026-10-05T23:59:59+05:30',
-  closedWorkshops: [],
   isMaintenanceMode: false,
   maintenanceMessage: 'EVITRON 2K26 is currently undergoing scheduled maintenance & system upgrades. Please check back shortly or reach out to event coordinators.',
 };

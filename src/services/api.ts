@@ -520,6 +520,21 @@ export async function updateRegistrationStatus(
   throw new Error('Registration not found to update status.');
 }
 
+export async function setWorkshopClosureApi(token: string, action: 'close' | 'open', keys: string[]): Promise<string[]> {
+  const res = await fetch(`/api/admin/closures/${action}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ keys }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || 'Failed to update workshop closure.');
+  return data.closedWorkshops;
+}
+
+export const closeWorkshopsApi = (token: string, keys: string[]) => setWorkshopClosureApi(token, 'close', keys);
+export const openWorkshopsApi = (token: string, keys: string[]) => setWorkshopClosureApi(token, 'open', keys);
+
+
 export async function updateSiteSettings(token: string, updates: Partial<SiteSettings>): Promise<SiteSettings> {
   const current = getLocalSettings();
   const updated = { ...current, ...updates };
