@@ -1,6 +1,7 @@
 // server/liveDataset.ts
 import fs from 'fs';
 import path from 'path';
+import { safeParseRegistrationDate } from './googleSheet.js';
 
 export interface CsvRegistrationRow {
   id: string;
@@ -35,66 +36,14 @@ export interface CsvRegistrationRow {
 
 export function formatToIsoStandard(str: string): string {
   if (!str) return '2026-10-02 00:00:00';
-  const clean = str.trim().replace(/^"|"$/g, '');
-
-  if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(clean)) {
-    return clean;
-  }
-
-  if (clean.includes('T')) {
-    const d = new Date(clean);
-    if (!isNaN(d.getTime())) {
-      const YYYY = d.getUTCFullYear();
-      const MM = String(d.getUTCMonth() + 1).padStart(2, '0');
-      const DD = String(d.getUTCDate()).padStart(2, '0');
-      const HH = String(d.getUTCHours()).padStart(2, '0');
-      const mm = String(d.getUTCMinutes()).padStart(2, '0');
-      const ss = String(d.getUTCSeconds()).padStart(2, '0');
-      return `${YYYY}-${MM}-${DD} ${HH}:${mm}:${ss}`;
-    }
-  }
-
-  const m = clean.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})(?:,\s*(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?\s*(am|pm)?)?/i);
-  if (m) {
-    let [, p1, p2, yearStr, hStr = '0', mStr = '0', sStr = '0', ampm] = m;
-    let n1 = parseInt(p1, 10);
-    let n2 = parseInt(p2, 10);
-    let year = parseInt(yearStr, 10);
-    let hours = parseInt(hStr, 10);
-    let minutes = parseInt(mStr, 10);
-    let seconds = parseInt(sStr, 10);
-
-    if (ampm) {
-      if (ampm.toLowerCase() === 'pm' && hours < 12) hours += 12;
-      if (ampm.toLowerCase() === 'am' && hours === 12) hours = 0;
-    }
-
-    let day = n1;
-    let month = n2;
-    if (n1 > 12) {
-      day = n1;
-      month = n2;
-    } else if (n2 === 9 || n2 === 10) {
-      day = n1;
-      month = n2;
-    } else if (n1 === 10 && n2 <= 2) {
-      month = 10;
-      day = n2;
-    } else if (n1 === 9) {
-      month = 9;
-      day = n2;
-    }
-
-    const YYYY = String(year);
-    const MM = String(month).padStart(2, '0');
-    const DD = String(day).padStart(2, '0');
-    const HH = String(hours).padStart(2, '0');
-    const mm = String(minutes).padStart(2, '0');
-    const ss = String(seconds).padStart(2, '0');
-    return `${YYYY}-${MM}-${DD} ${HH}:${mm}:${ss}`;
-  }
-
-  return clean;
+  const d = safeParseRegistrationDate(str);
+  const YYYY = d.getFullYear();
+  const MM = String(d.getMonth() + 1).padStart(2, '0');
+  const DD = String(d.getDate()).padStart(2, '0');
+  const HH = String(d.getHours()).padStart(2, '0');
+  const mm = String(d.getMinutes()).padStart(2, '0');
+  const ss = String(d.getSeconds()).padStart(2, '0');
+  return `${YYYY}-${MM}-${DD} ${HH}:${mm}:${ss}`;
 }
 
 function parseCSVLine(line: string): string[] {

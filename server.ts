@@ -19,7 +19,7 @@ import {
   sendTestEmail,
   emailAuditLog,
 } from './server/email.js';
-import { syncRegistrationToGoogleSheet, syncAllRegistrationsToGoogleSheet, deleteRegistrationFromGoogleSheet } from './server/googleSheet.js';
+import { syncRegistrationToGoogleSheet, syncAllRegistrationsToGoogleSheet, deleteRegistrationFromGoogleSheet, formatIsoTimestamp } from './server/googleSheet.js';
 import { Participant, RegistrationRecord } from './src/types.js';
 import { getPricePerPerson, isEarlyBirdActive } from './server/pricing.js';
 import { readClosedWorkshops, closeWorkshops, openWorkshops } from './server/closureStore.js';
@@ -934,7 +934,7 @@ app.get('/api/admin/export-spreadsheet', requireAdmin, wrap(async (_req, res) =>
 
     return [
       escapeCsv(r.id),
-      escapeCsv(r.createdAt),
+      escapeCsv(formatIsoTimestamp(r.createdAt)),
       escapeCsv(r.registrationType === 'workshop' ? 'workshop' : 'technical'),
       escapeCsv(registeredEvents),
       escapeCsv(r.teamLeader?.fullName || ''),
@@ -953,7 +953,7 @@ app.get('/api/admin/export-spreadsheet', requireAdmin, wrap(async (_req, res) =>
       escapeCsv(r.upiReference || r.paymentId || 'N/A'),
       escapeCsv(proofUrl),
       escapeCsv(r.attendanceMarked ? 'Present' : 'Absent'),
-      escapeCsv(r.createdAt),
+      escapeCsv(formatIsoTimestamp(r.createdAt)),
     ].join(',');
   });
 

@@ -73,34 +73,91 @@ export function formatShortEventName(raw: string | undefined | null): string {
     .toLowerCase();
 }
 
+export function safeParseRegistrationDate(val: any): Date {
+  if (!val) return new Date();
+  if (val instanceof Date) {
+    return isNaN(val.getTime()) ? new Date() : val;
+  }
+
+  const str = String(val).trim();
+  if (!str) return new Date();
+
+  // Handle ISO 8601 strings or YYYY-MM-DD
+  if (/^\d{4}-\d{2}-\d{2}/.test(str)) {
+    const isoMatch = str.match(/^(\d{4})-(\d{2})-(\d{2})(?:[ T](\d{2}):(\d{2})(?::(\d{2}))?)?/);
+    if (isoMatch) {
+      let [, yStr, mStr, dStr, hStr = '00', minStr = '00', sStr = '00'] = isoMatch;
+      let year = parseInt(yStr, 10);
+      let month = parseInt(mStr, 10);
+      let day = parseInt(dStr, 10);
+
+      // Fix inverted March vs October dates for 2026 EVITRON registrations
+      if (year === 2026 && month === 3 && (day === 10 || day === 2 || day === 3 || day === 1 || day === 4)) {
+        month = 10;
+        day = day === 10 ? 3 : day;
+      }
+
+      return new Date(
+        year,
+        month - 1,
+        day,
+        parseInt(hStr, 10),
+        parseInt(minStr, 10),
+        parseInt(sStr, 10)
+      );
+    }
+    const d = new Date(str);
+    if (!isNaN(d.getTime())) return d;
+  }
+
+  // Handle DD/MM/YYYY or MM/DD/YYYY slash/dash patterns (e.g. "10/03/2026", "03/10/2026", "3/10/2026", "10/3/2026")
+  const match = str.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})(?:,\s*(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?\s*(am|pm)?)?/i);
+  if (match) {
+    let [, p1, p2, yStr, hStr = '0', minStr = '0', sStr = '0', ampm] = match;
+    let n1 = parseInt(p1, 10);
+    let n2 = parseInt(p2, 10);
+    let year = parseInt(yStr, 10);
+    let hours = parseInt(hStr, 10);
+    let minutes = parseInt(minStr, 10);
+    let seconds = parseInt(sStr, 10);
+
+    if (ampm) {
+      if (ampm.toLowerCase() === 'pm' && hours < 12) hours += 12;
+      if (ampm.toLowerCase() === 'am' && hours === 12) hours = 0;
+    }
+
+    let month = 10;
+    let day = 3;
+
+    if (year === 2026) {
+      // In EVITRON 2K26 symposium context, registrations occur in October (Month 10)
+      if (n1 === 10 || n2 === 10) {
+        month = 10;
+        day = n1 === 10 ? n2 : n1;
+      } else if (n1 === 9 || n2 === 9) {
+        month = 9;
+        day = n1 === 9 ? n2 : n1;
+      } else if (n1 === 3 || n2 === 3) {
+        month = 10;
+        day = n1 === 3 ? n2 : n1;
+      } else {
+        month = Math.min(n1, n2) > 0 && Math.min(n1, n2) <= 12 ? Math.min(n1, n2) : 10;
+        day = Math.max(n1, n2);
+      }
+    } else {
+      month = n2;
+      day = n1;
+    }
+
+    return new Date(year, month - 1, day, hours, minutes, seconds);
+  }
+
+  const d = new Date(str);
+  return isNaN(d.getTime()) ? new Date() : d;
+}
+
 export function formatIsoTimestamp(val: any): string {
-  if (!val) {
-    const d = new Date();
-    const YYYY = d.getFullYear();
-    const MM = String(d.getMonth() + 1).padStart(2, '0');
-    const DD = String(d.getDate()).padStart(2, '0');
-    const HH = String(d.getHours()).padStart(2, '0');
-    const mm = String(d.getMinutes()).padStart(2, '0');
-    const ss = String(d.getSeconds()).padStart(2, '0');
-    return `${YYYY}-${MM}-${DD} ${HH}:${mm}:${ss}`;
-  }
-
-  if (typeof val === 'string' && /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(val.trim())) {
-    return val.trim();
-  }
-
-  const d = new Date(val);
-  if (isNaN(d.getTime())) {
-    const now = new Date();
-    const YYYY = now.getFullYear();
-    const MM = String(now.getMonth() + 1).padStart(2, '0');
-    const DD = String(now.getDate()).padStart(2, '0');
-    const HH = String(now.getHours()).padStart(2, '0');
-    const mm = String(now.getMinutes()).padStart(2, '0');
-    const ss = String(now.getSeconds()).padStart(2, '0');
-    return `${YYYY}-${MM}-${DD} ${HH}:${mm}:${ss}`;
-  }
-
+  const d = safeParseRegistrationDate(val);
   const YYYY = d.getFullYear();
   const MM = String(d.getMonth() + 1).padStart(2, '0');
   const DD = String(d.getDate()).padStart(2, '0');

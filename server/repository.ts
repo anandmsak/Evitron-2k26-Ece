@@ -2,6 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import { supabaseAdmin, isSupabaseConfigured, uploadPaymentScreenshotToSupabase } from './supabase.js';
 import { formatIsoTimestamp, fetchRegistrationsFromGoogleSheet } from './googleSheet.js';
+import { loadCsvRegistrations } from './liveDataset.js';
 import {
   EventItem,
   Participant,
@@ -285,7 +286,7 @@ async function resolveEventInfo(eventIdentifier: string): Promise<{ id: string; 
       (stripped.includes('paper') && (codeLower.includes('paper') || nameLower.includes('paper'))) ||
       (stripped.includes('evolvex') && codeLower.includes('evolvex')) ||
       (stripped.includes('project') && (codeLower.includes('evolvex') || nameLower.includes('evolvex'))) ||
-      (stripped.includes('tracktron') && codeLower.includes('tracktron')) ||
+      ((stripped.includes('tracktron') || stripped.includes('tractron')) && codeLower.includes('tracktron')) ||
       ((stripped.includes('line') || stripped.includes('robot')) && codeLower.includes('tracktron')) ||
       (stripped.includes('silicon') && codeLower.includes('silicon')) ||
       (stripped.includes('cadence') && codeLower.includes('silicon')) ||
@@ -485,26 +486,47 @@ export function mapRegistration(row: DbRegistration, truncateProof = false): Reg
   const rawProofUrl = payment?.payment_proof_url || anyRow.payment_proof_url || row.payment_proof_url || undefined;
   const paymentProofUrl = rawProofUrl && rawProofUrl !== 'N/A' && rawProofUrl !== 'HAS_PROOF' ? String(rawProofUrl).trim() : undefined;
 
-  const rawEventsText =
-    typeof anyRow.registered_events === 'string'
-      ? anyRow.registered_events
-      : typeof anyRow.registration_events === 'string'
-      ? anyRow.registration_events
-      : eventNames.length > 0
-      ? eventNames.join(', ')
-      : undefined;
+  const codeKey = (row.registration_code || row.id || '').toUpperCase();
+  let csvRecord: any;
+  try {
+    const csvRows = loadCsvRegistrations();
+    csvRecord = csvRows.find((c) => (c.registration_code || c.id || '').toUpperCase() === codeKey);
+  } catch {}
 
-  // If workshop and not yet resolved, assign based on rawEventsText
-  if (!regWorkshopId && rawEventsText && typeof rawEventsText === 'string') {
-    const lowerEv = rawEventsText.toLowerCase();
-    if (lowerEv.includes('silicon')) regWorkshopId = 'silicon 2 gds';
-    else if (lowerEv.includes('embedded')) regWorkshopId = 'embedded system';
-    else if (lowerEv.includes('virtual')) regWorkshopId = 'virtual instrument';
+  const rawEventsText =
+    csvRecord?.registered_events ||
+    (typeof anyRow.registered_events === 'string' && anyRow.registered_events ? anyRow.registered_events : undefined) ||
+    (typeof anyRow.registration_events === 'string' && anyRow.registration_events ? anyRow.registration_events : undefined) ||
+    (eventNames.length > 0 ? eventNames.join(', ') : undefined) ||
+    '';
+
+  if (rawEventsText) {
+    const parts = rawEventsText.split(',').map((s: string) => s.trim().toLowerCase());
+    for (const p of parts) {
+      if (p.includes('silicon')) regWorkshopId = 'silicon 2 gds';
+      else if (p.includes('embedded')) regWorkshopId = 'embedded system';
+      else if (p.includes('virtual')) regWorkshopId = 'virtual instrument';
+      else if (p.includes('tractron') || p.includes('tracktron')) {
+        if (!regTechnicalIds.includes('tractron')) regTechnicalIds.push('tractron');
+      } else if (p.includes('techpaper') || p.includes('paper')) {
+        if (!regTechnicalIds.includes('techpaper')) regTechnicalIds.push('techpaper');
+      } else if (p.includes('evolvex') || p.includes('project')) {
+        if (!regTechnicalIds.includes('evolvex')) regTechnicalIds.push('evolvex');
+      } else if (p.includes('mind') || p.includes('maze')) {
+        if (!regNonTechnicalIds.includes('mind maze')) regNonTechnicalIds.push('mind maze');
+      } else if (p.includes('prompt')) {
+        if (!regNonTechnicalIds.includes('promptify')) regNonTechnicalIds.push('promptify');
+      } else if (p.includes('mem')) {
+        if (!regNonTechnicalIds.includes('memix')) regNonTechnicalIds.push('memix');
+      } else if (p.includes('detective') || p.includes('404')) {
+        if (!regNonTechnicalIds.includes('detective 404')) regNonTechnicalIds.push('detective 404');
+      }
+    }
   }
 
   return {
     id: row.registration_code || row.id,
-    createdAt: formatIsoTimestamp(row.created_at),
+    createdAt: formatIsoTimestamp(csvRecord?.created_at || row.created_at),
     registrationType: row.registration_type === 'individual' || row.registration_type === 'workshop' ? 'workshop' : 'technical',
     selectedWorkshopId: regWorkshopId,
     selectedTechnicalIds: regTechnicalIds,
@@ -1284,6 +1306,48 @@ export async function listRegistrations(filters?: {
     }
     return r;
   });
+
+  // Enrich any records missing event metadata from CSV/Sheet dataset
+  try {
+    const csvRows = loadCsvRegistrations();
+    const csvMap = new Map<string, any>();
+    for (const c of csvRows) {
+      if (c.registration_code) csvMap.set(c.registration_code.toUpperCase(), c);
+      if (c.id) csvMap.set(c.id.toUpperCase(), c);
+    }
+
+    results = results.map((r) => {
+      const csv = csvMap.get((r.id || '').toUpperCase());
+      if (csv && csv.registered_events) {
+        const eventsText = r.eventsText || csv.registered_events;
+        const lowerEv = eventsText.toLowerCase();
+        let selectedWorkshopId = r.selectedWorkshopId;
+        const selectedTech = [...(r.selectedTechnicalIds || [])];
+
+        if (r.registrationType === 'workshop' || lowerEv.includes('silicon') || lowerEv.includes('embedded') || lowerEv.includes('virtual')) {
+          if (!selectedWorkshopId) {
+            if (lowerEv.includes('silicon')) selectedWorkshopId = 'silicon 2gds';
+            else if (lowerEv.includes('embedded')) selectedWorkshopId = 'embedded system';
+            else if (lowerEv.includes('virtual')) selectedWorkshopId = 'virtual instrument';
+          }
+        }
+
+        if (lowerEv.includes('tractron') || lowerEv.includes('tracktron')) {
+          if (!selectedTech.includes('tracktron')) selectedTech.push('tracktron');
+        }
+
+        return {
+          ...r,
+          eventsText,
+          selectedWorkshopId: selectedWorkshopId || r.selectedWorkshopId,
+          selectedTechnicalIds: selectedTech.length > 0 ? selectedTech : r.selectedTechnicalIds,
+        };
+      }
+      return r;
+    });
+  } catch (err: any) {
+    console.warn('[DB] CSV enrichment notice:', err?.message || err);
+  }
 
   // Apply filters
   if (filters?.registrationType) {

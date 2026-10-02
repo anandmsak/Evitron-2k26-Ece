@@ -43,6 +43,7 @@ import {
   getShortEventName,
   fetchPaymentProof,
 } from '../services/api';
+import { formatDisplayDate, formatDisplayTime, safeParseRegistrationDate, normalizeStandardEventName } from '../utils/dateUtils';
 
 import { isEventClosedStrict } from '../utils/closureUtils';
 
@@ -218,207 +219,58 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [deletePasswordError, setDeletePasswordError] = useState('');
   const [expandedEventId, setExpandedEventId] = useState<string | null>(null);
 
+  const uniqueEventsList = useMemo(() => {
+    const seen = new Set<string>();
+    const list: EventItem[] = [];
+    for (const e of events || []) {
+      const norm = normalizeStandardEventName(e.slug || e.title || e.id);
+      if (!seen.has(norm)) {
+        seen.add(norm);
+        list.push(e);
+      }
+    }
+    return list;
+  }, [events]);
+
   const [activeProofUrl, setActiveProofUrl] = useState<string | null>(null);
   const [activeProofRegId, setActiveProofRegId] = useState<string | null>(null);
 
   const EVENT_METADATA_MAP: Record<string, { code: string; name: string; specificTitle: string; fullDisplay: string; category: 'workshop' | 'technical' | 'non-technical'; badgeIcon: string }> = {
     // TECHNICAL EVENTS
-    'techpaper': {
-      code: 'techpaper',
-      name: 'techpaper',
-      specificTitle: 'techpaper',
-      fullDisplay: 'techpaper',
-      category: 'technical',
-      badgeIcon: '🔬',
-    },
-    '46aa179c-ec4a-4d8d-a206-7c4c497a95ce': {
-      code: 'techpaper',
-      name: 'techpaper',
-      specificTitle: 'techpaper',
-      fullDisplay: 'techpaper',
-      category: 'technical',
-      badgeIcon: '🔬',
-    },
-    'evolvex': {
-      code: 'evolvex',
-      name: 'evolvex',
-      specificTitle: 'evolvex',
-      fullDisplay: 'evolvex',
-      category: 'technical',
-      badgeIcon: '🔬',
-    },
-    'c2a1bbfc-85fb-49f9-9d9d-39759b6df37f': {
-      code: 'evolvex',
-      name: 'evolvex',
-      specificTitle: 'evolvex',
-      fullDisplay: 'evolvex',
-      category: 'technical',
-      badgeIcon: '🔬',
-    },
-    'tracktron': {
-      code: 'tracktron',
-      name: 'tractron',
-      specificTitle: 'tractron',
-      fullDisplay: 'tractron',
-      category: 'technical',
-      badgeIcon: '🔬',
-    },
-    '626a494c-0e71-4679-abad-9d5a4d5758e2': {
-      code: 'tracktron',
-      name: 'tractron',
-      specificTitle: 'tractron',
-      fullDisplay: 'tractron',
-      category: 'technical',
-      badgeIcon: '🔬',
-    },
-    'tractron': {
-      code: 'tracktron',
-      name: 'tractron',
-      specificTitle: 'tractron',
-      fullDisplay: 'tractron',
-      category: 'technical',
-      badgeIcon: '🔬',
-    },
+    'techpaper': { code: 'techpaper', name: 'techpaper', specificTitle: 'techpaper', fullDisplay: 'techpaper', category: 'technical', badgeIcon: '🔬' },
+    '46aa179c-ec4a-4d8d-a206-7c4c497a95ce': { code: 'techpaper', name: 'techpaper', specificTitle: 'techpaper', fullDisplay: 'techpaper', category: 'technical', badgeIcon: '🔬' },
+    'evolvex': { code: 'evolvex', name: 'evolvex', specificTitle: 'evolvex', fullDisplay: 'evolvex', category: 'technical', badgeIcon: '🔬' },
+    'c2a1bbfc-85fb-49f9-9d9d-39759b6df37f': { code: 'evolvex', name: 'evolvex', specificTitle: 'evolvex', fullDisplay: 'evolvex', category: 'technical', badgeIcon: '🔬' },
+    'tracktron': { code: 'tractron', name: 'tractron', specificTitle: 'tractron', fullDisplay: 'tractron', category: 'technical', badgeIcon: '🔬' },
+    'tractron': { code: 'tractron', name: 'tractron', specificTitle: 'tractron', fullDisplay: 'tractron', category: 'technical', badgeIcon: '🔬' },
+    '626a494c-0e71-4679-abad-9d5a4d5758e2': { code: 'tractron', name: 'tractron', specificTitle: 'tractron', fullDisplay: 'tractron', category: 'technical', badgeIcon: '🔬' },
 
     // WORKSHOPS
-    'ws-silicon-2-gds': {
-      code: 'silicon-2-gds',
-      name: 'silicon 2gds',
-      specificTitle: 'silicon 2gds',
-      fullDisplay: 'silicon 2gds',
-      category: 'workshop',
-      badgeIcon: '⚙️',
-    },
-    'silicon-2-gds': {
-      code: 'silicon-2-gds',
-      name: 'silicon 2gds',
-      specificTitle: 'silicon 2gds',
-      fullDisplay: 'silicon 2gds',
-      category: 'workshop',
-      badgeIcon: '⚙️',
-    },
-    '4e91a80e-4baa-4fc2-bf6c-7f95e135fc80': {
-      code: 'silicon-2-gds',
-      name: 'silicon 2gds',
-      specificTitle: 'silicon 2gds',
-      fullDisplay: 'silicon 2gds',
-      category: 'workshop',
-      badgeIcon: '⚙️',
-    },
-    'ws-embedded-system': {
-      code: 'embedded-system',
-      name: 'Embedded System',
-      specificTitle: 'Embedded System',
-      fullDisplay: 'Embedded System',
-      category: 'workshop',
-      badgeIcon: '⚙️',
-    },
-    'embedded-system': {
-      code: 'embedded-system',
-      name: 'Embedded System',
-      specificTitle: 'Embedded System',
-      fullDisplay: 'Embedded System',
-      category: 'workshop',
-      badgeIcon: '⚙️',
-    },
-    'd6699fda-e9a5-404d-88e8-bd9e0610988e': {
-      code: 'embedded-system',
-      name: 'Embedded System',
-      specificTitle: 'Embedded System',
-      fullDisplay: 'Embedded System',
-      category: 'workshop',
-      badgeIcon: '⚙️',
-    },
-    'ws-virtual-instrumentation': {
-      code: 'virtual-instrumentation',
-      name: 'Virtual instrument',
-      specificTitle: 'Virtual instrument',
-      fullDisplay: 'Virtual instrument',
-      category: 'workshop',
-      badgeIcon: '⚙️',
-    },
-    'virtual-instrumentation': {
-      code: 'virtual-instrumentation',
-      name: 'Virtual instrument',
-      specificTitle: 'Virtual instrument',
-      fullDisplay: 'Virtual instrument',
-      category: 'workshop',
-      badgeIcon: '⚙️',
-    },
-    'ee27539a-2318-44da-9697-bb859ed57a50': {
-      code: 'virtual-instrumentation',
-      name: 'Virtual instrument',
-      specificTitle: 'Virtual instrument',
-      fullDisplay: 'Virtual instrument',
-      category: 'workshop',
-      badgeIcon: '⚙️',
-    },
+    'ws-silicon-2-gds': { code: 'silicon-2-gds', name: 'silicon 2 gds', specificTitle: 'silicon 2 gds', fullDisplay: 'silicon 2 gds', category: 'workshop', badgeIcon: '⚙️' },
+    'silicon-2-gds': { code: 'silicon-2-gds', name: 'silicon 2 gds', specificTitle: 'silicon 2 gds', fullDisplay: 'silicon 2 gds', category: 'workshop', badgeIcon: '⚙️' },
+    'silicon 2 gds': { code: 'silicon-2-gds', name: 'silicon 2 gds', specificTitle: 'silicon 2 gds', fullDisplay: 'silicon 2 gds', category: 'workshop', badgeIcon: '⚙️' },
+    'silicon 2gds': { code: 'silicon-2-gds', name: 'silicon 2 gds', specificTitle: 'silicon 2 gds', fullDisplay: 'silicon 2 gds', category: 'workshop', badgeIcon: '⚙️' },
+    '4e91a80e-4baa-4fc2-bf6c-7f95e135fc80': { code: 'silicon-2-gds', name: 'silicon 2 gds', specificTitle: 'silicon 2 gds', fullDisplay: 'silicon 2 gds', category: 'workshop', badgeIcon: '⚙️' },
+    'ws-embedded-system': { code: 'embedded-system', name: 'Embedded System', specificTitle: 'Embedded System', fullDisplay: 'Embedded System', category: 'workshop', badgeIcon: '⚙️' },
+    'embedded-system': { code: 'embedded-system', name: 'Embedded System', specificTitle: 'Embedded System', fullDisplay: 'Embedded System', category: 'workshop', badgeIcon: '⚙️' },
+    'embedded system': { code: 'embedded-system', name: 'Embedded System', specificTitle: 'Embedded System', fullDisplay: 'Embedded System', category: 'workshop', badgeIcon: '⚙️' },
+    'd6699fda-e9a5-404d-88e8-bd9e0610988e': { code: 'embedded-system', name: 'Embedded System', specificTitle: 'Embedded System', fullDisplay: 'Embedded System', category: 'workshop', badgeIcon: '⚙️' },
+    'ws-virtual-instrumentation': { code: 'virtual-instrumentation', name: 'Virtual instrument', specificTitle: 'Virtual instrument', fullDisplay: 'Virtual instrument', category: 'workshop', badgeIcon: '⚙️' },
+    'virtual-instrumentation': { code: 'virtual-instrumentation', name: 'Virtual instrument', specificTitle: 'Virtual instrument', fullDisplay: 'Virtual instrument', category: 'workshop', badgeIcon: '⚙️' },
+    'virtual instrument': { code: 'virtual-instrumentation', name: 'Virtual instrument', specificTitle: 'Virtual instrument', fullDisplay: 'Virtual instrument', category: 'workshop', badgeIcon: '⚙️' },
+    'ee27539a-2318-44da-9697-bb859ed57a50': { code: 'virtual-instrumentation', name: 'Virtual instrument', specificTitle: 'Virtual instrument', fullDisplay: 'Virtual instrument', category: 'workshop', badgeIcon: '⚙️' },
 
     // NON-TECHNICAL EVENTS
-    'mind-maze': {
-      code: 'mind-maze',
-      name: 'mind maze',
-      specificTitle: 'mind maze',
-      fullDisplay: 'mind maze',
-      category: 'non-technical',
-      badgeIcon: '🎨',
-    },
-    '8ebc96bf-893d-4e6b-8976-6f541f2631ff': {
-      code: 'mind-maze',
-      name: 'mind maze',
-      specificTitle: 'mind maze',
-      fullDisplay: 'mind maze',
-      category: 'non-technical',
-      badgeIcon: '🎨',
-    },
-    'promptify': {
-      code: 'promptify',
-      name: 'promptify',
-      specificTitle: 'promptify',
-      fullDisplay: 'promptify',
-      category: 'non-technical',
-      badgeIcon: '🎨',
-    },
-    '41b7298f-6401-4409-a000-5cc406e194b8': {
-      code: 'promptify',
-      name: 'promptify',
-      specificTitle: 'promptify',
-      fullDisplay: 'promptify',
-      category: 'non-technical',
-      badgeIcon: '🎨',
-    },
-    'memix': {
-      code: 'memix',
-      name: 'memix',
-      specificTitle: 'memix',
-      fullDisplay: 'memix',
-      category: 'non-technical',
-      badgeIcon: '🎨',
-    },
-    '0dcd0759-87af-4bce-9757-5e52833c538b': {
-      code: 'memix',
-      name: 'memix',
-      specificTitle: 'memix',
-      fullDisplay: 'memix',
-      category: 'non-technical',
-      badgeIcon: '🎨',
-    },
-    'detective-404': {
-      code: 'detective-404',
-      name: 'detective 404',
-      specificTitle: 'detective 404',
-      fullDisplay: 'detective 404',
-      category: 'non-technical',
-      badgeIcon: '🎨',
-    },
-    '57d56f8c-99c4-4e78-bb57-4c7a6ec47716': {
-      code: 'detective-404',
-      name: 'detective 404',
-      specificTitle: 'detective 404',
-      fullDisplay: 'detective 404',
-      category: 'non-technical',
-      badgeIcon: '🎨',
-    },
+    'mind-maze': { code: 'mind-maze', name: 'mind maze', specificTitle: 'mind maze', fullDisplay: 'mind maze', category: 'non-technical', badgeIcon: '🎨' },
+    'mind maze': { code: 'mind-maze', name: 'mind maze', specificTitle: 'mind maze', fullDisplay: 'mind maze', category: 'non-technical', badgeIcon: '🎨' },
+    '8ebc96bf-893d-4e6b-8976-6f541f2631ff': { code: 'mind-maze', name: 'mind maze', specificTitle: 'mind maze', fullDisplay: 'mind maze', category: 'non-technical', badgeIcon: '🎨' },
+    'promptify': { code: 'promptify', name: 'promptify', specificTitle: 'promptify', fullDisplay: 'promptify', category: 'non-technical', badgeIcon: '🎨' },
+    '41b7298f-6401-4409-a000-5cc406e194b8': { code: 'promptify', name: 'promptify', specificTitle: 'promptify', fullDisplay: 'promptify', category: 'non-technical', badgeIcon: '🎨' },
+    'memix': { code: 'memix', name: 'memix', specificTitle: 'memix', fullDisplay: 'memix', category: 'non-technical', badgeIcon: '🎨' },
+    '0dcd0759-87af-4bce-9757-5e52833c538b': { code: 'memix', name: 'memix', specificTitle: 'memix', fullDisplay: 'memix', category: 'non-technical', badgeIcon: '🎨' },
+    'detective-404': { code: 'detective-404', name: 'detective 404', specificTitle: 'detective 404', fullDisplay: 'detective 404', category: 'non-technical', badgeIcon: '🎨' },
+    'detective 404': { code: 'detective-404', name: 'detective 404', specificTitle: 'detective 404', fullDisplay: 'detective 404', category: 'non-technical', badgeIcon: '🎨' },
+    '57d56f8c-99c4-4e78-bb57-4c7a6ec47716': { code: 'detective-404', name: 'detective 404', specificTitle: 'detective 404', fullDisplay: 'detective 404', category: 'non-technical', badgeIcon: '🎨' },
   };
 
   const resolveEventMeta = (eventKey: string, categoryFallback?: 'workshop' | 'technical' | 'non-technical') => {
@@ -469,16 +321,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     }
 
     // Heuristics based on text keywords
-    if (lower.includes('paper')) return EVENT_METADATA_MAP['techpaper'];
-    if (lower.includes('evolvex') || lower.includes('project')) return EVENT_METADATA_MAP['evolvex'];
-    if (lower.includes('tracktron') || lower.includes('robot') || lower.includes('line')) return EVENT_METADATA_MAP['tracktron'];
-    if (lower.includes('silicon') || lower.includes('cadence') || lower.includes('vlsi')) return EVENT_METADATA_MAP['silicon-2-gds'];
+    if (lower.includes('silicon') || lower.includes('2gds') || lower.includes('2 gds') || lower.includes('cadence') || lower.includes('vlsi')) return EVENT_METADATA_MAP['silicon-2-gds'];
     if (lower.includes('embedded') || lower.includes('microcontroller')) return EVENT_METADATA_MAP['embedded-system'];
-    if (lower.includes('virtual') || lower.includes('labview') || lower.includes('instrumentation')) return EVENT_METADATA_MAP['virtual-instrumentation'];
+    if (lower.includes('virtual') || lower.includes('labview') || lower.includes('instrumentation') || lower.includes('instrument')) return EVENT_METADATA_MAP['virtual-instrumentation'];
+    if (lower.includes('paper') || lower.includes('techpaper')) return EVENT_METADATA_MAP['techpaper'];
+    if (lower.includes('evolvex') || lower.includes('project')) return EVENT_METADATA_MAP['evolvex'];
+    if (lower.includes('tracktron') || lower.includes('tractron') || lower.includes('robot') || lower.includes('line')) return EVENT_METADATA_MAP['tractron'] || EVENT_METADATA_MAP['tracktron'];
     if (lower.includes('mind') || lower.includes('maze')) return EVENT_METADATA_MAP['mind-maze'];
     if (lower.includes('prompt')) return EVENT_METADATA_MAP['promptify'];
     if (lower.includes('mem')) return EVENT_METADATA_MAP['memix'];
-    if (lower.includes('detective') || lower.includes('circuit')) return EVENT_METADATA_MAP['detective-404'];
+    if (lower.includes('detective') || lower.includes('404')) return EVENT_METADATA_MAP['detective-404'];
 
     const shortName = getShortEventName(clean);
     return {
@@ -500,14 +352,17 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       events: [] as Array<{ code: string; name: string; specificTitle: string; fullDisplay: string; category: 'workshop' | 'technical' | 'non-technical'; badgeIcon: string }>,
     };
 
-    const seenCodes = new Set<string>();
+    const seenKeys = new Set<string>();
 
     const addEventMeta = (keyOrName: string, categoryFallback?: 'workshop' | 'technical' | 'non-technical') => {
       if (!keyOrName) return;
       const meta = resolveEventMeta(keyOrName, categoryFallback);
-      const codeKey = meta.code.toLowerCase();
-      if (!seenCodes.has(codeKey)) {
-        seenCodes.add(codeKey);
+      const nameKey = (meta.name || '').toLowerCase().trim();
+      const codeKey = (meta.code || '').toLowerCase().trim();
+
+      if (nameKey && !seenKeys.has(nameKey) && (!codeKey || !seenKeys.has(codeKey))) {
+        seenKeys.add(nameKey);
+        if (codeKey) seenKeys.add(codeKey);
         result.events.push(meta);
       }
     };
@@ -526,14 +381,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
     (r.selectedTechnicalIds || []).filter(Boolean).forEach((id) => addEventMeta(id, 'technical'));
     (r.selectedNonTechnicalIds || []).filter(Boolean).forEach((id) => addEventMeta(id, 'non-technical'));
-
-    if (result.events.length === 0) {
-      if (isWorkshop) {
-        addEventMeta('embedded system', 'workshop');
-      } else {
-        addEventMeta('techpaper', 'technical');
-      }
-    }
 
     return result;
   };
@@ -561,32 +408,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     const eventObj = events.find(e => e.id === eventId);
     if (!eventObj) return list;
 
-    const targetSlug = (eventObj.slug || '').toLowerCase().replace(/^(tech|ws|non|nontech)-/, '').trim();
-    const targetId = (eventObj.id || '').toLowerCase().replace(/^(tech|ws|non|nontech)-/, '').trim();
-    const targetTitle = (eventObj.title || '').toLowerCase().trim();
+    const normTarget = normalizeStandardEventName(eventObj.slug || eventObj.title || eventObj.id);
 
     (allRegistrations || []).forEach((r) => {
       const spec = getRegistrationSpecificEvents(r);
       const match = spec.events.some((e) => {
-        const c = (e.code || '').toLowerCase();
-        const n = (e.name || '').toLowerCase();
-        const s = (e.specificTitle || '').toLowerCase();
-        return (
-          c === targetSlug ||
-          c === targetId ||
-          n === targetTitle ||
-          s === targetTitle ||
-          (targetSlug.includes('silicon') && (c.includes('silicon') || n.includes('silicon'))) ||
-          (targetSlug.includes('embedded') && (c.includes('embedded') || n.includes('embedded'))) ||
-          (targetSlug.includes('virtual') && (c.includes('virtual') || n.includes('virtual'))) ||
-          (targetSlug.includes('paper') && (c.includes('paper') || n.includes('paper') || s.includes('paper'))) ||
-          (targetSlug.includes('evolvex') && (c.includes('evolvex') || n.includes('evolvex') || s.includes('project'))) ||
-          (targetSlug.includes('tracktron') && (c.includes('tracktron') || n.includes('tracktron') || s.includes('line') || s.includes('robot'))) ||
-          (targetSlug.includes('mind') && (c.includes('mind') || n.includes('mind'))) ||
-          (targetSlug.includes('prompt') && (c.includes('prompt') || n.includes('prompt'))) ||
-          (targetSlug.includes('mem') && (c.includes('mem') || n.includes('mem'))) ||
-          (targetSlug.includes('detective') && (c.includes('detective') || n.includes('detective')))
-        );
+        const normEv = normalizeStandardEventName(e.code || e.name || e.specificTitle);
+        return normEv === normTarget;
       });
 
       if (match) {
@@ -950,7 +778,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
       return [
         r.id,
-        `"${new Date(r.createdAt).toLocaleString('en-IN')}"`,
+        `"${formatDisplayDate(r.createdAt)} ${formatDisplayTime(r.createdAt)}"`,
         `"${spec.trackLabel}"`,
         `"${spec.events.map((e) => e.name).join(', ')}"`,
         `"${r.teamLeader.fullName}"`,
@@ -1297,7 +1125,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               <span className="text-[10px] text-stone-400 normal-case font-normal">Click any event below to expand and view the complete registered participants list.</span>
             </h3>
             <div className="space-y-3 text-xs">
-              {events.map((evt) => {
+              {uniqueEventsList.map((evt) => {
                 const partsList = getParticipantsForEvent(evt.id);
                 const participantCount = partsList.length;
                 const uniqueRegs = new Set(partsList.map(p => p.regId));
@@ -1471,10 +1299,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         <td className="p-3 font-mono font-bold text-stone-900">{r.id}</td>
                         <td className="p-3 text-stone-600 whitespace-nowrap text-xs">
                           <div className="font-semibold text-stone-800">
-                            {new Date(r.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+                            {formatDisplayDate(r.createdAt)}
                           </div>
                           <div className="text-[10px] text-stone-400 font-mono">
-                            {new Date(r.createdAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })}
+                            {formatDisplayTime(r.createdAt)}
                           </div>
                         </td>
                         <td className="p-3 min-w-[220px] max-w-[280px]">

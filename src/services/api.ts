@@ -1,6 +1,7 @@
 import { EventItem, RegistrationRecord, SiteSettings } from '../types';
 import { defaultSettings } from '../data/defaultSettings';
 import { defaultEvents } from '../data/defaultEvents';
+import { formatIsoTimestamp } from '../utils/dateUtils';
 import QRCode from 'qrcode';
 
 const metaEnv = (import.meta as any).env;
@@ -206,7 +207,7 @@ export async function createClientFallbackRegistration(payload: any): Promise<{
   }
   const regId = `EV26-${rand}`;
   const now = new Date();
-  const isoTime = now.toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
+  const isoTime = formatIsoTimestamp(now);
 
   const regData = payload.registrationData || {};
   const participants = regData.participants || [];
