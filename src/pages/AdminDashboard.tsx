@@ -125,37 +125,53 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     // STRICT SORTING: Newest registrations ALWAYS display at the top
     return list.sort((a, b) => {
       const parseTime = (val: unknown, regId?: string): number => {
-        if (val) {
-          if (typeof val === 'number' && !isNaN(val)) return val;
-          let str = String(val).trim();
-          
-          if (str.includes('2026-01-10')) {
-            str = str.replace('2026-01-10', '2026-10-01');
-          } else if (str.includes('2026-01-01')) {
-            str = str.replace('2026-01-01', '2026-10-01');
+        if (!val) return Date.now();
+        if (typeof val === 'number' && !isNaN(val) && val > 0) return val;
+        let str = String(val).trim();
+        if (!str) return Date.now();
+
+        const matchSwappedIso = str.match(/^(\d{4})-0([1-9])-10/);
+        if (matchSwappedIso) {
+          const year = matchSwappedIso[1];
+          const day = matchSwappedIso[2];
+          str = str.replace(/^(\d{4})-0[1-9]-10/, `${year}-10-0${day}`);
+        }
+
+        const matchDMY = str.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})(?:\s+(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?(?:\s*(am|pm))?)?/i);
+        if (matchDMY) {
+          const [, firstStr, secondStr, yearStr, hStr = '0', mStr = '0', sStr = '0', ampm] = matchDMY;
+          let n1 = parseInt(firstStr, 10);
+          let n2 = parseInt(secondStr, 10);
+          let year = parseInt(yearStr, 10);
+          let hours = parseInt(hStr, 10);
+          let minutes = parseInt(mStr, 10);
+          let seconds = parseInt(sStr, 10);
+
+          if (ampm) {
+            if (ampm.toLowerCase() === 'pm' && hours < 12) hours += 12;
+            if (ampm.toLowerCase() === 'am' && hours === 12) hours = 0;
           }
 
-          const matchDMY = str.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})(?:\s+(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?)?/);
-          if (matchDMY) {
-            const [, dayStr, monthStr, year, hours = '0', minutes = '0', seconds = '0'] = matchDMY;
-            const day = parseInt(dayStr, 10);
-            const month = parseInt(monthStr, 10);
-            const parsedD = new Date(
-              parseInt(year, 10),
-              month - 1,
-              day,
-              parseInt(hours, 10),
-              parseInt(minutes, 10),
-              parseInt(seconds, 10)
-            );
-            const t2 = parsedD.getTime();
-            if (!isNaN(t2) && t2 > 0) return t2;
+          let day = n1;
+          let month = n2;
+
+          if (n2 === 10) {
+            day = n1;
+            month = 10;
+          } else if (n1 === 10) {
+            day = n2;
+            month = 10;
           }
 
-          const d = new Date(str);
-          const t = d.getTime();
+          const parsedD = new Date(year, month - 1, day, hours, minutes, seconds);
+          const t = parsedD.getTime();
           if (!isNaN(t) && t > 0) return t;
         }
+
+        const d = new Date(str);
+        const t = d.getTime();
+        if (!isNaN(t) && t > 0) return t;
+
         if (regId) {
           const numMatch = String(regId).match(/\d{6,}/);
           if (numMatch) {
@@ -163,7 +179,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             if (!isNaN(parsedNum) && parsedNum > 0) return parsedNum;
           }
         }
-        return 0;
+
+        return Date.now();
       };
 
       const timeA = parseTime(a.createdAt, a.id);
