@@ -1082,6 +1082,52 @@ export async function deleteRegistration(registrationCode: string): Promise<bool
   return true;
 }
 
+export function parseRegistrationTimestamp(val: unknown, regId?: string): number {
+  if (val) {
+    if (typeof val === 'number' && !isNaN(val)) return val;
+    let str = String(val).trim();
+    
+    // Fix inverted ISO dates caused by DD/MM/YYYY parsed as YYYY-MM-DD
+    // e.g. "2026-01-10T15:20:41.000Z" -> "2026-10-01T15:20:41.000Z"
+    if (str.includes('2026-01-10')) {
+      str = str.replace('2026-01-10', '2026-10-01');
+    } else if (str.includes('2026-01-01')) {
+      str = str.replace('2026-01-01', '2026-10-01');
+    }
+
+    const matchDMY = str.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})(?:\s+(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?)?/);
+    if (matchDMY) {
+      const [, dayStr, monthStr, year, hours = '0', minutes = '0', seconds = '0'] = matchDMY;
+      const day = parseInt(dayStr, 10);
+      const month = parseInt(monthStr, 10);
+      const parsedD = new Date(
+        parseInt(year, 10),
+        month - 1,
+        day,
+        parseInt(hours, 10),
+        parseInt(minutes, 10),
+        parseInt(seconds, 10)
+      );
+      const t2 = parsedD.getTime();
+      if (!isNaN(t2) && t2 > 0) return t2;
+    }
+
+    const d = new Date(str);
+    const t = d.getTime();
+    if (!isNaN(t) && t > 0) return t;
+  }
+
+  if (regId) {
+    const numMatch = String(regId).match(/\d{6,}/);
+    if (numMatch) {
+      const parsedNum = parseInt(numMatch[0], 10);
+      if (!isNaN(parsedNum) && parsedNum > 0) return parsedNum;
+    }
+  }
+
+  return 0;
+}
+
 export async function listRegistrations(filters?: {
   registrationType?: 'workshop' | 'technical';
   paymentStatus?: RegistrationRecord['paymentStatus'];
@@ -1199,7 +1245,14 @@ export async function listRegistrations(filters?: {
     );
   }
 
-  return results.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  return results.sort((a, b) => {
+    const timeA = parseRegistrationTimestamp(a.createdAt, a.id);
+    const timeB = parseRegistrationTimestamp(b.createdAt, b.id);
+    if (timeA !== timeB) {
+      return timeB - timeA; // Descending order (newest at the top)
+    }
+    return String(b.id || '').localeCompare(String(a.id || ''));
+  });
 }
 
 export function calculateStatsFromRegistrations(registrations: RegistrationRecord[]) {

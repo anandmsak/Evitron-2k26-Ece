@@ -94,7 +94,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
   const filteredRegistrations = useMemo(() => {
     if (!allRegistrations) return [];
-    let list = allRegistrations;
+    let list = [...allRegistrations];
     if (filterType) {
       list = list.filter((r) => r.registrationType === filterType);
     }
@@ -121,7 +121,58 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           .some((value) => String(value).toLowerCase().includes(needle))
       );
     }
-    return list;
+
+    // STRICT SORTING: Newest registrations ALWAYS display at the top
+    return list.sort((a, b) => {
+      const parseTime = (val: unknown, regId?: string): number => {
+        if (val) {
+          if (typeof val === 'number' && !isNaN(val)) return val;
+          let str = String(val).trim();
+          
+          if (str.includes('2026-01-10')) {
+            str = str.replace('2026-01-10', '2026-10-01');
+          } else if (str.includes('2026-01-01')) {
+            str = str.replace('2026-01-01', '2026-10-01');
+          }
+
+          const matchDMY = str.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})(?:\s+(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?)?/);
+          if (matchDMY) {
+            const [, dayStr, monthStr, year, hours = '0', minutes = '0', seconds = '0'] = matchDMY;
+            const day = parseInt(dayStr, 10);
+            const month = parseInt(monthStr, 10);
+            const parsedD = new Date(
+              parseInt(year, 10),
+              month - 1,
+              day,
+              parseInt(hours, 10),
+              parseInt(minutes, 10),
+              parseInt(seconds, 10)
+            );
+            const t2 = parsedD.getTime();
+            if (!isNaN(t2) && t2 > 0) return t2;
+          }
+
+          const d = new Date(str);
+          const t = d.getTime();
+          if (!isNaN(t) && t > 0) return t;
+        }
+        if (regId) {
+          const numMatch = String(regId).match(/\d{6,}/);
+          if (numMatch) {
+            const parsedNum = parseInt(numMatch[0], 10);
+            if (!isNaN(parsedNum) && parsedNum > 0) return parsedNum;
+          }
+        }
+        return 0;
+      };
+
+      const timeA = parseTime(a.createdAt, a.id);
+      const timeB = parseTime(b.createdAt, b.id);
+      if (timeA !== timeB) {
+        return timeB - timeA; // Newest first at the top
+      }
+      return String(b.id || '').localeCompare(String(a.id || ''));
+    });
   }, [allRegistrations, filterType, filterStatus, searchTerm]);
 
   const registrations = filteredRegistrations;

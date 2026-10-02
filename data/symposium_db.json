@@ -29,7 +29,7 @@
     "announcementText": "Registrations are now live! Last date for registration is 05/10/2026. Paper abstract submission deadline is 03/10/2026. Cash prizes, welcome kits, food and refreshments included.",
     "announcementActive": true,
     "feePerPerson": 250,
-    "appEnv": "development",
+    "appEnv": "production",
     "showRazorpayPayment": true,
     "googleSheetWebhookUrl": "https://script.google.com/macros/s/AKfycbwQFDmE-3bG517qhy5jP6my90QCKsps5GLn2q7ih3vHJmTq96PikBitSCJgIqyxOqRoaQ/exec",
     "adminNotificationEmails": [
