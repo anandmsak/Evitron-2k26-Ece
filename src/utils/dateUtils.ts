@@ -23,18 +23,20 @@ export function safeParseRegistrationDate(val: any): Date {
       }
 
       return new Date(
-        year,
-        month - 1,
-        day,
-        parseInt(hStr, 10),
-        parseInt(minStr, 10),
-        parseInt(sStr, 10)
+        Date.UTC(
+          year,
+          month - 1,
+          day,
+          parseInt(hStr, 10),
+          parseInt(minStr, 10),
+          parseInt(sStr, 10)
+        )
       );
     }
     const d = new Date(str);
     if (!isNaN(d.getTime())) return d;
   }
-
+ 
   // Handle DD/MM/YYYY or MM/DD/YYYY slash/dash patterns (e.g. "10/03/2026", "03/10/2026", "3/10/2026", "10/3/2026")
   const match = str.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})(?:,\s*(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?\s*(am|pm)?)?/i);
   if (match) {
@@ -74,7 +76,7 @@ export function safeParseRegistrationDate(val: any): Date {
       day = n1;
     }
 
-    return new Date(year, month - 1, day, hours, minutes, seconds);
+    return new Date(Date.UTC(year, month - 1, day, hours, minutes, seconds));
   }
 
   const d = new Date(str);
@@ -87,6 +89,7 @@ export function formatDisplayDate(val: any): string {
     day: '2-digit',
     month: 'short',
     year: 'numeric',
+    timeZone: 'Asia/Kolkata',
   });
 }
 
@@ -96,6 +99,7 @@ export function formatDisplayTime(val: any): string {
     hour: '2-digit',
     minute: '2-digit',
     hour12: true,
+    timeZone: 'Asia/Kolkata',
   });
 }
 

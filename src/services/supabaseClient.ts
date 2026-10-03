@@ -28,15 +28,19 @@ const customFetch: typeof fetch = async (input: RequestInfo | URL, init: Request
   const urlStr = typeof input === 'string' ? input : input instanceof URL ? input.toString() : (input as Request).url;
 
   const headers = new Headers(init?.headers || (typeof input === 'object' && 'headers' in input ? (input as Request).headers : {}));
-  // Strip any 'apikey' header so Google Cloud ESP / Cloud Run proxy does NOT interpret it as an unregistered GCP API Key
-  headers.delete('apikey');
+  // Rename 'apikey' header so Google Cloud ESP / Cloud Run proxy does NOT interpret it as an unregistered GCP API Key
+  const key = headers.get('apikey');
+  if (key) {
+    headers.set('x-supabase-key', key);
+    headers.delete('apikey');
+  }
   headers.delete('ApiKey');
   headers.delete('APIKEY');
 
   // In Node.js server test environment
   if (typeof window === 'undefined') {
-    const key = (typeof process !== 'undefined' && process.env?.SUPABASE_SECRET_KEY) ? process.env.SUPABASE_SECRET_KEY : supabaseAnonKey;
-    headers.set('Authorization', `Bearer ${key}`);
+    const secret = (typeof process !== 'undefined' && process.env?.SUPABASE_SECRET_KEY) ? process.env.SUPABASE_SECRET_KEY : supabaseAnonKey;
+    headers.set('Authorization', `Bearer ${secret}`);
     return fetch(input, { ...init, headers });
   }
 
