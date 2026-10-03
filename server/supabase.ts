@@ -44,8 +44,10 @@ const adminCustomFetch: typeof fetch = async (input: RequestInfo | URL, init: Re
   const method = (init.method || (typeof input === 'object' && 'method' in input ? (input as Request).method : 'GET')).toUpperCase();
 
   const headers = new Headers(init.headers || (typeof input === 'object' && 'headers' in input ? (input as Request).headers : {}));
+  headers.delete('apikey');
+  headers.delete('ApiKey');
+  headers.delete('APIKEY');
   if (supabaseKey) {
-    headers.set('apikey', supabaseKey);
     headers.set('Authorization', `Bearer ${supabaseKey}`);
   }
 

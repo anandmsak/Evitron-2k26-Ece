@@ -180,7 +180,9 @@ app.all('/api/supabase-proxy/*', wrap(async (req, res) => {
   }
 
   const headers = new Headers();
-  headers.set('apikey', supabaseKey);
+  headers.delete('apikey');
+  headers.delete('ApiKey');
+  headers.delete('APIKEY');
   headers.set('Authorization', `Bearer ${supabaseKey}`);
   if (req.headers['content-type']) {
     headers.set('content-type', req.headers['content-type'] as string);

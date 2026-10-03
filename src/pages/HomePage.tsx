@@ -412,57 +412,19 @@ export const HomePage: React.FC<HomePageProps> = ({ settings: propSettings, even
               </a>
             </div>
 
-            {/* Right Map Visual Display Card */}
-            <div className="lg:col-span-2 h-[320px] sm:h-[380px] bg-gradient-to-br from-stone-900 via-stone-850 to-stone-950 rounded-xl border border-stone-800 overflow-hidden relative shadow-xl flex flex-col justify-between p-6 sm:p-8">
-              <div className="absolute inset-0 bg-[radial-gradient(#B22222_1px,transparent_1px)] [background-size:16px_16px] opacity-20"></div>
-              
-              <div className="relative z-10 flex items-start justify-between">
-                <div>
-                  <span className="inline-block px-3 py-1 bg-red-950/80 text-red-400 border border-red-800/60 rounded-full text-[11px] font-bold tracking-wider uppercase mb-2">
-                    Campus Location
-                  </span>
-                  <h4 className="text-xl sm:text-2xl font-black text-white tracking-tight">
-                    Mahendra Engineering College
-                  </h4>
-                  <p className="text-xs sm:text-sm text-stone-300 font-medium mt-1">
-                    Mallasamudram, Vadugapalayam, Salem - Tiruchengode Highway, Namakkal District, Tamil Nadu 637503
-                  </p>
-                </div>
-                <div className="w-10 h-10 rounded-xl bg-red-600/20 border border-red-500/40 flex items-center justify-center shrink-0 text-red-400">
-                  <MapPin className="w-5 h-5" />
-                </div>
-              </div>
-
-              <div className="relative z-10 grid grid-cols-2 sm:grid-cols-3 gap-3 my-auto">
-                <div className="p-3 rounded-lg bg-stone-900/90 border border-stone-800">
-                  <div className="text-[10px] text-stone-400 font-semibold uppercase">Nearest Railway</div>
-                  <div className="text-xs font-bold text-white mt-0.5">Salem Junction (30 km)</div>
-                </div>
-                <div className="p-3 rounded-lg bg-stone-900/90 border border-stone-800">
-                  <div className="text-[10px] text-stone-400 font-semibold uppercase">Nearest Airport</div>
-                  <div className="text-xs font-bold text-white mt-0.5">Coimbatore / Tiruchirappalli</div>
-                </div>
-                <div className="p-3 rounded-lg bg-stone-900/90 border border-stone-800 col-span-2 sm:col-span-1">
-                  <div className="text-[10px] text-stone-400 font-semibold uppercase">Coordinates</div>
-                  <div className="text-xs font-mono font-bold text-red-400 mt-0.5">11.481° N, 78.025° E</div>
-                </div>
-              </div>
-
-              <div className="relative z-10 flex items-center justify-between pt-3 border-t border-stone-800">
-                <div className="flex items-center gap-2">
-                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                  <span className="text-xs font-bold text-stone-200">Main Auditorium & EEE Blocks Open</span>
-                </div>
-                <a
-                  href="https://maps.google.com/?cid=12198427761806371998&entry=gps"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-lg flex items-center gap-1.5 transition-colors cursor-pointer"
-                >
-                  <span>Launch GPS Directions</span>
-                  <ExternalLink className="w-3.5 h-3.5" />
-                </a>
-              </div>
+            {/* Right Map Embed iframe */}
+            <div className="lg:col-span-2 h-[320px] sm:h-[380px] bg-stone-100 rounded-xl border border-stone-300 overflow-hidden relative shadow-inner">
+              <iframe
+                title="Mahendra Engineering College Campus Map"
+                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3910.783187216692!2d78.02187317588722!3d11.481232846927584!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3babbf485e94b15d%3A0xa94b9aa1eb2c6abe!2sMahendra%20Engineering%20College!5e0!3m2!1sen!2sin!4v1711234567890!5m2!1sen!2sin"
+                width="100%"
+                height="100%"
+                style={{ border: 0 }}
+                allowFullScreen
+                loading="lazy"
+                referrerPolicy="no-referrer-when-downgrade"
+                className="w-full h-full rounded-xl"
+              ></iframe>
             </div>
           </div>
         </div>
