@@ -43,7 +43,8 @@ import {
   getShortEventName,
   fetchPaymentProof,
 } from '../services/api';
-import { formatDisplayDate, formatDisplayTime, safeParseRegistrationDate, normalizeStandardEventName } from '../utils/dateUtils';
+import { formatDisplayDate, formatDisplayTime, safeParseRegistrationDate } from '../utils/dateUtils';
+import { normalizeEventName } from '../data/eventMapping';
 
 import { isEventClosedStrict } from '../utils/closureUtils';
 
@@ -223,7 +224,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     const seen = new Set<string>();
     const list: EventItem[] = [];
     for (const e of events || []) {
-      const norm = normalizeStandardEventName(e.slug || e.title || e.id);
+      const norm = normalizeEventName(e.slug || e.title || e.id);
       if (!seen.has(norm)) {
         seen.add(norm);
         list.push(e);
@@ -408,12 +409,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     const eventObj = events.find(e => e.id === eventId);
     if (!eventObj) return list;
 
-    const normTarget = normalizeStandardEventName(eventObj.slug || eventObj.title || eventObj.id);
+    const normTarget = normalizeEventName(eventObj.slug || eventObj.title || eventObj.id);
 
     (allRegistrations || []).forEach((r) => {
       const spec = getRegistrationSpecificEvents(r);
       const match = spec.events.some((e) => {
-        const normEv = normalizeStandardEventName(e.code || e.name || e.specificTitle);
+        const normEv = normalizeEventName(e.code || e.name || e.specificTitle);
         return normEv === normTarget;
       });
 

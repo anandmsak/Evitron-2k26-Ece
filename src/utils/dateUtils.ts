@@ -114,17 +114,10 @@ export function formatIsoTimestamp(val: any): string {
   return `${YYYY}-${MM}-${DD} ${HH}:${mm}:${ss}`;
 }
 
+import { normalizeEventName } from '../data/eventMapping';
+
+// ... (other functions)
+
 export function normalizeStandardEventName(raw: string | undefined | null): string {
-  const lower = String(raw || '').toLowerCase().trim();
-  if (lower.includes('silicon') || lower.includes('2gds') || lower.includes('2 gds')) return 'silicon 2 gds';
-  if (lower.includes('tractron') || lower.includes('tracktron')) return 'tractron';
-  if (lower.includes('embedded')) return 'embedded system';
-  if (lower.includes('virtual') || lower.includes('instrument')) return 'virtual instrument';
-  if (lower.includes('techpaper') || lower.includes('paper presentation') || lower.includes('paper')) return 'techpaper';
-  if (lower.includes('evolvex') || lower.includes('project')) return 'evolvex';
-  if (lower.includes('detective') || lower.includes('404')) return 'detective 404';
-  if (lower.includes('prompt')) return 'promptify';
-  if (lower.includes('mind') || lower.includes('maze')) return 'mind maze';
-  if (lower.includes('mem')) return 'memix';
-  return lower;
+  return normalizeEventName(raw);
 }
