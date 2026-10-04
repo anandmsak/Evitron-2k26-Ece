@@ -8,7 +8,6 @@ const DEFAULT_SUPABASE_KEY =
 export function sanitizeSupabaseUrl(rawUrl?: string): string {
   if (!rawUrl || !rawUrl.trim()) return DEFAULT_SUPABASE_URL;
   let cleaned = rawUrl.trim().replace(/\/+$/, '');
-  // Strip accidental /rest/v1 or similar paths
   cleaned = cleaned.replace(/\/rest\/v1\/?.*$/i, '');
   return cleaned || DEFAULT_SUPABASE_URL;
 }
@@ -38,7 +37,7 @@ export function isSupabaseConfigured(): boolean {
   );
 }
 
-// Custom Fetch for Supabase Admin to provide full column alignment and accurate event queries
+// Custom Fetch: Guarantees headers are present on every backend call
 const adminCustomFetch: typeof fetch = async (input: RequestInfo | URL, init: RequestInit = {}) => {
   const urlStr = typeof input === 'string' ? input : input instanceof URL ? input.toString() : (input as Request).url;
   const method = (init.method || (typeof input === 'object' && 'method' in input ? (input as Request).method : 'GET')).toUpperCase();
@@ -48,7 +47,6 @@ const adminCustomFetch: typeof fetch = async (input: RequestInfo | URL, init: Re
   headers.set('apikey', activeKey);
   headers.set('Authorization', `Bearer ${activeKey}`);
 
-  // Try live Supabase PostgREST query first using master credentials
   try {
     const liveResponse = await fetch(input, { ...init, headers });
     if (liveResponse.ok) {
@@ -59,9 +57,9 @@ const adminCustomFetch: typeof fetch = async (input: RequestInfo | URL, init: Re
     console.warn(`[SUPABASE NETWORK EXCEPTION] ${urlStr}:`, err?.message || err);
   }
 
-  // If live query failed and this is a read query on registrations (select, filter, count), gracefully fallback to local CSV
+  // Graceful fallback to CSV dataset for offline query handling
   if ((method === 'GET' || method === 'HEAD') && urlStr.includes('/rest/v1/registrations')) {
-    const postgrestResult = handleRegistrationsPostgrest(urlStr, method, init.headers);
+    const postgrestResult = handleRegistrationsPostgrest(urlStr, method, headers);
     if (postgrestResult.handled) {
       return new Response(JSON.stringify(postgrestResult.body), {
         status: postgrestResult.status,
@@ -106,7 +104,7 @@ export async function testSupabaseConnection(): Promise<{
       return { connected: false, count: null, error: error.message };
     }
 
-    console.log(`[SUPABASE TEST SUCCESS] Connected to ${supabaseUrl}. Total registrations row count: ${count}`);
+    console.log(`[SUPABASE TEST SUCCESS] Connected to ${supabaseUrl}. Total row count: ${count}`);
     return { connected: true, count: count ?? 0 };
   } catch (err: any) {
     console.error('[SUPABASE TEST EXCEPTION]', err?.message || err);
@@ -121,7 +119,6 @@ export async function uploadPaymentScreenshotToSupabase(
   if (!base64OrUrl || !base64OrUrl.trim()) return '';
   const raw = base64OrUrl.trim();
 
-  // If already a valid public HTTP(S) URL, return it
   if (raw.startsWith('http://') || raw.startsWith('https://')) {
     return raw;
   }
@@ -132,9 +129,7 @@ export async function uploadPaymentScreenshotToSupabase(
 
   try {
     const match = raw.match(/^data:(image\/[a-zA-Z0-9\+\-]+|application\/pdf);base64,(.+)$/i);
-    if (!match) {
-      return raw;
-    }
+    if (!match) return raw;
 
     const mimeType = match[1];
     const base64Data = match[2];
@@ -148,7 +143,6 @@ export async function uploadPaymentScreenshotToSupabase(
     const BUCKET_NAME = 'payment-proofs';
     const filePath = `screenshots/${registrationCode}_${Date.now()}.${ext}`;
 
-    // Ensure bucket exists with public access
     try {
       await supabaseAdmin.storage.createBucket(BUCKET_NAME, { public: true });
     } catch {}
@@ -170,7 +164,6 @@ export async function uploadPaymentScreenshotToSupabase(
       .getPublicUrl(filePath);
 
     if (publicUrlData?.publicUrl) {
-      console.log(`[SUPABASE STORAGE] Screenshot successfully uploaded for ${registrationCode}: ${publicUrlData.publicUrl}`);
       return publicUrlData.publicUrl;
     }
     return raw;
@@ -179,4 +172,3 @@ export async function uploadPaymentScreenshotToSupabase(
     return raw;
   }
 }
-

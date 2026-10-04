@@ -12,7 +12,7 @@ import {
 } from './server/supabase.js';
 import { handleRegistrationsPostgrest } from './server/liveDataset.js';
 import * as repository from './server/repository.js';
-import { generateQrDataUrl, buildUpiUri, buildAttendeeQrText } from './server/qr.js';
+import { generateQrDataUrl, buildAttendeeQrText } from './server/qr.js';
 import {
   sendRegistrationConfirmationEmail,
   sendAdminNewRegistrationNotification,
@@ -20,8 +20,8 @@ import {
   emailAuditLog,
 } from './server/email.js';
 import { syncRegistrationToGoogleSheet, syncAllRegistrationsToGoogleSheet, deleteRegistrationFromGoogleSheet, formatIsoTimestamp } from './server/googleSheet.js';
-import { Participant, RegistrationRecord } from './src/types.js';
-import { getPricePerPerson, isEarlyBirdActive } from './server/pricing.js';
+import { Participant } from './src/types.js';
+import { getPricePerPerson } from './server/pricing.js';
 import { readClosedWorkshops, closeWorkshops, openWorkshops } from './server/closureStore.js';
 import { isEventClosedStrict } from './src/utils/closureUtils.js';
 
@@ -85,7 +85,6 @@ function cleanWorkshopTitle(raw: string | undefined): string {
 const PORT = 3000;
 const app = express();
 
-// Middleware for parsing JSON with raw body capture for webhook signature verification
 app.use(
   express.json({
     limit: '8mb',
@@ -96,7 +95,6 @@ app.use(
 );
 app.use(express.urlencoded({ extended: true, limit: '8mb' }));
 
-// Cryptographic stateless signed token system
 const TOKEN_SECRET = process.env.ADMIN_PASSWORD || 'Evitron26@mec.ece#07';
 
 function generateToken(): string {
@@ -121,7 +119,6 @@ function verifyToken(token: string): boolean {
   }
 }
 
-// Helper to authenticate admin requests
 function requireAdmin(req: express.Request, res: express.Response, next: express.NextFunction) {
   const authHeader = req.headers.authorization;
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -154,19 +151,18 @@ app.get('/api/health', wrap(async (_req, res) => {
   res.json({
     status: 'ok',
     symposium: 'EVITRON 2K26',
-    timestamp: new Date().toISOString(),
+    timestamp: formatIsoTimestamp(new Date()),
     environment: currentEnv,
     supabase: supabaseTest,
   });
 }));
 
-// Supabase proxy to guarantee secure, stable real-time RLS query access for frontend
+// Supabase proxy: Injects verified server master key to prevent "Unregistered API key"
 app.all('/api/supabase-proxy/*', wrap(async (req, res) => {
   const targetPath = req.url.replace(/^\/api\/supabase-proxy/, '');
   const targetUrl = `${supabaseUrl}${targetPath}`;
   const method = req.method.toUpperCase();
 
-  // If this is a read query on registrations (select, filter, count)
   if ((method === 'GET' || method === 'HEAD') && targetPath.includes('/rest/v1/registrations')) {
     const postgrestResult = handleRegistrationsPostgrest(targetUrl, method, req.headers as any);
     if (postgrestResult.handled) {
@@ -177,10 +173,10 @@ app.all('/api/supabase-proxy/*', wrap(async (req, res) => {
   }
 
   const headers = new Headers();
-  const incomingKey = (req.headers['apikey'] || req.headers['x-supabase-key'] || supabaseKey || '') as string;
-  headers.set('apikey', incomingKey);
-  headers.set('Authorization', `Bearer ${incomingKey}`);
-  headers.delete('x-supabase-key');
+  const effectiveKey = supabaseKey || (req.headers['apikey'] as string) || '';
+  headers.set('apikey', effectiveKey);
+  headers.set('Authorization', `Bearer ${effectiveKey}`);
+  
   if (req.headers['content-type']) {
     headers.set('content-type', req.headers['content-type'] as string);
   }
@@ -209,7 +205,6 @@ app.all('/api/supabase-proxy/*', wrap(async (req, res) => {
   res.send(data);
 }));
 
-// GET site settings
 app.get('/api/settings', wrap(async (_req, res) => {
   const settings = await repository.getSiteSettings();
   const currentEnv = settings.appEnv || 'production';
@@ -228,13 +223,11 @@ app.get('/api/settings', wrap(async (_req, res) => {
   });
 }));
 
-// GET all active events
 app.get('/api/events', wrap(async (_req, res) => {
   const events = await repository.getEvents(false);
   res.json(events);
 }));
 
-// GET single event by slug
 app.get('/api/events/:slug', wrap(async (req, res) => {
   const event = await repository.getEventBySlug(req.params.slug);
   if (!event) {
@@ -243,7 +236,6 @@ app.get('/api/events/:slug', wrap(async (req, res) => {
   res.json(event);
 }));
 
-// VALIDATION HELPER FOR REGISTRATION RULES
 async function validateRegistrationRules(body: {
   registrationType: 'workshop' | 'technical';
   selectedWorkshopId?: string;
@@ -261,10 +253,9 @@ async function validateRegistrationRules(body: {
     };
   }
 
-  // Enforce workshop and event closures on the backend strictly
   let closedEvents: string[];
   try {
-    closedEvents = await readClosedWorkshops(); // always from durable store, fail closed
+    closedEvents = await readClosedWorkshops();
   } catch (err: any) {
     console.error('[CLOSURE] validation read failed:', err?.message || err);
     return { valid: false, status: 503, error: 'Unable to verify event availability right now. Please try again in a moment.' };
@@ -301,10 +292,7 @@ async function validateRegistrationRules(body: {
     }
   }
 
-  const {
-    registrationType,
-    participants,
-  } = body;
+  const { registrationType, participants } = body;
 
   if (!Array.isArray(participants)) {
     return {
@@ -450,7 +438,7 @@ async function validateRegistrationRules(body: {
       return {
         valid: false,
         status: 400,
-        error: `Technical symposium registration requires 2 to 4 participants per team (minimum 2 compulsory, maximum 4 total including team lead). You provided ${participants.length}.`,
+        error: `Technical symposium registration requires 2 to 4 participants per team. You provided ${participants.length}.`,
       };
     }
 
@@ -475,7 +463,6 @@ async function validateRegistrationRules(body: {
   return { valid: false, status: 400, error: 'Invalid registration category.' };
 }
 
-// POST register-upi & POST register (UPI payment submission with payment screenshot upload)
 const handleRegistrationSubmit = async (req: express.Request, res: express.Response) => {
   const { registrationData, upiReference, screenshotDriveProof, paymentProofUrl } = req.body;
   const proofData = screenshotDriveProof || paymentProofUrl || '';
@@ -543,7 +530,6 @@ const handleRegistrationSubmit = async (req: express.Request, res: express.Respo
 app.post('/api/register-upi', wrap(handleRegistrationSubmit));
 app.post('/api/register', wrap(handleRegistrationSubmit));
 
-// Ingest / sync registration directly into Supabase (e.g. from client fallback)
 app.post('/api/sync-registration', wrap(async (req, res) => {
   const { registration } = req.body;
   if (!registration || !registration.id) {
@@ -553,7 +539,6 @@ app.post('/api/sync-registration', wrap(async (req, res) => {
   res.json({ success, registrationId: registration.id });
 }));
 
-// GET single registration by Registration ID
 app.get('/api/registration/:id', wrap(async (req, res) => {
   const reg = await repository.getRegistrationById(req.params.id);
   if (!reg) {
@@ -613,7 +598,6 @@ app.get('/api/registration/:id', wrap(async (req, res) => {
   });
 }));
 
-// POST Mark Attendance (Admin secured)
 app.post('/api/attendance/mark', requireAdmin, wrap(async (req, res) => {
   const { registrationId } = req.body;
   if (!registrationId) {
@@ -681,7 +665,6 @@ function broadcastToAdmins(data: any) {
   }
 }
 
-// Keep connections alive with heartbeat
 setInterval(() => {
   broadcastToAdmins({ type: 'heartbeat' });
 }, 15000);
@@ -699,19 +682,15 @@ if (isSupabaseConfigured()) {
   supabaseAdmin
     .channel('admin-db-changes')
     .on('postgres_changes', { event: '*', schema: 'public', table: 'registrations' }, () => {
-      console.log('[REAL-TIME] Live registrations table update detected!');
       scheduleBroadcast();
     })
     .on('postgres_changes', { event: '*', schema: 'public', table: 'participants' }, () => {
-      console.log('[REAL-TIME] Live participants table update detected!');
       scheduleBroadcast();
     })
     .on('postgres_changes', { event: '*', schema: 'public', table: 'payments' }, () => {
-      console.log('[REAL-TIME] Live payments table update detected!');
       scheduleBroadcast();
     })
     .on('postgres_changes', { event: '*', schema: 'public', table: 'registration_events' }, () => {
-      console.log('[REAL-TIME] Live registration_events table update detected!');
       scheduleBroadcast();
     })
     .subscribe();
@@ -753,13 +732,15 @@ app.get('/api/admin/registrations', requireAdmin, wrap(async (req, res) => {
   res.json({ registrations, stats });
 }));
 
+// Route for immediate status updates and email dispatch
 app.patch('/api/admin/registrations/:id/status', requireAdmin, wrap(async (req, res) => {
   const { status } = req.body;
   if (!['paid', 'pending_verification', 'failed'].includes(status)) {
     return res.status(400).json({ error: 'Invalid status' });
   }
 
-  const updated = await repository.updateRegistrationPayment(req.params.id, { paymentStatus: status });
+  const cleanId = String(req.params.id).trim().toUpperCase();
+  const updated = await repository.updateRegistrationPayment(cleanId, { paymentStatus: status });
   if (!updated) {
     return res.status(404).json({ error: 'Registration not found' });
   }
@@ -830,7 +811,6 @@ app.delete('/api/admin/registrations/:id', requireAdmin, wrap(async (req, res) =
     return res.status(404).json({ error: 'Registration not found' });
   }
 
-  // Trigger Google Sheet deletion asynchronously
   deleteRegistrationFromGoogleSheet(regId).catch(() => {});
 
   res.json({ success: true, message: `Registration ${regId} deleted successfully` });

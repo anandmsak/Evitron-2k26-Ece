@@ -1,7 +1,6 @@
-// server/liveDataset.ts
 import fs from 'fs';
 import path from 'path';
-import { safeParseRegistrationDate } from './googleSheet.js';
+import { safeParseRegistrationDate, formatIsoTimestamp } from './googleSheet.js';
 
 export interface CsvRegistrationRow {
   id: string;
@@ -36,14 +35,7 @@ export interface CsvRegistrationRow {
 
 export function formatToIsoStandard(str: string): string {
   if (!str) return '2026-10-02 00:00:00';
-  const d = safeParseRegistrationDate(str);
-  const YYYY = d.getFullYear();
-  const MM = String(d.getMonth() + 1).padStart(2, '0');
-  const DD = String(d.getDate()).padStart(2, '0');
-  const HH = String(d.getHours()).padStart(2, '0');
-  const mm = String(d.getMinutes()).padStart(2, '0');
-  const ss = String(d.getSeconds()).padStart(2, '0');
-  return `${YYYY}-${MM}-${DD} ${HH}:${mm}:${ss}`;
+  return formatIsoTimestamp(str);
 }
 
 function parseCSVLine(line: string): string[] {
@@ -133,10 +125,9 @@ export function loadCsvRegistrations(): CsvRegistrationRow[] {
     const attendanceStatus = (r[19] || 'Absent').trim();
     const lastUpdated = r[20] || rawTimestamp;
 
-    const createdAt = formatToIsoStandard(rawTimestamp);
-    const updatedAt = formatToIsoStandard(lastUpdated);
+    const createdAt = formatIsoTimestamp(rawTimestamp);
+    const updatedAt = formatIsoTimestamp(lastUpdated);
 
-    // Standardize registration_events
     const eventList = parseStandardEventsFromText(rawEvents);
     const standardEventStr = eventList.join(', ');
 
@@ -181,9 +172,6 @@ export function reloadCsvRegistrations(): CsvRegistrationRow[] {
   return loadCsvRegistrations();
 }
 
-/**
- * Handles PostgREST GET and HEAD requests on /rest/v1/registrations
- */
 export function handleRegistrationsPostgrest(
   urlStr: string,
   method: string = 'GET',
@@ -198,7 +186,6 @@ export function handleRegistrationsPostgrest(
     const rows = loadCsvRegistrations();
     let filtered = [...rows];
 
-    // Read headers
     let preferCount = false;
     let head = method.toUpperCase() === 'HEAD';
 
@@ -216,14 +203,12 @@ export function handleRegistrationsPostgrest(
       }
     }
 
-    // Check query params
     const select = url.searchParams.get('select');
     if (url.searchParams.get('head') === 'true') {
       head = true;
       preferCount = true;
     }
 
-    // Filter by registration_events
     const eventEq = url.searchParams.get('registration_events') || url.searchParams.get('registered_events');
     if (eventEq) {
       const cleanEq = eventEq.replace(/^eq\./i, '').trim().toLowerCase();
@@ -233,21 +218,18 @@ export function handleRegistrationsPostgrest(
       });
     }
 
-    // Filter by registration_code or id
     const codeEq = url.searchParams.get('registration_code') || url.searchParams.get('id');
     if (codeEq) {
       const cleanCode = codeEq.replace(/^eq\./i, '').trim().toUpperCase();
       filtered = filtered.filter(r => r.registration_code.toUpperCase() === cleanCode || r.id.toUpperCase() === cleanCode);
     }
 
-    // Filter by payment_status
     const statusEq = url.searchParams.get('payment_status');
     if (statusEq) {
       const cleanStatus = statusEq.replace(/^eq\./i, '').trim().toLowerCase();
       filtered = filtered.filter(r => r.payment_status.toLowerCase() === cleanStatus);
     }
 
-    // Filter by registration_type
     const typeEq = url.searchParams.get('registration_type');
     if (typeEq) {
       const cleanType = typeEq.replace(/^eq\./i, '').trim().toLowerCase();
@@ -257,7 +239,6 @@ export function handleRegistrationsPostgrest(
     const totalCount = filtered.length;
     let resultData: any[] = filtered;
 
-    // Apply projection if specific columns requested
     if (select && select !== '*' && !select.includes('(*)')) {
       const fields = select.split(',').map(s => s.trim()).filter(Boolean);
       resultData = filtered.map(row => {

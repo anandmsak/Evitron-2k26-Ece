@@ -1,13 +1,3 @@
-/**
- * EVITRON 2K26 - National Level Technical Symposium & Workshop
- * Department of Electronics and Communication Engineering
- * Mahendra Engineering College (Autonomous)
- * 
- * High-Performance, Concurrency-Hardened Google Apps Script Webhook
- * Built to withstand 50+ simultaneous registrations and instant Event-Day QR Check-Ins
- * without lag, row-collapsing, or column-shifting.
- */
-
 const SHEET_NAME = 'Registrations';
 
 const STANDARD_HEADERS = [
@@ -34,12 +24,6 @@ const STANDARD_HEADERS = [
   'Last Updated'
 ];
 
-/**
- * Extracts strictly clean workshop title:
- * - "silicon 2gds"
- * - "Embedded System"
- * - "Virtual instrument"
- */
 function cleanWorkshopTitle(raw) {
   if (!raw) return '';
   const s = String(raw).toLowerCase();
@@ -55,9 +39,6 @@ function cleanWorkshopTitle(raw) {
   return String(raw).trim();
 }
 
-/**
- * Clean short event names without lengthy descriptions or taglines
- */
 function cleanEventShortName(raw) {
   if (!raw) return '';
   const s = String(raw).toLowerCase().trim();
@@ -74,22 +55,22 @@ function cleanEventShortName(raw) {
   return String(raw).replace(/^(tech|ws|non|nontech)-/i, '').trim();
 }
 
-/**
- * Parses timestamps safely across Indian and International regional formats
- */
+function formatISTIsoString(d) {
+  if (!d || isNaN(d.getTime())) d = new Date();
+  return Utilities.formatDate(d, 'Asia/Kolkata', 'yyyy-MM-dd HH:mm:ss');
+}
+
 function parseSheetDateToISO(cellValue) {
-  if (!cellValue) return new Date().toISOString();
+  if (!cellValue) return formatISTIsoString(new Date());
   if (cellValue instanceof Date && !isNaN(cellValue.getTime())) {
-    return cellValue.toISOString();
+    return formatISTIsoString(cellValue);
   }
 
   const str = String(cellValue).trim();
-  const direct = new Date(str);
-  if (!isNaN(direct.getTime())) {
-    return direct.toISOString();
+  if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(str)) {
+    return str;
   }
 
-  // Handle DD/MM/YYYY, HH:MM:SS format
   const match = str.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})(?:,\s*(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?\s*(am|pm)?)?/i);
   if (match) {
     const day = parseInt(match[1], 10);
@@ -105,16 +86,18 @@ function parseSheetDateToISO(cellValue) {
 
     const parsed = new Date(year, month, day, hours, minutes, seconds);
     if (!isNaN(parsed.getTime())) {
-      return parsed.toISOString();
+      return formatISTIsoString(parsed);
     }
   }
 
-  return new Date().toISOString();
+  const direct = new Date(str);
+  if (!isNaN(direct.getTime())) {
+    return formatISTIsoString(direct);
+  }
+
+  return formatISTIsoString(new Date());
 }
 
-/**
- * Handle incoming POST requests from the EVITRON 2K26 app server & QR Scanner apps
- */
 function doPost(e) {
   if (!e || !e.postData || !e.postData.contents) {
     return ContentService.createTextOutput(
@@ -131,13 +114,11 @@ function doPost(e) {
     ).setMimeType(ContentService.MimeType.JSON);
   }
 
-  // Accept regId, id, code, or full scanned QR text
   let rawInputId = String(data.regId || data.id || data.code || data.data || data.qrText || '').trim();
   if (!rawInputId && typeof data === 'string') {
     rawInputId = data.trim();
   }
 
-  // Extract EV26-XXXXXX from whatever text was scanned
   const idMatch = rawInputId.match(/EV26-[A-Z0-9]{6}/i);
   const regId = idMatch ? idMatch[0].toUpperCase() : rawInputId.toUpperCase();
 
@@ -147,9 +128,8 @@ function doPost(e) {
     ).setMimeType(ContentService.MimeType.JSON);
   }
 
-  // ========================================================
-  // 1. ATTENDANCE SCANNER POST HANDLER
-  // ========================================================
+  const nowIST = formatISTIsoString(new Date());
+
   if (
     data.action === 'markAttendance' ||
     data.action === 'attendance' ||
@@ -163,13 +143,11 @@ function doPost(e) {
         const ss = SpreadsheetApp.getActiveSpreadsheet();
         let sheet = ss.getSheetByName(SHEET_NAME) || ss.getSheets()[0];
         const rows = sheet.getDataRange().getValues();
-        const nowKolkata = new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
 
         for (let r = 1; r < rows.length; r++) {
           if (String(rows[r][0]).trim().toUpperCase() === regId) {
-            // Col 20: Attendance Status, Col 21: Last Updated
             sheet.getRange(r + 1, 20).setValue('Present');
-            sheet.getRange(r + 1, 21).setValue(nowKolkata);
+            sheet.getRange(r + 1, 21).setValue(nowIST);
             SpreadsheetApp.flush();
 
             return ContentService.createTextOutput(
@@ -182,7 +160,7 @@ function doPost(e) {
                 track: rows[r][2],
                 events: rows[r][3],
                 attendance: 'Present',
-                updatedAt: nowKolkata
+                updatedAt: nowIST
               })
             ).setMimeType(ContentService.MimeType.JSON);
           }
@@ -205,9 +183,6 @@ function doPost(e) {
     }
   }
 
-  // ========================================================
-  // 2. REGISTRATION DELETION HANDLER
-  // ========================================================
   if (data.action === 'delete' || data.isDelete) {
     const lock = LockService.getScriptLock();
     if (lock.tryLock(25000)) {
@@ -232,11 +207,6 @@ function doPost(e) {
     ).setMimeType(ContentService.MimeType.JSON);
   }
 
-  // ========================================================
-  // 3. NEW OR UPDATED REGISTRATION HANDLER
-  // ========================================================
-
-  // Drive upload outside lock
   let driveLink = 'N/A';
   if (data.paymentProofData && String(data.paymentProofData).indexOf('data:') === 0) {
     try {
@@ -248,7 +218,6 @@ function doPost(e) {
     driveLink = String(data.paymentProofData).trim();
   }
 
-  // Format Event and Track names cleanly
   const isWorkshop = String(data.track || '').toLowerCase().indexOf('workshop') !== -1 ||
     String(data.events || '').toLowerCase().indexOf('workshop') !== -1 ||
     String(data.selectedWorkshopId || '').length > 0;
@@ -319,26 +288,11 @@ function doPost(e) {
       return fallbackIdx;
     }
 
-    const nowKolkata = new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
-
-    function formatTimestampValue(rawVal) {
-      if (!rawVal || rawVal === 'Invalid Date') return nowKolkata;
-      const str = String(rawVal).trim();
-      if (/^\d{1,2}[\/\-]\d{1,2}[\/\-]\d{4}/.test(str)) {
-        return str;
-      }
-      const d = new Date(str);
-      if (!isNaN(d.getTime())) {
-        return d.toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
-      }
-      return nowKolkata;
-    }
-
-    const createdAtKolkata = formatTimestampValue(data.timestamp || data.createdAt);
+    const createdAtIST = parseSheetDateToISO(data.timestamp || data.createdAt);
 
     const fields = [
       { names: ['Registration ID', 'reg id', 'id'], val: regId, defIdx: 0 },
-      { names: ['Timestamp', 'date', 'created at'], val: createdAtKolkata, defIdx: 1 },
+      { names: ['Timestamp', 'date', 'created at'], val: createdAtIST, defIdx: 1 },
       { names: ['Track / Category', 'track', 'category'], val: trackLabel, defIdx: 2 },
       { names: ['Registered Events', 'events', 'event'], val: cleanEvents, defIdx: 3 },
       { names: ['Team Leader Name', 'leader name', 'name'], val: data.leaderName || '', defIdx: 4 },
@@ -357,7 +311,7 @@ function doPost(e) {
       { names: ['Payment Ref / UTR', 'utr', 'ref id'], val: data.paymentRef || '', defIdx: 17 },
       { names: ['Payment Proof / Link', 'drive link', 'proof'], val: driveLink, defIdx: 18 },
       { names: ['Attendance Status', 'attendance'], val: data.attendance || 'Absent', defIdx: 19 },
-      { names: ['Last Updated', 'updated at'], val: nowKolkata, defIdx: 20 }
+      { names: ['Last Updated', 'updated at'], val: nowIST, defIdx: 20 }
     ];
 
     const rowValues = new Array(headerRow.length).fill('');
@@ -419,20 +373,8 @@ function doPost(e) {
   }
 }
 
-/**
- * Handle GET requests:
- * 1. Mark attendance via direct URL scan
- * 2. Retrieve registration list (?action=getRegistrations)
- * 3. Health check
- */
 function doGet(e) {
   const params = (e && e.parameter) ? e.parameter : {};
-
-  // ========================================================
-  // 1. ATTENDANCE SCAN VIA SIMPLE GET URL
-  // Example: .../exec?action=markAttendance&regId=EV26-A1B2C3
-  // OR simply: .../exec?regId=EV26-A1B2C3
-  // ========================================================
   const rawId = String(params.regId || params.id || params.code || params.data || '').trim();
   const isAttendanceReq = params.action === 'markAttendance' || params.action === 'attendance' || params.action === 'scan' || rawId.length > 0;
 
@@ -446,12 +388,12 @@ function doGet(e) {
         const ss = SpreadsheetApp.getActiveSpreadsheet();
         let sheet = ss.getSheetByName(SHEET_NAME) || ss.getSheets()[0];
         const rows = sheet.getDataRange().getValues();
-        const nowKolkata = new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
+        const nowIST = formatISTIsoString(new Date());
 
         for (let r = 1; r < rows.length; r++) {
           if (String(rows[r][0]).trim().toUpperCase() === targetId) {
-            sheet.getRange(r + 1, 20).setValue('Present'); // Col 20
-            sheet.getRange(r + 1, 21).setValue(nowKolkata); // Col 21
+            sheet.getRange(r + 1, 20).setValue('Present');
+            sheet.getRange(r + 1, 21).setValue(nowIST);
             SpreadsheetApp.flush();
 
             return ContentService.createTextOutput(
@@ -464,7 +406,7 @@ function doGet(e) {
                 track: rows[r][2],
                 events: rows[r][3],
                 attendance: 'Present',
-                updatedAt: nowKolkata
+                updatedAt: nowIST
               })
             ).setMimeType(ContentService.MimeType.JSON);
           }
@@ -482,9 +424,6 @@ function doGet(e) {
     }
   }
 
-  // ========================================================
-  // 2. GET REGISTRATIONS DATA
-  // ========================================================
   if (params.action === 'getRegistrations') {
     try {
       const ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -575,15 +514,15 @@ function doGet(e) {
           if (!ws || ws.toLowerCase() === 'workshop') {
             ws = cleanWorkshopTitle(rawTrack);
           }
-          if (ws === 'SILICON 2 GDS') {
+          if (ws === 'silicon 2gds' || ws === 'SILICON 2 GDS') {
             selectedWorkshopId = 'ws-silicon-2-gds';
-            cleanEventsText = 'SILICON 2 GDS';
+            cleanEventsText = 'silicon 2gds';
           } else if (ws === 'Embedded System') {
             selectedWorkshopId = 'ws-embedded-system';
             cleanEventsText = 'Embedded System';
-          } else if (ws === 'Virtual Instrumentation') {
+          } else if (ws === 'Virtual instrument' || ws === 'Virtual Instrumentation') {
             selectedWorkshopId = 'ws-virtual-instrumentation';
-            cleanEventsText = 'Virtual Instrumentation';
+            cleanEventsText = 'Virtual instrument';
           } else {
             cleanEventsText = ws || 'Workshop';
           }
@@ -592,7 +531,7 @@ function doGet(e) {
         const eventsLower = rawEventsText.toLowerCase();
         if (eventsLower.indexOf('techpaper') !== -1 || eventsLower.indexOf('paper') !== -1) selectedTechnicalIds.push('techpaper');
         if (eventsLower.indexOf('evolvex') !== -1 || eventsLower.indexOf('project') !== -1) selectedTechnicalIds.push('evolvex');
-        if (eventsLower.indexOf('tracktron') !== -1 || eventsLower.indexOf('robot') !== -1 || eventsLower.indexOf('line follower') !== -1) selectedTechnicalIds.push('tracktron');
+        if (eventsLower.indexOf('tracktron') !== -1 || eventsLower.indexOf('robot') !== -1 || eventsLower.indexOf('line follower') !== -1) selectedTechnicalIds.push('tractron');
         if (eventsLower.indexOf('mind maze') !== -1 || eventsLower.indexOf('mind') !== -1) selectedNonTechnicalIds.push('mind-maze');
         if (eventsLower.indexOf('promptify') !== -1 || eventsLower.indexOf('prompt') !== -1) selectedNonTechnicalIds.push('promptify');
         if (eventsLower.indexOf('memix') !== -1 || eventsLower.indexOf('meme') !== -1) selectedNonTechnicalIds.push('memix');
@@ -645,21 +584,15 @@ function doGet(e) {
     }
   }
 
-  // ========================================================
-  // 3. DEFAULT HEALTH CHECK
-  // ========================================================
   return ContentService.createTextOutput(
     JSON.stringify({
       status: 'active',
-      service: 'EVITRON 2K26 High-Performance Google Sheets Registration & Attendance Webhook',
-      timestamp: new Date().toISOString()
+      service: 'EVITRON 2K26 Google Sheets Registration & Attendance Webhook',
+      timestamp: formatISTIsoString(new Date())
     })
   ).setMimeType(ContentService.MimeType.JSON);
 }
 
-/**
- * Run this once in Apps Script editor to authorize Drive and Sheets permissions.
- */
 function authorizeScript() {
   Logger.log("Authorization check triggered.");
   try {
@@ -679,9 +612,6 @@ function authorizeScript() {
   }
 }
 
-/**
- * Decodes a base64 screenshot and stores it inside Google Drive folder EVITRON_2K26_Payment_Proofs
- */
 function saveFileToDrive(base64Data, filename) {
   if (!base64Data || typeof base64Data !== 'string') return 'N/A';
   try {

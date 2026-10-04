@@ -11,7 +11,6 @@ import {
 } from '../src/types.js';
 import { initialSiteSettings } from '../src/data/defaultSettings.js';
 import { initialEvents } from '../src/data/defaultEvents.js';
-
 import { readClosedWorkshops, CLOSURE_KEY } from './closureStore.js';
 
 type DbEvent = Record<string, any>;
@@ -21,9 +20,7 @@ type DbRegistration = Record<string, any>;
 const SETTINGS_FILE_PATH = path.resolve(process.cwd(), 'data', 'site_settings.json');
 const SYMPOSIUM_DB_PATH = path.resolve(process.cwd(), 'data', 'symposium_db.json');
 
-const RUNTIME_ONLY_KEYS = [
-  CLOSURE_KEY, 'closureStateLoaded',
-];
+const RUNTIME_ONLY_KEYS = [CLOSURE_KEY, 'closureStateLoaded'];
 
 function stripRuntime<T extends Record<string, any>>(obj: T): T {
   const copy: any = { ...obj };
@@ -85,7 +82,7 @@ function savePersistentSettings(settings: SiteSettings) {
     if (fs.existsSync(SYMPOSIUM_DB_PATH)) {
       try {
         const db = JSON.parse(fs.readFileSync(SYMPOSIUM_DB_PATH, 'utf8')) || {};
-        db.settings = { ...(db.settings || {}), ...rest }; // rest has no closedWorkshops, so db's copy is untouched
+        db.settings = { ...(db.settings || {}), ...rest };
         fs.writeFileSync(SYMPOSIUM_DB_PATH, JSON.stringify(db, null, 2), 'utf8');
       } catch {}
     }
@@ -174,7 +171,6 @@ async function getBaseSettings(): Promise<SiteSettings> {
   }
 
   try {
-    // 1. Try key-value schema (key, value)
     const kvQuery = await supabaseAdmin.from('site_settings').select('key,value');
     if (!kvQuery.error && kvQuery.data && kvQuery.data.length > 0) {
       const settings: Record<string, any> = { ...cachedSiteSettings };
@@ -205,7 +201,7 @@ export async function updateSiteSettings(
   partial: Partial<SiteSettings>,
   updatedBy?: string
 ): Promise<SiteSettings> {
-  const safe = stripRuntime(partial as any) as Partial<SiteSettings>; // closure list can NEVER be set here
+  const safe = stripRuntime(partial as any) as Partial<SiteSettings>;
   cachedSiteSettings = { ...cachedSiteSettings, ...safe };
   savePersistentSettings(cachedSiteSettings);
 
@@ -214,7 +210,7 @@ export async function updateSiteSettings(
       key,
       value: typeof value === 'object' ? JSON.stringify(value) : String(value ?? ''),
       ...(updatedBy ? { updated_by: updatedBy } : {}),
-      updated_at: new Date().toISOString(),
+      updated_at: formatIsoTimestamp(new Date()),
     }));
     const { error } = await supabaseAdmin.from('site_settings').upsert(rows, { onConflict: 'key' });
     if (error && !error.message.includes('row-level security')) {
@@ -395,7 +391,7 @@ export async function updateEvent(
       perks: merged.perks,
       faqs: merged.faqs,
       is_active: merged.isActive,
-      updated_at: new Date().toISOString(),
+      updated_at: formatIsoTimestamp(new Date()),
     })
     .eq('id', id)
     .select('*')
@@ -434,7 +430,7 @@ function parseMemberDetailString(str?: string, defaultCollege = '', defaultDept 
   };
 }
 
-export function mapRegistration(row: DbRegistration, truncateProof = false): RegistrationRecord {
+export function mapRegistration(row: DbRegistration, _truncateProof = false): RegistrationRecord {
   const anyRow = row as any;
   let pRows = Array.isArray(row.participants)
     ? [...row.participants].sort((a, b) => {
@@ -451,7 +447,6 @@ export function mapRegistration(row: DbRegistration, truncateProof = false): Reg
     ? participantFromRow(leaderRow)
     : { fullName: anyRow.team_leader_name || 'Attendee', email: anyRow.team_leader_email || '', phone: anyRow.team_leader_phone || '', college: anyRow.college_name || '', department: anyRow.department, year: anyRow.year_of_study };
 
-  // If no relational participant rows, extract directly from CSV columns
   if (participantsList.length === 0 && anyRow.team_leader_name) {
     participantsList.push(leader);
     for (const memKey of ['member_2_details', 'member_3_details', 'member_4_details']) {
@@ -607,7 +602,7 @@ async function assembleRegistrations(regsData: any[]): Promise<any[]> {
   }));
 }
 
-const localRegistrationsCache = new Map<string, RegistrationRecord>();
+export const localRegistrationsCache = new Map<string, RegistrationRecord>();
 
 export async function getRegistrationById(
   registrationCode: string
@@ -648,7 +643,7 @@ export async function getRegistrationById(
     return found;
   }
 
-  // Final fallback: sync from Google Sheet in case it was newly added
+  // Mandatory fallback: force sync to discover recently appended rows
   try {
     await syncRegistrationsFromGoogleSheet(true);
     if (localRegistrationsCache.has(code)) {
@@ -750,7 +745,6 @@ export async function createRegistration(input: RegistrationCreateInput): Promis
 
   const isoTime = formatIsoTimestamp(new Date());
 
-  // Upload screenshot to Supabase Storage if base64/data URL provided
   let uploadedProofUrl = input.paymentProofUrl || '';
   if (uploadedProofUrl && uploadedProofUrl.startsWith('data:')) {
     uploadedProofUrl = await uploadPaymentScreenshotToSupabase(code, uploadedProofUrl);
@@ -890,10 +884,10 @@ export async function updateRegistrationPayment(
         const dbStatus = patch.paymentStatus === 'pending_verification' ? 'pending_verification' : patch.paymentStatus;
         await supabaseAdmin
           .from('registrations')
-          .update({ payment_status: dbStatus, updated_at: new Date().toISOString() })
+          .update({ payment_status: dbStatus, updated_at: formatIsoTimestamp(new Date()) })
           .eq('id', registration.id);
 
-        const paymentPatch: Record<string, any> = { status: dbStatus, updated_at: new Date().toISOString() };
+        const paymentPatch: Record<string, any> = { status: dbStatus, updated_at: formatIsoTimestamp(new Date()) };
         if (patch.paymentId) paymentPatch.razorpay_payment_id = patch.paymentId;
         if (patch.upiReference) paymentPatch.upi_reference = patch.upiReference;
 
@@ -935,7 +929,7 @@ export async function updatePaymentProofUrl(
           .from('payments')
           .update({
             payment_proof_url: url,
-            updated_at: new Date().toISOString(),
+            updated_at: formatIsoTimestamp(new Date()),
           })
           .eq('registration_id', registration.id);
       }
@@ -1002,10 +996,6 @@ export function parseRegistrationTimestamp(val: unknown, regId?: string): number
   return Date.now();
 }
 
-/**
- * Ingests a complete registration record into Supabase PostgreSQL tables
- * (registrations, participants, registration_participants, payments, registration_events)
- */
 export async function ingestRegistrationIntoSupabase(record: RegistrationRecord): Promise<boolean> {
   const code = normalizeRegistrationCode(record.id);
   localRegistrationsCache.set(code, record);
@@ -1014,7 +1004,6 @@ export async function ingestRegistrationIntoSupabase(record: RegistrationRecord)
   if (!isSupabaseConfigured()) return true;
 
   try {
-    // Check if registration already exists in Supabase
     const { data: existing } = await supabaseAdmin
       .from('registrations')
       .select('id, payment_status, attendance_marked')
@@ -1026,18 +1015,16 @@ export async function ingestRegistrationIntoSupabase(record: RegistrationRecord)
     const isAttended = Boolean(record.attendanceMarked);
 
     if (existing?.id) {
-      // Sync any status/attendance updates if changed
       const patch: Record<string, any> = {};
       if (existing.payment_status !== dbStatus) patch.payment_status = dbStatus;
       if (Boolean(existing.attendance_marked) !== isAttended) patch.attendance_marked = isAttended;
       if (Object.keys(patch).length > 0) {
-        patch.updated_at = new Date().toISOString();
+        patch.updated_at = formatIsoTimestamp(new Date());
         await supabaseAdmin.from('registrations').update(patch).eq('id', existing.id);
       }
       return true;
     }
 
-    // Insert new registration
     const { data: reg, error: regErr } = await supabaseAdmin
       .from('registrations')
       .insert({
@@ -1047,7 +1034,7 @@ export async function ingestRegistrationIntoSupabase(record: RegistrationRecord)
         payment_method: (record.paymentMethod || 'upi').toLowerCase(),
         payment_status: dbStatus,
         attendance_marked: isAttended,
-        created_at: new Date(record.createdAt).toISOString(),
+        created_at: formatIsoTimestamp(record.createdAt),
       })
       .select('id')
       .maybeSingle();
@@ -1142,10 +1129,6 @@ export async function ingestRegistrationIntoSupabase(record: RegistrationRecord)
 
 let lastSheetSyncTime = 0;
 
-/**
- * Automatically syncs registrations from Google Sheet into Supabase.
- * Any registration in Google Sheet that is not yet in Supabase will be ingested.
- */
 export async function syncRegistrationsFromGoogleSheet(
   force = false
 ): Promise<{ synced: number; total: number }> {
@@ -1172,11 +1155,6 @@ export async function syncRegistrationsFromGoogleSheet(
       if (!row || !row.id || !String(row.id).startsWith('EV26-')) continue;
 
       const code = String(row.id).trim().toUpperCase();
-      // Skip if already in database
-      if (existingCodes.has(code)) {
-        continue;
-      }
-
       const recordCreatedAt = formatIsoTimestamp(row.createdAt || row.timestamp || new Date());
       const record: RegistrationRecord = {
         id: code,
@@ -1198,7 +1176,13 @@ export async function syncRegistrationsFromGoogleSheet(
         attendanceMarked: Boolean(row.attendanceMarked || String(row.attendance || '').toLowerCase() === 'present'),
       };
 
+      // Always populate local cache for every row
       localRegistrationsCache.set(code, record);
+
+      if (existingCodes.has(code)) {
+        continue;
+      }
+
       const success = await ingestRegistrationIntoSupabase(record);
       if (success) {
         syncedCount++;
@@ -1218,7 +1202,6 @@ export async function listRegistrations(filters?: {
   paymentStatus?: RegistrationRecord['paymentStatus'];
   search?: string;
 }): Promise<RegistrationRecord[]> {
-  // Trigger background sync with Google Sheet if interval passed
   syncRegistrationsFromGoogleSheet(false).catch(() => {});
 
   let results: RegistrationRecord[] = [];
@@ -1249,7 +1232,6 @@ export async function listRegistrations(filters?: {
     }
   }
 
-  // Merge newly submitted local cache records
   const existingIds = new Set(results.map((r) => r.id));
   for (const localRecord of localRegistrationsCache.values()) {
     if (!existingIds.has(localRecord.id)) {
@@ -1258,7 +1240,6 @@ export async function listRegistrations(filters?: {
     }
   }
 
-  // Apply cached local overrides for payment status & verified details
   results = results.map((r) => {
     const cached = localRegistrationsCache.get(r.id) || localRegistrationsCache.get(normalizeRegistrationCode(r.id));
     if (cached) {
@@ -1271,7 +1252,6 @@ export async function listRegistrations(filters?: {
     return r;
   });
 
-  // Enrich any records missing event metadata from CSV/Sheet dataset
   try {
     const csvRows = loadCsvRegistrations();
     const csvMap = new Map<string, any>();
@@ -1313,7 +1293,6 @@ export async function listRegistrations(filters?: {
     console.warn('[DB] CSV enrichment notice:', err?.message || err);
   }
 
-  // Apply filters
   if (filters?.registrationType) {
     results = results.filter((r) => r.registrationType === filters.registrationType);
   }
@@ -1341,7 +1320,7 @@ export async function listRegistrations(filters?: {
     const timeA = parseRegistrationTimestamp(a.createdAt, a.id);
     const timeB = parseRegistrationTimestamp(b.createdAt, b.id);
     if (timeA !== timeB) {
-      return timeB - timeA; // Descending order (newest at the top)
+      return timeB - timeA;
     }
     return String(b.id || '').localeCompare(String(a.id || ''));
   });
@@ -1420,8 +1399,8 @@ export async function markAttendance(
     .from('registrations')
     .update({
       attendance_marked: true,
-      attendance_marked_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
+      attendance_marked_at: formatIsoTimestamp(new Date()),
+      updated_at: formatIsoTimestamp(new Date()),
     })
     .eq('id', regRow.id);
 
@@ -1462,7 +1441,7 @@ export async function updatePaymentRecord(
   if (!isSupabaseConfigured()) return null;
   const { data, error } = await supabaseAdmin
     .from('payments')
-    .update({ ...patch, updated_at: new Date().toISOString() })
+    .update({ ...patch, updated_at: formatIsoTimestamp(new Date()) })
     .eq('registration_id', registrationUuid)
     .select('*')
     .maybeSingle();
