@@ -43,7 +43,7 @@ import {
   getShortEventName,
   fetchPaymentProof,
 } from '../services/api';
-import { formatDisplayDate, formatDisplayTime, safeParseRegistrationDate } from '../utils/dateUtils';
+import { formatDisplayDate, formatDisplayTime, formatIsoTimestamp, safeParseRegistrationDate } from '../utils/dateUtils';
 import { normalizeEventName } from '../data/eventMapping';
 
 import { isEventClosedStrict } from '../utils/closureUtils';
@@ -126,67 +126,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
     // STRICT SORTING: Newest registrations ALWAYS display at the top
     return list.sort((a, b) => {
-      const parseTime = (val: unknown, regId?: string): number => {
-        if (!val) return Date.now();
-        if (typeof val === 'number' && !isNaN(val) && val > 0) return val;
-        let str = String(val).trim();
-        if (!str) return Date.now();
-
-        const matchSwappedIso = str.match(/^(\d{4})-0([1-9])-10/);
-        if (matchSwappedIso) {
-          const year = matchSwappedIso[1];
-          const day = matchSwappedIso[2];
-          str = str.replace(/^(\d{4})-0[1-9]-10/, `${year}-10-0${day}`);
-        }
-
-        const matchDMY = str.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})(?:\s+(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?(?:\s*(am|pm))?)?/i);
-        if (matchDMY) {
-          const [, firstStr, secondStr, yearStr, hStr = '0', mStr = '0', sStr = '0', ampm] = matchDMY;
-          let n1 = parseInt(firstStr, 10);
-          let n2 = parseInt(secondStr, 10);
-          let year = parseInt(yearStr, 10);
-          let hours = parseInt(hStr, 10);
-          let minutes = parseInt(mStr, 10);
-          let seconds = parseInt(sStr, 10);
-
-          if (ampm) {
-            if (ampm.toLowerCase() === 'pm' && hours < 12) hours += 12;
-            if (ampm.toLowerCase() === 'am' && hours === 12) hours = 0;
-          }
-
-          let day = n1;
-          let month = n2;
-
-          if (n2 === 10) {
-            day = n1;
-            month = 10;
-          } else if (n1 === 10) {
-            day = n2;
-            month = 10;
-          }
-
-          const parsedD = new Date(year, month - 1, day, hours, minutes, seconds);
-          const t = parsedD.getTime();
-          if (!isNaN(t) && t > 0) return t;
-        }
-
-        const d = new Date(str);
+      const toEpoch = (v: unknown) => {
+        const d = safeParseRegistrationDate(v);
         const t = d.getTime();
-        if (!isNaN(t) && t > 0) return t;
-
-        if (regId) {
-          const numMatch = String(regId).match(/\d{6,}/);
-          if (numMatch) {
-            const parsedNum = parseInt(numMatch[0], 10);
-            if (!isNaN(parsedNum) && parsedNum > 0) return parsedNum;
-          }
-        }
-
-        return Date.now();
+        return isNaN(t) ? 0 : t;
       };
 
-      const timeA = parseTime(a.createdAt, a.id);
-      const timeB = parseTime(b.createdAt, b.id);
+      const timeA = toEpoch(a.createdAt);
+      const timeB = toEpoch(b.createdAt);
       if (timeA !== timeB) {
         return timeB - timeA; // Newest first at the top
       }
@@ -247,11 +194,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     '626a494c-0e71-4679-abad-9d5a4d5758e2': { code: 'tractron', name: 'tractron', specificTitle: 'tractron', fullDisplay: 'tractron', category: 'technical', badgeIcon: '🔬' },
 
     // WORKSHOPS
-    'ws-silicon-2-gds': { code: 'silicon-2-gds', name: 'silicon 2 gds', specificTitle: 'silicon 2 gds', fullDisplay: 'silicon 2 gds', category: 'workshop', badgeIcon: '⚙️' },
-    'silicon-2-gds': { code: 'silicon-2-gds', name: 'silicon 2 gds', specificTitle: 'silicon 2 gds', fullDisplay: 'silicon 2 gds', category: 'workshop', badgeIcon: '⚙️' },
-    'silicon 2 gds': { code: 'silicon-2-gds', name: 'silicon 2 gds', specificTitle: 'silicon 2 gds', fullDisplay: 'silicon 2 gds', category: 'workshop', badgeIcon: '⚙️' },
-    'silicon 2gds': { code: 'silicon-2-gds', name: 'silicon 2 gds', specificTitle: 'silicon 2 gds', fullDisplay: 'silicon 2 gds', category: 'workshop', badgeIcon: '⚙️' },
-    '4e91a80e-4baa-4fc2-bf6c-7f95e135fc80': { code: 'silicon-2-gds', name: 'silicon 2 gds', specificTitle: 'silicon 2 gds', fullDisplay: 'silicon 2 gds', category: 'workshop', badgeIcon: '⚙️' },
+    'silicon 2gds': { code: 'silicon-2-gds', name: 'silicon 2gds', specificTitle: 'silicon 2gds', fullDisplay: 'silicon 2gds', category: 'workshop', badgeIcon: '⚙️' },
+    'silicon 2 gds': { code: 'silicon-2-gds', name: 'silicon 2gds', specificTitle: 'silicon 2gds', fullDisplay: 'silicon 2gds', category: 'workshop', badgeIcon: '⚙️' },
+    'ws-silicon-2-gds': { code: 'silicon-2-gds', name: 'silicon 2gds', specificTitle: 'silicon 2gds', fullDisplay: 'silicon 2gds', category: 'workshop', badgeIcon: '⚙️' },
+    'silicon-2-gds': { code: 'silicon-2-gds', name: 'silicon 2gds', specificTitle: 'silicon 2gds', fullDisplay: 'silicon 2gds', category: 'workshop', badgeIcon: '⚙️' },
+    '4e91a80e-4baa-4fc2-bf6c-7f95e135fc80': { code: 'silicon-2-gds', name: 'silicon 2gds', specificTitle: 'silicon 2gds', fullDisplay: 'silicon 2gds', category: 'workshop', badgeIcon: '⚙️' },
     'ws-embedded-system': { code: 'embedded-system', name: 'Embedded System', specificTitle: 'Embedded System', fullDisplay: 'Embedded System', category: 'workshop', badgeIcon: '⚙️' },
     'embedded-system': { code: 'embedded-system', name: 'Embedded System', specificTitle: 'Embedded System', fullDisplay: 'Embedded System', category: 'workshop', badgeIcon: '⚙️' },
     'embedded system': { code: 'embedded-system', name: 'Embedded System', specificTitle: 'Embedded System', fullDisplay: 'Embedded System', category: 'workshop', badgeIcon: '⚙️' },
@@ -435,6 +382,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
     return list;
   };
+
+  const eventRosters = useMemo(() => {
+    const map = new Map<string, ReturnType<typeof getParticipantsForEvent>>();
+    for (const evt of uniqueEventsList) {
+      map.set(evt.id, getParticipantsForEvent(evt.id));
+    }
+    return map;
+  }, [allRegistrations, uniqueEventsList, events]);
 
   const handleDeleteRegistration = async () => {
     if (!deleteConfirmReg || !token) return;
@@ -777,25 +732,27 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       const spec = getRegistrationSpecificEvents(r);
       const eventTitles = spec.events.map((e) => e.fullDisplay);
 
+      const escapeCsv = (val: any) => `"${String(val ?? '').replace(/"/g, '""')}"`;
+
       return [
-        r.id,
-        `"${formatDisplayDate(r.createdAt)} ${formatDisplayTime(r.createdAt)}"`,
-        `"${spec.trackLabel}"`,
-        `"${spec.events.map((e) => e.name).join(', ')}"`,
-        `"${r.teamLeader.fullName}"`,
-        r.teamLeader.email,
-        r.teamLeader.phone,
-        `"${r.teamLeader.college}"`,
-        `"${r.teamLeader.department || ''}"`,
-        `"${r.teamLeader.year || ''}"`,
-        r.participants[1] ? `"${r.participants[1].fullName} (${r.participants[1].phone} - ${r.participants[1].college})"` : 'N/A',
-        r.participants[2] ? `"${r.participants[2].fullName} (${r.participants[2].phone} - ${r.participants[2].college})"` : 'N/A',
-        r.participants[3] ? `"${r.participants[3].fullName} (${r.participants[3].phone} - ${r.participants[3].college})"` : 'N/A',
-        r.totalAmount,
-        r.paymentMethod,
-        r.paymentStatus,
-        r.paymentId || r.upiReference || 'N/A',
-        r.attendanceMarked ? 'YES' : 'NO',
+        escapeCsv(r.id),
+        escapeCsv(formatIsoTimestamp(r.createdAt)),
+        escapeCsv(spec.trackLabel),
+        escapeCsv(spec.events.map((e) => e.name).join(', ')),
+        escapeCsv(r.teamLeader.fullName),
+        escapeCsv(r.teamLeader.email),
+        escapeCsv(r.teamLeader.phone),
+        escapeCsv(r.teamLeader.college),
+        escapeCsv(r.teamLeader.department || ''),
+        escapeCsv(r.teamLeader.year || ''),
+        escapeCsv(r.participants[1] ? `${r.participants[1].fullName} (${r.participants[1].phone} - ${r.participants[1].college})` : 'N/A'),
+        escapeCsv(r.participants[2] ? `${r.participants[2].fullName} (${r.participants[2].phone} - ${r.participants[2].college})` : 'N/A'),
+        escapeCsv(r.participants[3] ? `${r.participants[3].fullName} (${r.participants[3].phone} - ${r.participants[3].college})` : 'N/A'),
+        escapeCsv(r.totalAmount),
+        escapeCsv(r.paymentMethod),
+        escapeCsv(r.paymentStatus),
+        escapeCsv(r.paymentId || r.upiReference || 'N/A'),
+        escapeCsv(r.attendanceMarked ? 'YES' : 'NO'),
       ];
     });
 
@@ -804,7 +761,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.setAttribute('href', url);
-    link.setAttribute('download', `EVITRON2K26_Registrations_${new Date().toISOString().slice(0, 10)}.csv`);
+    const dateStr = formatIsoTimestamp(new Date()).slice(0, 10) || '2026-10-03';
+    link.setAttribute('download', `EVITRON2K26_Registrations_${dateStr}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -923,7 +881,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               EVITRON 2K26 Admin Console
             </span>
             <span className="text-[10px] font-bold px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded">
-              {token?.startsWith('evitron_local_') ? 'Active Session (Direct Client Mode)' : 'Active Session (Live Cloud)'}
+              Active Session (Live Cloud)
             </span>
           </div>
           <p className="text-xs text-stone-500">
@@ -1127,7 +1085,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             </h3>
             <div className="space-y-3 text-xs">
               {uniqueEventsList.map((evt) => {
-                const partsList = getParticipantsForEvent(evt.id);
+                const partsList = eventRosters.get(evt.id) || [];
                 const participantCount = partsList.length;
                 const uniqueRegs = new Set(partsList.map(p => p.regId));
                 const teamCount = uniqueRegs.size;
@@ -1716,8 +1674,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 <div className="mt-2 text-[10px] bg-emerald-50 border border-emerald-200 p-2.5 rounded text-emerald-900 leading-relaxed font-semibold">
                   💡 <strong>Supabase Live Cloud Database Active</strong>:
                   <br />
-                  Registrations are permanently preserved in your remote Supabase PostgreSQL database. 
-                  All dashboard metrics and rosters update instantly in real time across all active sessions. Caching, polling, and Google Sheet dependencies are completely disabled.
+                  Registrations are stored in Supabase. Updates are pushed live to all open admin sessions.
                 </div>
 
                 <div className="pt-3 border-t border-stone-200">

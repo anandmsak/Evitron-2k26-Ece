@@ -24,7 +24,7 @@ export const supabaseUrl = sanitizeSupabaseUrl(rawUrl);
 export const supabaseAnonKey =
   metaEnv.VITE_SUPABASE_ANON_KEY ||
   metaEnv.SUPABASE_ANON_KEY ||
-  (typeof process !== 'undefined' ? process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_SECRET_KEY : undefined) ||
+  (typeof process !== 'undefined' ? process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY : undefined) ||
   DEFAULT_SUPABASE_KEY;
 
 // Universal fetch handler for Supabase client

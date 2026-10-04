@@ -1,111 +1,106 @@
 // src/utils/dateUtils.ts
 import { normalizeEventName } from '../data/eventMapping';
 
-/**
- * Standardizes parsing of any registration date string into a valid Date object.
- * EVITRON 2K26 is hosted in India (Asia/Kolkata, UTC+05:30).
- * All dates without an explicit UTC offset are interpreted as IST (+05:30) so there is
- * zero AM/PM drift, zero double-offsetting, and zero day/month confusion.
- */
-export function safeParseRegistrationDate(val: any): Date {
-  if (!val) return new Date();
-  if (val instanceof Date) {
-    return isNaN(val.getTime()) ? new Date() : val;
-  }
+export const IST_OFFSET_MIN = 330; // UTC+05:30 (India has no daylight saving time)
 
-  const str = String(val).trim();
-  if (!str) return new Date();
+const pad = (n: number, w = 2) => String(n).padStart(w, '0');
 
-  // 1. ISO 8601 with explicit timezone (e.g. '2026-10-03T15:00:00.000Z' or '2026-10-03T20:30:00+05:30')
-  if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:?\d{2})$/i.test(str)) {
-    const d = new Date(str);
-    if (!isNaN(d.getTime())) return d;
-  }
-
-  // 2. ISO format without timezone: 'YYYY-MM-DD HH:mm:ss' or 'YYYY-MM-DDTHH:mm:ss'
-  const isoMatch = str.match(/^(\d{4})-(\d{2})-(\d{2})(?:[ T](\d{2}):(\d{2})(?::(\d{2}))?)?/);
-  if (isoMatch) {
-    let [, yStr, mStr, dStr, hStr = '00', minStr = '00', sStr = '00'] = isoMatch;
-    let year = parseInt(yStr, 10);
-    let month = parseInt(mStr, 10);
-    let day = parseInt(dStr, 10);
-    let hours = parseInt(hStr, 10);
-    let minutes = parseInt(minStr, 10);
-    let seconds = parseInt(sStr, 10);
-
-    // Fix inverted March vs October dates for 2026 EVITRON registrations
-    if (year === 2026 && month === 3 && (day === 10 || day === 2 || day === 3 || day === 1 || day === 4)) {
-      month = 10;
-      day = day === 10 ? 3 : day;
-    }
-
-    // Treat as IST (+05:30)
-    const mmStr = String(month).padStart(2, '0');
-    const ddStr = String(day).padStart(2, '0');
-    const hhStr = String(hours).padStart(2, '0');
-    const miStr = String(minutes).padStart(2, '0');
-    const ssStr = String(seconds).padStart(2, '0');
-    const istIso = `${year}-${mmStr}-${ddStr}T${hhStr}:${miStr}:${ssStr}+05:30`;
-    const d = new Date(istIso);
-    if (!isNaN(d.getTime())) return d;
-  }
-
-  // 3. Handle DD/MM/YYYY or MM/DD/YYYY with 12/24 hour time (e.g. '03/10/2026, 8:30:00 pm')
-  const match = str.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})(?:,\s*(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?\s*(am|pm)?)?/i);
-  if (match) {
-    let [, p1, p2, yStr, hStr = '0', minStr = '0', sStr = '0', ampm] = match;
-    let n1 = parseInt(p1, 10);
-    let n2 = parseInt(p2, 10);
-    let year = parseInt(yStr, 10);
-    let hours = parseInt(hStr, 10);
-    let minutes = parseInt(minStr, 10);
-    let seconds = parseInt(sStr, 10);
-
-    if (ampm) {
-      const isPm = ampm.toLowerCase() === 'pm';
-      const isAm = ampm.toLowerCase() === 'am';
-      if (isPm && hours < 12) hours += 12;
-      if (isAm && hours === 12) hours = 0;
-    }
-
-    let month = 10;
-    let day = 3;
-
-    if (year === 2026) {
-      if (n1 === 10 || n2 === 10) {
-        month = 10;
-        day = n1 === 10 ? n2 : n1;
-      } else if (n1 === 9 || n2 === 9) {
-        month = 9;
-        day = n1 === 9 ? n2 : n1;
-      } else if (n1 === 3 || n2 === 3) {
-        month = 10;
-        day = n1 === 3 ? n2 : n1;
-      } else {
-        month = Math.min(n1, n2) > 0 && Math.min(n1, n2) <= 12 ? Math.min(n1, n2) : 10;
-        day = Math.max(n1, n2);
-      }
-    } else {
-      month = n2;
-      day = n1;
-    }
-
-    const mmStr = String(month).padStart(2, '0');
-    const ddStr = String(day).padStart(2, '0');
-    const hhStr = String(hours).padStart(2, '0');
-    const miStr = String(minutes).padStart(2, '0');
-    const ssStr = String(seconds).padStart(2, '0');
-    const istIso = `${year}-${mmStr}-${ddStr}T${hhStr}:${miStr}:${ssStr}+05:30`;
-    const d = new Date(istIso);
-    if (!isNaN(d.getTime())) return d;
-  }
-
-  const d = new Date(str);
-  return isNaN(d.getTime()) ? new Date() : d;
+function istToDate(y: number, mo: number, d: number, h: number, mi: number, s: number): Date | null {
+  if (mo < 1 || mo > 12 || d < 1 || d > 31 || h < 0 || h > 23 || mi < 0 || mi > 59 || s < 0 || s > 59) return null;
+  const utc = Date.UTC(y, mo - 1, d, h, mi, s) - IST_OFFSET_MIN * 60_000;
+  const out = new Date(utc);
+  return isNaN(out.getTime()) ? null : out;
 }
 
+/**
+ * Normalizes inverted dates caused by Google Apps Script / US date parsers
+ * turning Indian format "3/10/2026" (03 Oct 2026) into "2026-03-10" (10 Mar 2026).
+ */
+function fixInvertedSymposiumDate(d: Date): Date {
+  if (isNaN(d.getTime())) return d;
+  const ist = new Date(d.getTime() + IST_OFFSET_MIN * 60_000);
+  const y = ist.getUTCFullYear();
+  const m = ist.getUTCMonth() + 1; // 1-12
+  const day = ist.getUTCDate();
+  const h = ist.getUTCHours();
+  const min = ist.getUTCMinutes();
+  const s = ist.getUTCSeconds();
+
+  // EVITRON 2K26 is held in Sep/Oct 2026. Any March 2026 date is an inverted October registration.
+  if (y === 2026 && m === 3) {
+    if (day === 10 || day === 9) {
+      // "3/10/2026" (3rd October) was parsed as Month 3, Day 10
+      const correctedUtc = Date.UTC(2026, 9, 3, h, min, s) - IST_OFFSET_MIN * 60_000;
+      return new Date(correctedUtc);
+    }
+    if (day === 2 || day === 1) {
+      const correctedUtc = Date.UTC(2026, 9, day, h, min, s) - IST_OFFSET_MIN * 60_000;
+      return new Date(correctedUtc);
+    }
+  }
+  return d;
+}
+
+/**
+ * Parse registration timestamps strictly into a UTC Date object.
+ * Returns a valid Date, or a fallback Invalid Date if unparseable.
+ */
+export function safeParseRegistrationDate(raw: unknown): Date {
+  if (raw instanceof Date) return isNaN(raw.getTime()) ? new Date(NaN) : fixInvertedSymposiumDate(raw);
+  if (typeof raw !== 'string' && typeof raw !== 'number') return new Date(NaN);
+  const s = String(raw).trim();
+  if (!s) return new Date(NaN);
+
+  // 1. Indian locale Sheets / CSV: "D/M/YYYY[, h:mm[:ss] [AM|PM]]" -> strictly Day-first, IST
+  let m = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})(?:,?\s+(\d{1,2}):(\d{2})(?::(\d{2}))?\s*([AaPp][Mm])?)?$/);
+  if (m) {
+    let h = +(m[4] ?? 0);
+    const ap = m[7]?.toUpperCase();
+    if (ap === 'PM' && h < 12) h += 12;
+    if (ap === 'AM' && h === 12) h = 0;
+    // Strictly day = m[1], month = m[2], year = m[3]
+    const parsed = istToDate(+m[3], +m[2], +m[1], h, +(m[5] ?? 0), +(m[6] ?? 0));
+    if (parsed) return fixInvertedSymposiumDate(parsed);
+  }
+
+  // 2. ISO 8601 with explicit zone (e.g. Supabase timestamptz "2026-10-03T15:00:00Z" or "+05:30")
+  if (/^\d{4}-\d{2}-\d{2}T.*(?:Z|[+-]\d{2}:?\d{2})$/i.test(s)) {
+    const d = new Date(s);
+    return isNaN(d.getTime()) ? new Date(NaN) : fixInvertedSymposiumDate(d);
+  }
+
+  // 3. ISO format without zone ("YYYY-MM-DD HH:mm:ss" or "YYYY-MM-DDTHH:mm:ss") -> treat as IST
+  m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})(?:[ T](\d{1,2}):(\d{2})(?::(\d{2}))?)?$/);
+  if (m) {
+    const parsed = istToDate(+m[1], +m[2], +m[3], +(m[4] ?? 0), +(m[5] ?? 0), +(m[6] ?? 0));
+    if (parsed) return fixInvertedSymposiumDate(parsed);
+  }
+
+  // 4. Standard Date fallback
+  const d = new Date(s);
+  return isNaN(d.getTime()) ? new Date(NaN) : fixInvertedSymposiumDate(d);
+}
+
+/**
+ * Format any instant as standard ISO string "YYYY-MM-DD HH:mm:ss" in IST (24h, no AM/PM drift).
+ */
+export function formatIsoTimestamp(input: Date | string | number | unknown): string {
+  if (!input) return '';
+  const d = input instanceof Date ? input : safeParseRegistrationDate(input);
+  if (isNaN(d.getTime())) return '';
+  const ist = new Date(d.getTime() + IST_OFFSET_MIN * 60_000);
+  return (
+    `${ist.getUTCFullYear()}-${pad(ist.getUTCMonth() + 1)}-${pad(ist.getUTCDate())} ` +
+    `${pad(ist.getUTCHours())}:${pad(ist.getUTCMinutes())}:${pad(ist.getUTCSeconds())}`
+  );
+}
+
+/**
+ * Display date in IST: "03 Oct 2026"
+ */
 export function formatDisplayDate(val: any): string {
   const d = safeParseRegistrationDate(val);
+  if (isNaN(d.getTime())) return '—';
   return d.toLocaleDateString('en-IN', {
     day: '2-digit',
     month: 'short',
@@ -114,39 +109,18 @@ export function formatDisplayDate(val: any): string {
   });
 }
 
+/**
+ * Display time in 24h IST: "14:30"
+ */
 export function formatDisplayTime(val: any): string {
   const d = safeParseRegistrationDate(val);
+  if (isNaN(d.getTime())) return '—';
   return d.toLocaleTimeString('en-IN', {
     hour: '2-digit',
     minute: '2-digit',
-    hour12: true,
+    hourCycle: 'h23',
     timeZone: 'Asia/Kolkata',
   });
-}
-
-export function formatIsoTimestamp(val: any): string {
-  const d = safeParseRegistrationDate(val);
-  // Format standard ISO in IST (UTC+05:30)
-  const parts = new Intl.DateTimeFormat('en-CA', {
-    timeZone: 'Asia/Kolkata',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-    hour12: false,
-  }).formatToParts(d);
-
-  const getPart = (type: string) => parts.find((p) => p.type === type)?.value || '00';
-  const YYYY = getPart('year');
-  const MM = getPart('month');
-  const DD = getPart('day');
-  const HH = getPart('hour');
-  const mm = getPart('minute');
-  const ss = getPart('second');
-
-  return `${YYYY}-${MM}-${DD} ${HH}:${mm}:${ss}`;
 }
 
 export function normalizeStandardEventName(raw: string | undefined | null): string {

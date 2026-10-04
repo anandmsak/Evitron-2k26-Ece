@@ -107,9 +107,6 @@ function generateToken(): string {
 
 function verifyToken(token: string): boolean {
   if (!token) return false;
-  if (typeof token === 'string' && token.startsWith('evitron_local_')) {
-    return true;
-  }
   try {
     const [payloadB64, hmac] = token.split('.');
     if (!payloadB64 || !hmac) return false;
@@ -787,6 +784,7 @@ app.patch('/api/admin/registrations/:id/status', requireAdmin, wrap(async (req, 
     syncRegistrationToGoogleSheet(updated, eventTitles),
   ]);
 
+  scheduleBroadcast();
   res.json(updated);
 }));
 
@@ -795,6 +793,7 @@ app.post('/api/admin/sync-google-sheet', requireAdmin, wrap(async (_req, res) =>
   const registrations = await repository.listRegistrations();
   const sorted = [...registrations].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
   const pushResult = await syncAllRegistrationsToGoogleSheet(sorted);
+  scheduleBroadcast();
   res.json({
     success: true,
     count: registrations.length,
@@ -885,6 +884,17 @@ app.patch('/api/admin/events/:id', requireAdmin, wrap(async (req, res) => {
 app.get('/api/admin/emails', requireAdmin, (_req, res) => {
   res.json(emailAuditLog);
 });
+
+app.get('/api/admin/diagnostics/counts', requireAdmin, wrap(async (_req, res) => {
+  const registrations = await repository.listRegistrations();
+  const stats = repository.calculateStatsFromRegistrations(registrations);
+  res.json({
+    totalCount: registrations.length,
+    stats,
+    supabaseConfigured: isSupabaseConfigured(),
+    timestamp: formatIsoTimestamp(new Date()),
+  });
+}));
 
 app.get('/api/admin/export-spreadsheet', requireAdmin, wrap(async (_req, res) => {
   const registrations = await repository.listRegistrations();

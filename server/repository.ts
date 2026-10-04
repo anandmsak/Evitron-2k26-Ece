@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { supabaseAdmin, isSupabaseConfigured, uploadPaymentScreenshotToSupabase } from './supabase.js';
-import { formatIsoTimestamp, fetchRegistrationsFromGoogleSheet } from './googleSheet.js';
+import { formatIsoTimestamp, safeParseRegistrationDate, fetchRegistrationsFromGoogleSheet } from './googleSheet.js';
 import { loadCsvRegistrations } from './liveDataset.js';
 import {
   EventItem,
@@ -648,6 +648,14 @@ export async function getRegistrationById(
     return found;
   }
 
+  // Final fallback: sync from Google Sheet in case it was newly added
+  try {
+    await syncRegistrationsFromGoogleSheet(true);
+    if (localRegistrationsCache.has(code)) {
+      return localRegistrationsCache.get(code);
+    }
+  } catch {}
+
   return undefined;
 }
 
@@ -979,53 +987,7 @@ export async function deleteRegistration(registrationCode: string): Promise<bool
 export function parseRegistrationTimestamp(val: unknown, regId?: string): number {
   if (!val) return Date.now();
   if (typeof val === 'number' && !isNaN(val) && val > 0) return val;
-  let str = String(val).trim();
-  if (!str) return Date.now();
-
-  // Universal fix for YYYY-0X-10 where Month 0X and Day 10 were swapped during parsing
-  // e.g. 2026-02-10 -> 2026-10-02 (October 2nd)
-  // e.g. 2026-01-10 -> 2026-10-01 (October 1st)
-  // e.g. 2026-03-10 -> 2026-10-03 (October 3rd)
-  const matchSwappedIso = str.match(/^(\d{4})-0([1-9])-10/);
-  if (matchSwappedIso) {
-    const year = matchSwappedIso[1];
-    const day = matchSwappedIso[2];
-    str = str.replace(/^(\d{4})-0[1-9]-10/, `${year}-10-0${day}`);
-  }
-
-  // Handle DD/MM/YYYY or MM/DD/YYYY formatted strings
-  const matchDMY = str.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})(?:\s+(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?(?:\s*(am|pm))?)?/i);
-  if (matchDMY) {
-    const [, firstStr, secondStr, yearStr, hStr = '0', mStr = '0', sStr = '0', ampm] = matchDMY;
-    let n1 = parseInt(firstStr, 10);
-    let n2 = parseInt(secondStr, 10);
-    let year = parseInt(yearStr, 10);
-    let hours = parseInt(hStr, 10);
-    let minutes = parseInt(mStr, 10);
-    let seconds = parseInt(sStr, 10);
-
-    if (ampm) {
-      if (ampm.toLowerCase() === 'pm' && hours < 12) hours += 12;
-      if (ampm.toLowerCase() === 'am' && hours === 12) hours = 0;
-    }
-
-    let day = n1;
-    let month = n2;
-
-    if (n2 === 10) {
-      day = n1;
-      month = 10;
-    } else if (n1 === 10) {
-      day = n2;
-      month = 10;
-    }
-
-    const parsedD = new Date(year, month - 1, day, hours, minutes, seconds);
-    const t = parsedD.getTime();
-    if (!isNaN(t) && t > 0) return t;
-  }
-
-  const d = new Date(str);
+  const d = safeParseRegistrationDate(val);
   const t = d.getTime();
   if (!isNaN(t) && t > 0) return t;
 
@@ -1215,9 +1177,10 @@ export async function syncRegistrationsFromGoogleSheet(
         continue;
       }
 
+      const recordCreatedAt = formatIsoTimestamp(row.createdAt || row.timestamp || new Date());
       const record: RegistrationRecord = {
         id: code,
-        createdAt: row.createdAt || new Date().toISOString(),
+        createdAt: recordCreatedAt,
         registrationType: String(row.registrationType || '').toLowerCase().includes('workshop') ? 'workshop' : 'technical',
         selectedWorkshopId: row.selectedWorkshopId,
         selectedTechnicalIds: row.selectedTechnicalIds || [],
@@ -1235,6 +1198,7 @@ export async function syncRegistrationsFromGoogleSheet(
         attendanceMarked: Boolean(row.attendanceMarked || String(row.attendance || '').toLowerCase() === 'present'),
       };
 
+      localRegistrationsCache.set(code, record);
       const success = await ingestRegistrationIntoSupabase(record);
       if (success) {
         syncedCount++;
