@@ -1,3 +1,12 @@
+// src/utils/dateUtils.ts
+import { normalizeEventName } from '../data/eventMapping';
+
+/**
+ * Standardizes parsing of any registration date string into a valid Date object.
+ * EVITRON 2K26 is hosted in India (Asia/Kolkata, UTC+05:30).
+ * All dates without an explicit UTC offset are interpreted as IST (+05:30) so there is
+ * zero AM/PM drift, zero double-offsetting, and zero day/month confusion.
+ */
 export function safeParseRegistrationDate(val: any): Date {
   if (!val) return new Date();
   if (val instanceof Date) {
@@ -7,37 +16,41 @@ export function safeParseRegistrationDate(val: any): Date {
   const str = String(val).trim();
   if (!str) return new Date();
 
-  // If ISO 8601 string or YYYY-MM-DD
-  if (/^\d{4}-\d{2}-\d{2}/.test(str)) {
-    const isoMatch = str.match(/^(\d{4})-(\d{2})-(\d{2})(?:[ T](\d{2}):(\d{2})(?::(\d{2}))?)?/);
-    if (isoMatch) {
-      let [, yStr, mStr, dStr, hStr = '00', minStr = '00', sStr = '00'] = isoMatch;
-      let year = parseInt(yStr, 10);
-      let month = parseInt(mStr, 10);
-      let day = parseInt(dStr, 10);
-
-      // Fix inverted March vs October dates for 2026 EVITRON registrations
-      if (year === 2026 && month === 3 && (day === 10 || day === 2 || day === 3 || day === 1 || day === 4)) {
-        month = 10;
-        day = day === 10 ? 3 : day;
-      }
-
-      return new Date(
-        Date.UTC(
-          year,
-          month - 1,
-          day,
-          parseInt(hStr, 10),
-          parseInt(minStr, 10),
-          parseInt(sStr, 10)
-        )
-      );
-    }
+  // 1. ISO 8601 with explicit timezone (e.g. '2026-10-03T15:00:00.000Z' or '2026-10-03T20:30:00+05:30')
+  if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:?\d{2})$/i.test(str)) {
     const d = new Date(str);
     if (!isNaN(d.getTime())) return d;
   }
- 
-  // Handle DD/MM/YYYY or MM/DD/YYYY slash/dash patterns (e.g. "10/03/2026", "03/10/2026", "3/10/2026", "10/3/2026")
+
+  // 2. ISO format without timezone: 'YYYY-MM-DD HH:mm:ss' or 'YYYY-MM-DDTHH:mm:ss'
+  const isoMatch = str.match(/^(\d{4})-(\d{2})-(\d{2})(?:[ T](\d{2}):(\d{2})(?::(\d{2}))?)?/);
+  if (isoMatch) {
+    let [, yStr, mStr, dStr, hStr = '00', minStr = '00', sStr = '00'] = isoMatch;
+    let year = parseInt(yStr, 10);
+    let month = parseInt(mStr, 10);
+    let day = parseInt(dStr, 10);
+    let hours = parseInt(hStr, 10);
+    let minutes = parseInt(minStr, 10);
+    let seconds = parseInt(sStr, 10);
+
+    // Fix inverted March vs October dates for 2026 EVITRON registrations
+    if (year === 2026 && month === 3 && (day === 10 || day === 2 || day === 3 || day === 1 || day === 4)) {
+      month = 10;
+      day = day === 10 ? 3 : day;
+    }
+
+    // Treat as IST (+05:30)
+    const mmStr = String(month).padStart(2, '0');
+    const ddStr = String(day).padStart(2, '0');
+    const hhStr = String(hours).padStart(2, '0');
+    const miStr = String(minutes).padStart(2, '0');
+    const ssStr = String(seconds).padStart(2, '0');
+    const istIso = `${year}-${mmStr}-${ddStr}T${hhStr}:${miStr}:${ssStr}+05:30`;
+    const d = new Date(istIso);
+    if (!isNaN(d.getTime())) return d;
+  }
+
+  // 3. Handle DD/MM/YYYY or MM/DD/YYYY with 12/24 hour time (e.g. '03/10/2026, 8:30:00 pm')
   const match = str.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})(?:,\s*(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?\s*(am|pm)?)?/i);
   if (match) {
     let [, p1, p2, yStr, hStr = '0', minStr = '0', sStr = '0', ampm] = match;
@@ -49,15 +62,16 @@ export function safeParseRegistrationDate(val: any): Date {
     let seconds = parseInt(sStr, 10);
 
     if (ampm) {
-      if (ampm.toLowerCase() === 'pm' && hours < 12) hours += 12;
-      if (ampm.toLowerCase() === 'am' && hours === 12) hours = 0;
+      const isPm = ampm.toLowerCase() === 'pm';
+      const isAm = ampm.toLowerCase() === 'am';
+      if (isPm && hours < 12) hours += 12;
+      if (isAm && hours === 12) hours = 0;
     }
 
     let month = 10;
     let day = 3;
 
     if (year === 2026) {
-      // In EVITRON 2K26 symposium context, registrations occur in October (Month 10)
       if (n1 === 10 || n2 === 10) {
         month = 10;
         day = n1 === 10 ? n2 : n1;
@@ -76,7 +90,14 @@ export function safeParseRegistrationDate(val: any): Date {
       day = n1;
     }
 
-    return new Date(Date.UTC(year, month - 1, day, hours, minutes, seconds));
+    const mmStr = String(month).padStart(2, '0');
+    const ddStr = String(day).padStart(2, '0');
+    const hhStr = String(hours).padStart(2, '0');
+    const miStr = String(minutes).padStart(2, '0');
+    const ssStr = String(seconds).padStart(2, '0');
+    const istIso = `${year}-${mmStr}-${ddStr}T${hhStr}:${miStr}:${ssStr}+05:30`;
+    const d = new Date(istIso);
+    if (!isNaN(d.getTime())) return d;
   }
 
   const d = new Date(str);
@@ -105,18 +126,28 @@ export function formatDisplayTime(val: any): string {
 
 export function formatIsoTimestamp(val: any): string {
   const d = safeParseRegistrationDate(val);
-  const YYYY = d.getFullYear();
-  const MM = String(d.getMonth() + 1).padStart(2, '0');
-  const DD = String(d.getDate()).padStart(2, '0');
-  const HH = String(d.getHours()).padStart(2, '0');
-  const mm = String(d.getMinutes()).padStart(2, '0');
-  const ss = String(d.getSeconds()).padStart(2, '0');
+  // Format standard ISO in IST (UTC+05:30)
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Kolkata',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false,
+  }).formatToParts(d);
+
+  const getPart = (type: string) => parts.find((p) => p.type === type)?.value || '00';
+  const YYYY = getPart('year');
+  const MM = getPart('month');
+  const DD = getPart('day');
+  const HH = getPart('hour');
+  const mm = getPart('minute');
+  const ss = getPart('second');
+
   return `${YYYY}-${MM}-${DD} ${HH}:${mm}:${ss}`;
 }
-
-import { normalizeEventName } from '../data/eventMapping';
-
-// ... (other functions)
 
 export function normalizeStandardEventName(raw: string | undefined | null): string {
   return normalizeEventName(raw);

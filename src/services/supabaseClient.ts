@@ -2,17 +2,21 @@ import { createClient } from '@supabase/supabase-js';
 
 const metaEnv = (import.meta as any)?.env || {};
 
+const DEFAULT_SUPABASE_URL = 'https://iimyaytfrtydozwrgksu.supabase.co';
+const DEFAULT_SUPABASE_KEY =
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlpbXlheXRmcnR5ZG96d3Jna3N1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODkxOTk4NjQsImV4cCI6MjEwNDc3NTg2NH0.Of3xlCbXyhS_-kuVXcg_OrpMHHNutrAmD3dWYiz6OLY';
+
 const rawUrl =
   metaEnv.VITE_SUPABASE_URL ||
   metaEnv.NEXT_PUBLIC_SUPABASE_URL ||
   (typeof process !== 'undefined' ? process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL : undefined) ||
-  'https://iimyaytfrtydozwrgksu.supabase.co';
+  DEFAULT_SUPABASE_URL;
 
 export function sanitizeSupabaseUrl(url?: string): string {
-  if (!url || !url.trim()) return 'https://iimyaytfrtydozwrgksu.supabase.co';
+  if (!url || !url.trim()) return DEFAULT_SUPABASE_URL;
   let cleaned = url.trim().replace(/\/+$/, '');
   cleaned = cleaned.replace(/\/rest\/v1\/?.*$/i, '');
-  return cleaned || 'https://iimyaytfrtydozwrgksu.supabase.co';
+  return cleaned || DEFAULT_SUPABASE_URL;
 }
 
 export const supabaseUrl = sanitizeSupabaseUrl(rawUrl);
@@ -21,33 +25,26 @@ export const supabaseAnonKey =
   metaEnv.VITE_SUPABASE_ANON_KEY ||
   metaEnv.SUPABASE_ANON_KEY ||
   (typeof process !== 'undefined' ? process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_SECRET_KEY : undefined) ||
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlpbXlheXRmcnR5ZG96d3Jna3N1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODkxOTk4NjQsImV4cCI6MjEwNDc3NTg2NH0.Of3xlCbXyhS_-kuVXcg_OrpMHHNutrAmD3dWYiz6OLY';
+  DEFAULT_SUPABASE_KEY;
 
-// Client-side & Test-compatible Fetch Handler (Strips 'apikey' header so Google Cloud ESP/Gateway doesn't trigger 403 "unregistered API key")
+// Universal fetch handler for Supabase client
 const customFetch: typeof fetch = async (input: RequestInfo | URL, init: RequestInit = {}) => {
   const urlStr = typeof input === 'string' ? input : input instanceof URL ? input.toString() : (input as Request).url;
-
   const headers = new Headers(init?.headers || (typeof input === 'object' && 'headers' in input ? (input as Request).headers : {}));
-  // Rename 'apikey' header so Google Cloud ESP / Cloud Run proxy does NOT interpret it as an unregistered GCP API Key
-  const key = headers.get('apikey');
-  if (key) {
-    headers.set('x-supabase-key', key);
-    headers.delete('apikey');
-  }
-  headers.delete('ApiKey');
-  headers.delete('APIKEY');
 
-  // In Node.js server test environment
-  if (typeof window === 'undefined') {
-    const secret = (typeof process !== 'undefined' && process.env?.SUPABASE_SECRET_KEY) ? process.env.SUPABASE_SECRET_KEY : supabaseAnonKey;
-    headers.set('Authorization', `Bearer ${secret}`);
-    return fetch(input, { ...init, headers });
-  }
+  const activeKey = supabaseAnonKey || DEFAULT_SUPABASE_KEY;
+  headers.set('apikey', activeKey);
+  headers.set('Authorization', `Bearer ${activeKey}`);
 
-  // In Browser environment: Proxy through /api/supabase-proxy to bypass RLS 0-count issue
+  // In Browser environment: Proxy through /api/supabase-proxy if available to bypass CORS/RLS
   if (typeof window !== 'undefined' && urlStr.includes('/rest/v1/')) {
-    const proxyUrl = urlStr.replace(supabaseUrl, '/api/supabase-proxy');
-    return fetch(proxyUrl, { ...init, headers });
+    try {
+      const proxyUrl = urlStr.replace(supabaseUrl, '/api/supabase-proxy');
+      const res = await fetch(proxyUrl, { ...init, headers });
+      if (res.ok) return res;
+    } catch {
+      // Fallback to direct fetch
+    }
   }
 
   return fetch(input, { ...init, headers });
