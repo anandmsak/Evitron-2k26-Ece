@@ -633,13 +633,17 @@ function saveFileToDrive(base64Data, filename) {
     const decoded = Utilities.base64Decode(base64Content);
     const blob = Utilities.newBlob(decoded, contentType, filename + ext);
     
-    const folderName = 'EVITRON_2K26_Payment_Proofs';
+    const TARGET_FOLDER_ID = '1u1c3s59_NSwYAmMtAZ9ypL0t98vj89Ai';
     let folder;
-    const folders = DriveApp.getFoldersByName(folderName);
-    if (folders.hasNext()) {
-      folder = folders.next();
-    } else {
-      folder = DriveApp.createFolder(folderName);
+    try {
+      folder = DriveApp.getFolderById(TARGET_FOLDER_ID);
+    } catch (fErr) {
+      const folders = DriveApp.getFoldersByName('EVITRON_2K26_Payment_Proofs');
+      if (folders.hasNext()) {
+        folder = folders.next();
+      } else {
+        folder = DriveApp.createFolder('EVITRON_2K26_Payment_Proofs');
+      }
     }
     
     const file = folder.createFile(blob);

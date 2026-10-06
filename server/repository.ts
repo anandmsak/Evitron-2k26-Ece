@@ -478,15 +478,22 @@ export function mapRegistration(row: DbRegistration, _truncateProof = false): Re
     }
   }
 
-  const rawProofUrl = payment?.payment_proof_url || anyRow.payment_proof_url || row.payment_proof_url || undefined;
-  const paymentProofUrl = rawProofUrl && rawProofUrl !== 'N/A' && rawProofUrl !== 'HAS_PROOF' ? String(rawProofUrl).trim() : undefined;
-
   const codeKey = (row.registration_code || row.id || '').toUpperCase();
   let csvRecord: any;
   try {
     const csvRows = loadCsvRegistrations();
     csvRecord = csvRows.find((c) => (c.registration_code || c.id || '').toUpperCase() === codeKey);
   } catch {}
+
+  const rawProofUrl =
+    payment?.payment_proof_url ||
+    anyRow.payment_proof_url ||
+    anyRow.paymentProofUrl ||
+    anyRow.payment_proof ||
+    row.payment_proof_url ||
+    csvRecord?.payment_proof_url ||
+    undefined;
+  const paymentProofUrl = rawProofUrl && rawProofUrl !== 'N/A' && rawProofUrl !== 'HAS_PROOF' ? String(rawProofUrl).trim() : undefined;
 
   const rawEventsText =
     csvRecord?.registered_events ||

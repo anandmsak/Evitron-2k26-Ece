@@ -48,6 +48,7 @@ import {
 } from '../services/api';
 import { formatDisplayDate, formatDisplayTime, formatIsoTimestamp, safeParseRegistrationDate } from '../utils/dateUtils';
 import { normalizeEventName, EVENT_CANONICAL_NAMES } from '../data/eventMapping';
+import { AttendanceScanner } from '../components/AttendanceScanner';
 
 import { isEventClosedStrict } from '../utils/closureUtils';
 
@@ -1376,19 +1377,26 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                             UTR: {r.upiReference}
                           </span>
                         )}
-                        {(r as any).paymentProofUrl && (
+                        {((r as any).paymentProofUrl || (r as any).driveScreenshotSubmitted || r.upiReference) && (
                           <button
                             type="button"
                             onClick={async () => {
-                              if ((r as any).paymentProofUrl === 'HAS_PROOF') {
+                              const directUrl = (r as any).paymentProofUrl;
+                              if (directUrl && directUrl !== 'HAS_PROOF' && directUrl !== 'N/A') {
+                                setActiveProofUrl(directUrl);
+                              } else {
                                 try {
                                   const rawUrl = await fetchPaymentProof(token!, r.id);
-                                  setActiveProofUrl(rawUrl);
+                                  if (rawUrl && rawUrl !== 'N/A') {
+                                    setActiveProofUrl(rawUrl);
+                                  } else {
+                                    showNotification('No uploaded payment proof screenshot found for this registration.', 'error');
+                                    return;
+                                  }
                                 } catch (err: any) {
                                   showNotification(err.message || 'Failed to load payment proof screenshot.', 'error');
+                                  return;
                                 }
-                              } else {
-                                setActiveProofUrl((r as any).paymentProofUrl);
                               }
                               setActiveProofRegId(r.id);
                             }}
