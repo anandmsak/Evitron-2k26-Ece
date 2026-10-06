@@ -55,7 +55,14 @@ export const AttendanceScanner: React.FC<AttendanceScannerProps> = ({
   const [hasTorch, setHasTorch] = useState(false);
   const [scanStats, setScanStats] = useState<{ fps: number; engine: string }>({ fps: 0, engine: 'Auto' });
   const [autoApproveMode, setAutoApproveMode] = useState(false);
-  const [scannedToast, setScannedToast] = useState<{ id: string } | null>(null);
+  
+  // Scanned status popup (supports new scan and already presented popup for 1-2s)
+  const [scannedStatusToast, setScannedStatusToast] = useState<{
+    type: 'already_scanned' | 'new_scan';
+    id: string;
+    name?: string;
+    time?: string;
+  } | null>(null);
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -85,16 +92,20 @@ export const AttendanceScanner: React.FC<AttendanceScannerProps> = ({
     }
   }, []);
 
-  // Play high-pitch instant confirmation chime and trigger haptic vibration
-  const triggerSuccessFeedback = () => {
+  // Play audio chime and trigger haptic vibration
+  const triggerSuccessFeedback = (isAlreadyScanned = false) => {
     // 1. Haptic vibration
     try {
       if (typeof navigator !== 'undefined' && navigator.vibrate) {
-        navigator.vibrate([100, 50, 100]);
+        if (isAlreadyScanned) {
+          navigator.vibrate([150, 100, 150]);
+        } else {
+          navigator.vibrate([100, 50, 100]);
+        }
       }
     } catch {}
 
-    // 2. High clarity audio chime
+    // 2. Audio chime
     try {
       const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
       if (AudioCtx) {
@@ -104,30 +115,43 @@ export const AttendanceScanner: React.FC<AttendanceScannerProps> = ({
         const ctx = audioContextRef.current;
         if (ctx.state === 'suspended') ctx.resume();
 
-        // 2-tone melodic success chime (PhonePe/GPay style)
         const now = ctx.currentTime;
         const osc1 = ctx.createOscillator();
         const osc2 = ctx.createOscillator();
         const gain = ctx.createGain();
 
-        osc1.type = 'sine';
-        osc1.frequency.setValueAtTime(880, now); // A5
-        osc1.frequency.setValueAtTime(1174.66, now + 0.08); // D6
+        if (isAlreadyScanned) {
+          // Warning chime for already scanned ticket
+          osc1.type = 'sawtooth';
+          osc1.frequency.setValueAtTime(440, now);
+          osc1.frequency.setValueAtTime(330, now + 0.1);
+          gain.gain.setValueAtTime(0.18, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+          osc1.connect(gain);
+          gain.connect(ctx.destination);
+          osc1.start(now);
+          osc1.stop(now + 0.3);
+        } else {
+          // Melodic success chime (PhonePe/GPay style)
+          osc1.type = 'sine';
+          osc1.frequency.setValueAtTime(880, now); // A5
+          osc1.frequency.setValueAtTime(1174.66, now + 0.08); // D6
 
-        osc2.type = 'triangle';
-        osc2.frequency.setValueAtTime(1760, now + 0.08); // A6
+          osc2.type = 'triangle';
+          osc2.frequency.setValueAtTime(1760, now + 0.08); // A6
 
-        gain.gain.setValueAtTime(0.2, now);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.28);
+          gain.gain.setValueAtTime(0.2, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.28);
 
-        osc1.connect(gain);
-        osc2.connect(gain);
-        gain.connect(ctx.destination);
+          osc1.connect(gain);
+          osc2.connect(gain);
+          gain.connect(ctx.destination);
 
-        osc1.start(now);
-        osc2.start(now + 0.08);
-        osc1.stop(now + 0.28);
-        osc2.stop(now + 0.28);
+          osc1.start(now);
+          osc2.start(now + 0.08);
+          osc1.stop(now + 0.28);
+          osc2.stop(now + 0.28);
+        }
       }
     } catch {}
   };
@@ -175,8 +199,9 @@ export const AttendanceScanner: React.FC<AttendanceScannerProps> = ({
         audio: false,
         video: {
           facingMode: { ideal: cameraFacingMode },
-          width: { ideal: 1280, min: 640 },
-          height: { ideal: 720, min: 480 },
+          width: { ideal: 1080, min: 480 },
+          height: { ideal: 1080, min: 480 },
+          aspectRatio: { ideal: 1.0 },
           frameRate: { ideal: 60, min: 30 },
         },
       };
@@ -309,14 +334,13 @@ export const AttendanceScanner: React.FC<AttendanceScannerProps> = ({
           canvas.height = targetH;
           ctx.drawImage(video, 0, 0, targetW, targetH);
 
-          // 2A. Scan center region of interest first (aiming reticle)
-          const roiW = Math.round(targetW * 0.7);
-          const roiH = Math.round(targetH * 0.7);
-          const roiX = Math.round((targetW - roiW) / 2);
-          const roiY = Math.round((targetH - roiH) / 2);
+          // 2A. Scan square center region of interest first (aiming reticle)
+          const size = Math.round(Math.min(targetW, targetH) * 0.75);
+          const roiX = Math.round((targetW - size) / 2);
+          const roiY = Math.round((targetH - size) / 2);
 
-          const roiData = ctx.getImageData(roiX, roiY, roiW, roiH);
-          let code = jsQR(roiData.data, roiW, roiH, {
+          const roiData = ctx.getImageData(roiX, roiY, size, size);
+          let code = jsQR(roiData.data, size, size, {
             inversionAttempts: 'dontInvert',
           });
 
@@ -352,15 +376,6 @@ export const AttendanceScanner: React.FC<AttendanceScannerProps> = ({
     if (now - lastScanTimeRef.current < 1500) return;
     lastScanTimeRef.current = now;
 
-    triggerSuccessFeedback();
-
-    // 1-second floating modal popup showing ticket scanned
-    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
-    setScannedToast({ id: regId });
-    toastTimerRef.current = setTimeout(() => {
-      setScannedToast(null);
-    }, 1000);
-
     lookupRegistration(regId, true);
   };
 
@@ -380,10 +395,6 @@ export const AttendanceScanner: React.FC<AttendanceScannerProps> = ({
             if (barcodes && barcodes.length > 0) {
               const detected = extractRegistrationId(barcodes[0].rawValue);
               if (detected) {
-                triggerSuccessFeedback();
-                setScannedToast({ id: detected });
-                if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
-                toastTimerRef.current = setTimeout(() => setScannedToast(null), 1000);
                 lookupRegistration(detected, true);
                 return;
               }
@@ -405,10 +416,6 @@ export const AttendanceScanner: React.FC<AttendanceScannerProps> = ({
           if (code && code.data) {
             const detected = extractRegistrationId(code.data);
             if (detected) {
-              triggerSuccessFeedback();
-              setScannedToast({ id: detected });
-              if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
-              toastTimerRef.current = setTimeout(() => setScannedToast(null), 1000);
               lookupRegistration(detected, true);
               return;
             }
@@ -430,17 +437,48 @@ export const AttendanceScanner: React.FC<AttendanceScannerProps> = ({
     const localFound = (allRegistrations || []).find((r) => r.id.toUpperCase() === clean);
     if (localFound) {
       setSelectedReg(localFound);
+      const isAlreadyAttended = Boolean(localFound.attendanceMarked);
+      
+      triggerSuccessFeedback(isAlreadyAttended);
+
+      // Show floating popup message for 1 to 2 seconds
+      if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+      setScannedStatusToast({
+        type: isAlreadyAttended ? 'already_scanned' : 'new_scan',
+        id: clean,
+        name: localFound.teamLeader?.fullName,
+        time: localFound.attendanceTimestamp ? formatDisplayTime(localFound.attendanceTimestamp) : 'Earlier',
+      });
+      toastTimerRef.current = setTimeout(() => {
+        setScannedStatusToast(null);
+      }, isAlreadyAttended ? 1800 : 1000);
+
       if (fromCamera && autoApproveMode && !localFound.attendanceMarked) {
         executeAttendanceApproval(localFound);
       }
       return;
     }
 
-    // Server fallback
+    // Server fallback lookup
     fetchRegistrationById(clean)
       .then((data) => {
         if (data && data.id) {
           setSelectedReg(data);
+          const isAlreadyAttended = Boolean(data.attendanceMarked);
+          
+          triggerSuccessFeedback(isAlreadyAttended);
+
+          if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+          setScannedStatusToast({
+            type: isAlreadyAttended ? 'already_scanned' : 'new_scan',
+            id: clean,
+            name: data.teamLeader?.fullName,
+            time: data.attendanceTimestamp ? formatDisplayTime(data.attendanceTimestamp) : 'Earlier',
+          });
+          toastTimerRef.current = setTimeout(() => {
+            setScannedStatusToast(null);
+          }, isAlreadyAttended ? 1800 : 1000);
+
           if (fromCamera && autoApproveMode && !data.attendanceMarked) {
             executeAttendanceApproval(data);
           }
@@ -537,18 +575,36 @@ export const AttendanceScanner: React.FC<AttendanceScannerProps> = ({
 
   return (
     <div className="space-y-6 max-w-5xl mx-auto animate-in fade-in duration-200 relative">
-      {/* 1-Second Ticket Scanned Popup Modal */}
-      {scannedToast && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none p-4 animate-in fade-in zoom-in-95 duration-100">
-          <div className="bg-stone-900/95 text-white px-6 py-4 rounded-2xl shadow-2xl border border-emerald-500/40 flex items-center gap-3.5 backdrop-blur-md">
-            <div className="w-10 h-10 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0 border border-emerald-500/30">
-              <CheckCircle2 className="w-6 h-6" />
+      {/* 1 to 2 Second Status Popup Modal */}
+      {scannedStatusToast && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none p-4 animate-in fade-in zoom-in-95 duration-150">
+          {scannedStatusToast.type === 'already_scanned' ? (
+            <div className="bg-amber-950/95 text-white px-6 py-5 rounded-2xl shadow-2xl border-2 border-amber-500/80 flex items-center gap-4 backdrop-blur-md max-w-md pointer-events-auto">
+              <div className="w-12 h-12 rounded-full bg-amber-500/20 text-amber-400 flex items-center justify-center shrink-0 border border-amber-500/40">
+                <AlertCircle className="w-7 h-7 animate-pulse" />
+              </div>
+              <div>
+                <div className="text-xs font-extrabold text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
+                  ⚠️ ALREADY CHECKED IN / ATTENDED
+                </div>
+                <div className="text-base font-extrabold font-mono text-white mt-0.5">{scannedStatusToast.id}</div>
+                <div className="text-xs text-amber-200/90 mt-0.5 leading-snug">
+                  {scannedStatusToast.name ? <span><strong>{scannedStatusToast.name}</strong> • </span> : null}
+                  Attendee was already marked Present ({scannedStatusToast.time || 'earlier'}).
+                </div>
+              </div>
             </div>
-            <div>
-              <div className="text-xs font-bold text-emerald-400 uppercase tracking-wider">⚡ Ticket Scanned</div>
-              <div className="text-base font-extrabold font-mono text-white">{scannedToast.id}</div>
+          ) : (
+            <div className="bg-stone-900/95 text-white px-6 py-4 rounded-2xl shadow-2xl border border-emerald-500/50 flex items-center gap-3.5 backdrop-blur-md pointer-events-auto">
+              <div className="w-10 h-10 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0 border border-emerald-500/30">
+                <CheckCircle2 className="w-6 h-6" />
+              </div>
+              <div>
+                <div className="text-xs font-bold text-emerald-400 uppercase tracking-wider">⚡ Ticket Scanned</div>
+                <div className="text-base font-extrabold font-mono text-white">{scannedStatusToast.id}</div>
+              </div>
             </div>
-          </div>
+          )}
         </div>
       )}
 
@@ -560,7 +616,7 @@ export const AttendanceScanner: React.FC<AttendanceScannerProps> = ({
               <Zap className="w-5 h-5 fill-current" />
             </span>
             <h3 className="text-base sm:text-lg font-extrabold text-stone-950">
-              High-Speed Ticket QR Scanner & Live Attendance Desk
+              High-Speed Square QR Scanner & Live Attendance Desk
             </h3>
           </div>
           <p className="text-xs text-stone-500 mt-1 flex items-center gap-2">
@@ -596,12 +652,12 @@ export const AttendanceScanner: React.FC<AttendanceScannerProps> = ({
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
-        {/* Left Column: Direct Camera Viewfinder */}
+        {/* Left Column: Direct Camera Square Viewfinder */}
         <div className="md:col-span-6 space-y-4">
           <div className="bg-white border border-stone-200 rounded-2xl p-5 shadow-xs space-y-4">
             <div className="flex items-center justify-between">
               <span className="font-extrabold text-stone-900 text-xs uppercase tracking-wider flex items-center gap-1.5">
-                <Camera className="w-4 h-4 text-[#B22222]" /> Live Lens Viewfinder
+                <Camera className="w-4 h-4 text-[#B22222]" /> Square Lens Viewfinder
               </span>
 
               <div className="flex items-center gap-2">
@@ -632,8 +688,8 @@ export const AttendanceScanner: React.FC<AttendanceScannerProps> = ({
               </div>
             </div>
 
-            {/* Viewfinder Window */}
-            <div className="relative aspect-4/3 bg-stone-950 rounded-2xl overflow-hidden flex items-center justify-center border-2 border-stone-800 shadow-2xl">
+            {/* Viewfinder Window (Strict Square Ratio: 1:1) */}
+            <div className="relative aspect-square w-full max-w-[420px] mx-auto bg-stone-950 rounded-2xl overflow-hidden flex items-center justify-center border-2 border-stone-800 shadow-2xl">
               <video
                 ref={videoRef}
                 className={`w-full h-full object-cover ${!isCameraActive ? 'hidden' : ''}`}
@@ -643,24 +699,24 @@ export const AttendanceScanner: React.FC<AttendanceScannerProps> = ({
               />
               <canvas ref={canvasRef} className="hidden" />
 
-              {/* Viewfinder Overlay / Scanner Reticle (GPay / PhonePe style) */}
+              {/* Viewfinder Overlay / Scanner Reticle (Square Shape matching QR codes) */}
               {isCameraActive ? (
-                <div className="absolute inset-0 pointer-events-none flex flex-col items-center justify-center p-6">
-                  {/* Outer dimmed vignette */}
-                  <div className="w-60 h-60 border-2 border-emerald-400/80 rounded-2xl relative shadow-[0_0_30px_rgba(16,185,129,0.35)] flex items-center justify-center">
+                <div className="absolute inset-0 pointer-events-none flex flex-col items-center justify-center p-4">
+                  {/* Symmetrical Square Scanning Reticle */}
+                  <div className="w-[72%] aspect-square border-2 border-emerald-400/80 rounded-2xl relative shadow-[0_0_30px_rgba(16,185,129,0.35)] flex items-center justify-center">
                     {/* Glowing High-Precision Corner Markers */}
-                    <div className="absolute -top-1.5 -left-1.5 w-7 h-7 border-t-4 border-l-4 border-emerald-400 rounded-tl-lg" />
-                    <div className="absolute -top-1.5 -right-1.5 w-7 h-7 border-t-4 border-r-4 border-emerald-400 rounded-tr-lg" />
-                    <div className="absolute -bottom-1.5 -left-1.5 w-7 h-7 border-b-4 border-l-4 border-emerald-400 rounded-bl-lg" />
-                    <div className="absolute -bottom-1.5 -right-1.5 w-7 h-7 border-b-4 border-r-4 border-emerald-400 rounded-br-lg" />
+                    <div className="absolute -top-1.5 -left-1.5 w-8 h-8 border-t-4 border-l-4 border-emerald-400 rounded-tl-xl" />
+                    <div className="absolute -top-1.5 -right-1.5 w-8 h-8 border-t-4 border-r-4 border-emerald-400 rounded-tr-xl" />
+                    <div className="absolute -bottom-1.5 -left-1.5 w-8 h-8 border-b-4 border-l-4 border-emerald-400 rounded-bl-xl" />
+                    <div className="absolute -bottom-1.5 -right-1.5 w-8 h-8 border-b-4 border-r-4 border-emerald-400 rounded-br-xl" />
 
-                    {/* Animated Instant Laser Line */}
+                    {/* Center Aiming Crosshair / Laser Line */}
                     <div className="w-full h-0.5 bg-gradient-to-r from-transparent via-emerald-400 to-transparent shadow-[0_0_12px_#34d399] animate-pulse" />
                   </div>
 
-                  <span className="mt-4 text-[11px] font-bold text-white bg-black/75 px-3.5 py-1 rounded-full backdrop-blur-md border border-white/10 shadow-lg flex items-center gap-1.5">
+                  <span className="mt-3.5 text-[11px] font-bold text-white bg-black/75 px-3.5 py-1 rounded-full backdrop-blur-md border border-white/10 shadow-lg flex items-center gap-1.5">
                     <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
-                    Point at ticket QR pass for instant scan
+                    Align square ticket QR pass inside box
                   </span>
                 </div>
               ) : (
@@ -669,7 +725,7 @@ export const AttendanceScanner: React.FC<AttendanceScannerProps> = ({
                     <CameraOff className="w-7 h-7" />
                   </div>
                   <p className="text-xs text-stone-400 max-w-xs">
-                    Camera is currently paused. Click below to activate instant scanner.
+                    Camera is currently paused. Click below to activate square QR scanner.
                   </p>
                 </div>
               )}
@@ -918,9 +974,9 @@ export const AttendanceScanner: React.FC<AttendanceScannerProps> = ({
                   <QrCode className="w-8 h-8" />
                 </div>
                 <div>
-                  <p className="text-xs font-bold text-stone-700">Ready to Scan Ticket Passes</p>
+                  <p className="text-xs font-bold text-stone-700">Ready to Scan Square QR Passes</p>
                   <p className="text-[11px] text-stone-400 mt-1 max-w-xs leading-relaxed">
-                    Point your camera at any attendee's QR ticket pass or upload a ticket screenshot for instant verification.
+                    Point your camera at any attendee's square ticket pass or upload a ticket screenshot for instant verification.
                   </p>
                 </div>
               </div>
