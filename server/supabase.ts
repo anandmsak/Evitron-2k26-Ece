@@ -141,7 +141,7 @@ export async function uploadPaymentScreenshotToSupabase(
     else if (mimeType.includes('jpeg') || mimeType.includes('jpg')) ext = 'jpg';
 
     const BUCKET_NAME = 'payment-proofs';
-    const filePath = `screenshots/${registrationCode}_${Date.now()}.${ext}`;
+    const filePath = `screenshots/${registrationCode}_payment_proof.${ext}`;
 
     try {
       await supabaseAdmin.storage.createBucket(BUCKET_NAME, { public: true });

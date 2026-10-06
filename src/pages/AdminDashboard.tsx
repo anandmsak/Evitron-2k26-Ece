@@ -22,6 +22,9 @@ import {
   ShieldCheck,
   FileSpreadsheet,
   FileText,
+  Eye,
+  EyeOff,
+  Loader2,
 } from 'lucide-react';
 import { EventItem, RegistrationRecord, SiteSettings } from '../types';
 import { defaultSettings } from '../data/defaultSettings';
@@ -44,7 +47,7 @@ import {
   fetchPaymentProof,
 } from '../services/api';
 import { formatDisplayDate, formatDisplayTime, formatIsoTimestamp, safeParseRegistrationDate } from '../utils/dateUtils';
-import { normalizeEventName } from '../data/eventMapping';
+import { normalizeEventName, EVENT_CANONICAL_NAMES } from '../data/eventMapping';
 
 import { isEventClosedStrict } from '../utils/closureUtils';
 
@@ -66,6 +69,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   // Strict single-session security: never auto-restore token, always prompt for password on every visit
   const [token, setToken] = useState<string | null>(null);
   const [passwordInput, setPasswordInput] = useState('');
+  const [showLoginPassword, setShowLoginPassword] = useState(false);
+  const [showDeletePassword, setShowDeletePassword] = useState(false);
+  const [verifyingRegId, setVerifyingRegId] = useState<string | null>(null);
   const [loginError, setLoginError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'overview' | 'registrations' | 'settings' | 'upi' | 'events' | 'attendance'>('overview');
 
@@ -189,20 +195,22 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     '46aa179c-ec4a-4d8d-a206-7c4c497a95ce': { code: 'techpaper', name: 'techpaper', specificTitle: 'techpaper', fullDisplay: 'techpaper', category: 'technical', badgeIcon: '🔬' },
     'evolvex': { code: 'evolvex', name: 'evolvex', specificTitle: 'evolvex', fullDisplay: 'evolvex', category: 'technical', badgeIcon: '🔬' },
     'c2a1bbfc-85fb-49f9-9d9d-39759b6df37f': { code: 'evolvex', name: 'evolvex', specificTitle: 'evolvex', fullDisplay: 'evolvex', category: 'technical', badgeIcon: '🔬' },
-    'tracktron': { code: 'tractron', name: 'tractron', specificTitle: 'tractron', fullDisplay: 'tractron', category: 'technical', badgeIcon: '🔬' },
-    'tractron': { code: 'tractron', name: 'tractron', specificTitle: 'tractron', fullDisplay: 'tractron', category: 'technical', badgeIcon: '🔬' },
-    '626a494c-0e71-4679-abad-9d5a4d5758e2': { code: 'tractron', name: 'tractron', specificTitle: 'tractron', fullDisplay: 'tractron', category: 'technical', badgeIcon: '🔬' },
+    'tracktron': { code: 'tracktron', name: 'tracktron', specificTitle: 'tracktron', fullDisplay: 'tracktron', category: 'technical', badgeIcon: '🔬' },
+    'tractron': { code: 'tracktron', name: 'tracktron', specificTitle: 'tracktron', fullDisplay: 'tracktron', category: 'technical', badgeIcon: '🔬' },
+    '626a494c-0e71-4679-abad-9d5a4d5758e2': { code: 'tracktron', name: 'tracktron', specificTitle: 'tracktron', fullDisplay: 'tracktron', category: 'technical', badgeIcon: '🔬' },
 
     // WORKSHOPS
-    'silicon 2gds': { code: 'silicon-2-gds', name: 'silicon 2gds', specificTitle: 'silicon 2gds', fullDisplay: 'silicon 2gds', category: 'workshop', badgeIcon: '⚙️' },
-    'silicon 2 gds': { code: 'silicon-2-gds', name: 'silicon 2gds', specificTitle: 'silicon 2gds', fullDisplay: 'silicon 2gds', category: 'workshop', badgeIcon: '⚙️' },
-    'ws-silicon-2-gds': { code: 'silicon-2-gds', name: 'silicon 2gds', specificTitle: 'silicon 2gds', fullDisplay: 'silicon 2gds', category: 'workshop', badgeIcon: '⚙️' },
-    'silicon-2-gds': { code: 'silicon-2-gds', name: 'silicon 2gds', specificTitle: 'silicon 2gds', fullDisplay: 'silicon 2gds', category: 'workshop', badgeIcon: '⚙️' },
-    '4e91a80e-4baa-4fc2-bf6c-7f95e135fc80': { code: 'silicon-2-gds', name: 'silicon 2gds', specificTitle: 'silicon 2gds', fullDisplay: 'silicon 2gds', category: 'workshop', badgeIcon: '⚙️' },
+    'silicon 2gds': { code: 'silicon-2-gds', name: 'silicon 2 gds', specificTitle: 'silicon 2 gds', fullDisplay: 'silicon 2 gds', category: 'workshop', badgeIcon: '⚙️' },
+    'silicon 2 gds': { code: 'silicon-2-gds', name: 'silicon 2 gds', specificTitle: 'silicon 2 gds', fullDisplay: 'silicon 2 gds', category: 'workshop', badgeIcon: '⚙️' },
+    'ws-silicon-2-gds': { code: 'silicon-2-gds', name: 'silicon 2 gds', specificTitle: 'silicon 2 gds', fullDisplay: 'silicon 2 gds', category: 'workshop', badgeIcon: '⚙️' },
+    'silicon-2-gds': { code: 'silicon-2-gds', name: 'silicon 2 gds', specificTitle: 'silicon 2 gds', fullDisplay: 'silicon 2 gds', category: 'workshop', badgeIcon: '⚙️' },
+    '4e91a80e-4baa-4fc2-bf6c-7f95e135fc80': { code: 'silicon-2-gds', name: 'silicon 2 gds', specificTitle: 'silicon 2 gds', fullDisplay: 'silicon 2 gds', category: 'workshop', badgeIcon: '⚙️' },
+
     'ws-embedded-system': { code: 'embedded-system', name: 'Embedded System', specificTitle: 'Embedded System', fullDisplay: 'Embedded System', category: 'workshop', badgeIcon: '⚙️' },
     'embedded-system': { code: 'embedded-system', name: 'Embedded System', specificTitle: 'Embedded System', fullDisplay: 'Embedded System', category: 'workshop', badgeIcon: '⚙️' },
     'embedded system': { code: 'embedded-system', name: 'Embedded System', specificTitle: 'Embedded System', fullDisplay: 'Embedded System', category: 'workshop', badgeIcon: '⚙️' },
     'd6699fda-e9a5-404d-88e8-bd9e0610988e': { code: 'embedded-system', name: 'Embedded System', specificTitle: 'Embedded System', fullDisplay: 'Embedded System', category: 'workshop', badgeIcon: '⚙️' },
+
     'ws-virtual-instrumentation': { code: 'virtual-instrumentation', name: 'Virtual instrument', specificTitle: 'Virtual instrument', fullDisplay: 'Virtual instrument', category: 'workshop', badgeIcon: '⚙️' },
     'virtual-instrumentation': { code: 'virtual-instrumentation', name: 'Virtual instrument', specificTitle: 'Virtual instrument', fullDisplay: 'Virtual instrument', category: 'workshop', badgeIcon: '⚙️' },
     'virtual instrument': { code: 'virtual-instrumentation', name: 'Virtual instrument', specificTitle: 'Virtual instrument', fullDisplay: 'Virtual instrument', category: 'workshop', badgeIcon: '⚙️' },
@@ -212,10 +220,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     'mind-maze': { code: 'mind-maze', name: 'mind maze', specificTitle: 'mind maze', fullDisplay: 'mind maze', category: 'non-technical', badgeIcon: '🎨' },
     'mind maze': { code: 'mind-maze', name: 'mind maze', specificTitle: 'mind maze', fullDisplay: 'mind maze', category: 'non-technical', badgeIcon: '🎨' },
     '8ebc96bf-893d-4e6b-8976-6f541f2631ff': { code: 'mind-maze', name: 'mind maze', specificTitle: 'mind maze', fullDisplay: 'mind maze', category: 'non-technical', badgeIcon: '🎨' },
+
     'promptify': { code: 'promptify', name: 'promptify', specificTitle: 'promptify', fullDisplay: 'promptify', category: 'non-technical', badgeIcon: '🎨' },
     '41b7298f-6401-4409-a000-5cc406e194b8': { code: 'promptify', name: 'promptify', specificTitle: 'promptify', fullDisplay: 'promptify', category: 'non-technical', badgeIcon: '🎨' },
+
     'memix': { code: 'memix', name: 'memix', specificTitle: 'memix', fullDisplay: 'memix', category: 'non-technical', badgeIcon: '🎨' },
     '0dcd0759-87af-4bce-9757-5e52833c538b': { code: 'memix', name: 'memix', specificTitle: 'memix', fullDisplay: 'memix', category: 'non-technical', badgeIcon: '🎨' },
+
     'detective-404': { code: 'detective-404', name: 'detective 404', specificTitle: 'detective 404', fullDisplay: 'detective 404', category: 'non-technical', badgeIcon: '🎨' },
     'detective 404': { code: 'detective-404', name: 'detective 404', specificTitle: 'detective 404', fullDisplay: 'detective 404', category: 'non-technical', badgeIcon: '🎨' },
     '57d56f8c-99c4-4e78-bb57-4c7a6ec47716': { code: 'detective-404', name: 'detective 404', specificTitle: 'detective 404', fullDisplay: 'detective 404', category: 'non-technical', badgeIcon: '🎨' },
@@ -235,13 +246,17 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
     const clean = eventKey.trim();
     const lower = clean.toLowerCase();
+    const canonical = normalizeEventName(clean);
+
+    if (EVENT_METADATA_MAP[canonical]) return EVENT_METADATA_MAP[canonical];
+    if (EVENT_METADATA_MAP[lower]) return EVENT_METADATA_MAP[lower];
+
     const stripped = lower
       .replace(/^tech-/, '')
       .replace(/^ws-/, '')
       .replace(/^non-/, '')
       .replace(/^nontech-/, '');
 
-    if (EVENT_METADATA_MAP[lower]) return EVENT_METADATA_MAP[lower];
     if (EVENT_METADATA_MAP[stripped]) return EVENT_METADATA_MAP[stripped];
 
     // Try matching with events array from props
@@ -249,7 +264,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       const idL = (e.id || '').toLowerCase();
       const slugL = (e.slug || '').toLowerCase();
       const titleL = (e.title || '').toLowerCase();
-      return idL === lower || slugL === lower || slugL === stripped || titleL === lower || titleL === stripped;
+      return (
+        idL === lower ||
+        slugL === lower ||
+        slugL === stripped ||
+        titleL === lower ||
+        titleL === stripped ||
+        normalizeEventName(e.id) === canonical ||
+        normalizeEventName(e.slug) === canonical ||
+        normalizeEventName(e.title) === canonical
+      );
     });
 
     if (found) {
@@ -274,7 +298,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     if (lower.includes('virtual') || lower.includes('labview') || lower.includes('instrumentation') || lower.includes('instrument')) return EVENT_METADATA_MAP['virtual-instrumentation'];
     if (lower.includes('paper') || lower.includes('techpaper')) return EVENT_METADATA_MAP['techpaper'];
     if (lower.includes('evolvex') || lower.includes('project')) return EVENT_METADATA_MAP['evolvex'];
-    if (lower.includes('tracktron') || lower.includes('tractron') || lower.includes('robot') || lower.includes('line')) return EVENT_METADATA_MAP['tractron'] || EVENT_METADATA_MAP['tracktron'];
+    if (lower.includes('tracktron') || lower.includes('tractron') || lower.includes('robot') || lower.includes('line')) return EVENT_METADATA_MAP['tracktron'] || EVENT_METADATA_MAP['tractron'];
     if (lower.includes('mind') || lower.includes('maze')) return EVENT_METADATA_MAP['mind-maze'];
     if (lower.includes('prompt')) return EVENT_METADATA_MAP['promptify'];
     if (lower.includes('mem')) return EVENT_METADATA_MAP['memix'];
@@ -305,12 +329,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     const addEventMeta = (keyOrName: string, categoryFallback?: 'workshop' | 'technical' | 'non-technical') => {
       if (!keyOrName) return;
       const meta = resolveEventMeta(keyOrName, categoryFallback);
-      const nameKey = (meta.name || '').toLowerCase().trim();
-      const codeKey = (meta.code || '').toLowerCase().trim();
+      const canonicalKey = normalizeEventName(meta.name || meta.code || keyOrName);
 
-      if (nameKey && !seenKeys.has(nameKey) && (!codeKey || !seenKeys.has(codeKey))) {
-        seenKeys.add(nameKey);
-        if (codeKey) seenKeys.add(codeKey);
+      if (canonicalKey && !seenKeys.has(canonicalKey)) {
+        seenKeys.add(canonicalKey);
         result.events.push(meta);
       }
     };
@@ -353,7 +375,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
   const getParticipantsForEvent = (eventId: string) => {
     const list: { fullName: string; phone: string; email: string; college: string; regId: string; role: string; paymentStatus: string }[] = [];
-    const eventObj = events.find(e => e.id === eventId);
+    const eventObj = events.find(e => e.id === eventId || e.slug === eventId || normalizeEventName(e.slug || e.title || e.id) === normalizeEventName(eventId));
     if (!eventObj) return list;
 
     const normTarget = normalizeEventName(eventObj.slug || eventObj.title || eventObj.id);
@@ -361,7 +383,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     (allRegistrations || []).forEach((r) => {
       const spec = getRegistrationSpecificEvents(r);
       const match = spec.events.some((e) => {
-        const normEv = normalizeEventName(e.code || e.name || e.specificTitle);
+        const normEv = normalizeEventName(e.code || e.name || e.specificTitle || e.fullDisplay);
         return normEv === normTarget;
       });
 
@@ -678,6 +700,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   // Verify / approve payment status
   const handleUpdateStatus = async (regId: string, newStatus: 'paid' | 'pending_verification' | 'failed') => {
     if (!token) return;
+    if (newStatus === 'paid') {
+      setVerifyingRegId(regId);
+    }
     try {
       await updateRegistrationStatus(token, regId, newStatus);
       refreshLive();
@@ -688,6 +713,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       }
     } catch (err: any) {
       showNotification(err.message || 'Failed to update status.', 'error');
+    } finally {
+      setVerifyingRegId(null);
     }
   };
 
@@ -805,15 +832,22 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               </label>
               <div className="relative">
                 <input
-                  type="password"
+                  type={showLoginPassword ? 'text' : 'password'}
                   autoFocus
                   autoComplete="current-password"
                   value={passwordInput}
                   onChange={(e) => setPasswordInput(e.target.value)}
                   placeholder="Enter administrator password"
-                  className="w-full px-3 py-2.5 bg-stone-50 border border-stone-300 rounded-lg text-xs outline-none focus:ring-2 focus:ring-[#B22222]"
+                  className="w-full px-3 py-2.5 pr-10 bg-stone-50 border border-stone-300 rounded-lg text-xs outline-none focus:ring-2 focus:ring-[#B22222]"
                 />
-                <Lock className="w-4 h-4 text-stone-400 absolute right-3 top-3" />
+                <button
+                  type="button"
+                  onClick={() => setShowLoginPassword((v) => !v)}
+                  className="text-stone-400 hover:text-stone-700 absolute right-3 top-2.5 p-0.5 cursor-pointer"
+                  title={showLoginPassword ? 'Hide password' : 'Show password'}
+                >
+                  {showLoginPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
               </div>
               <p className="text-[11px] text-stone-500 mt-1">
                 Authorized personnel only. Sessions automatically terminate upon logout or inactivity.
@@ -2257,6 +2291,40 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         </div>
       )}
 
+      {/* Verifying & Email Sending Progress Overlay */}
+      {verifyingRegId && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl p-6 sm:p-8 max-w-sm w-full shadow-2xl text-center space-y-4 border border-stone-200 animate-in fade-in zoom-in duration-200">
+            <div className="w-14 h-14 bg-emerald-50 rounded-full flex items-center justify-center mx-auto border border-emerald-100">
+              <Loader2 className="w-7 h-7 text-emerald-600 animate-spin" />
+            </div>
+            <div>
+              <h3 className="text-sm font-extrabold text-stone-900 uppercase tracking-wider">
+                Verifying Payment & Sending Email
+              </h3>
+              <p className="text-xs text-stone-600 mt-1">
+                Processing registration <span className="font-mono font-bold text-emerald-700">{verifyingRegId}</span>
+              </p>
+            </div>
+            <div className="text-[11px] text-stone-500 bg-stone-50 p-3 rounded-xl border border-stone-200 space-y-1 text-left">
+              <div className="flex items-center gap-2 text-stone-700 font-semibold">
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                <span>Generating secure attendee QR pass</span>
+              </div>
+              <div className="flex items-center gap-2 text-stone-700 font-semibold">
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                <span>Dispatching confirmation email</span>
+              </div>
+              <div className="flex items-center gap-2 text-stone-700 font-semibold">
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                <span>Syncing live records to Google Sheets</span>
+              </div>
+            </div>
+            <p className="text-[10px] text-stone-400">Please do not close this window...</p>
+          </div>
+        </div>
+      )}
+
       {/* Delete Registration Password Confirmation Modal */}
       {deleteConfirmReg && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
@@ -2269,17 +2337,27 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             </p>
             <div className="mb-4">
               <label className="block text-xs font-bold text-stone-700 mb-1">Enter Admin Delete Password to Confirm:</label>
-              <input
-                type="password"
-                value={deletePasswordInput}
-                onChange={(e) => {
-                  setDeletePasswordInput(e.target.value);
-                  setDeletePasswordError('');
-                }}
-                placeholder="Enter password..."
-                className="w-full px-3 py-2 border border-stone-300 rounded-md text-xs outline-none focus:ring-1 focus:ring-rose-600 font-mono"
-                autoFocus
-              />
+              <div className="relative">
+                <input
+                  type={showDeletePassword ? 'text' : 'password'}
+                  value={deletePasswordInput}
+                  onChange={(e) => {
+                    setDeletePasswordInput(e.target.value);
+                    setDeletePasswordError('');
+                  }}
+                  placeholder="Enter password..."
+                  className="w-full px-3 py-2 pr-10 border border-stone-300 rounded-md text-xs outline-none focus:ring-1 focus:ring-rose-600 font-mono"
+                  autoFocus
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowDeletePassword((v) => !v)}
+                  className="text-stone-400 hover:text-stone-700 absolute right-3 top-2 p-0.5 cursor-pointer"
+                  title={showDeletePassword ? 'Hide password' : 'Show password'}
+                >
+                  {showDeletePassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
               {deletePasswordError && (
                 <p className="text-[11px] text-rose-600 font-semibold mt-1">{deletePasswordError}</p>
               )}

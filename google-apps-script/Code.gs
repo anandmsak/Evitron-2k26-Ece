@@ -208,14 +208,15 @@ function doPost(e) {
   }
 
   let driveLink = 'N/A';
-  if (data.paymentProofData && String(data.paymentProofData).indexOf('data:') === 0) {
+  const rawProof = data.paymentProofData || data.paymentProof || data.paymentProofUrl || data.screenshotDriveProof || data.payment_proof_url || '';
+  if (rawProof && String(rawProof).indexOf('data:') === 0) {
     try {
-      driveLink = saveFileToDrive(data.paymentProofData, regId + '_Payment_Proof');
+      driveLink = saveFileToDrive(rawProof, regId + '_payment_proof');
     } catch (driveErr) {
       driveLink = 'Upload Failed: ' + driveErr.toString();
     }
-  } else if (data.paymentProofData) {
-    driveLink = String(data.paymentProofData).trim();
+  } else if (rawProof && rawProof !== 'N/A' && rawProof !== 'HAS_PROOF') {
+    driveLink = String(rawProof).trim();
   }
 
   const isWorkshop = String(data.track || '').toLowerCase().indexOf('workshop') !== -1 ||

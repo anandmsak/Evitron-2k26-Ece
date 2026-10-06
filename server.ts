@@ -514,11 +514,16 @@ const handleRegistrationSubmit = async (req: express.Request, res: express.Respo
 
   const adminEmails = settings.adminNotificationEmails?.length ? settings.adminNotificationEmails : ['evitron26@gmail.com'];
 
-  await Promise.allSettled([
+  // Asynchronously dispatch background tasks (emails, sheets) without blocking the client response
+  Promise.allSettled([
     sendAdminNewRegistrationNotification(newRecord, eventTitles, adminEmails),
     sendRegistrationConfirmationEmail(newRecord, eventTitles),
     syncRegistrationToGoogleSheet(newRecord, eventTitles),
-  ]);
+  ]).catch((err) => {
+    console.warn('[REGISTRATION BACKGROUND SYNC NOTICE]', err?.message || err);
+  });
+
+  scheduleBroadcast();
 
   res.json({
     success: true,

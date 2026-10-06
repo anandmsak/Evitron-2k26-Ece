@@ -133,6 +133,8 @@ export function formatGoogleSheetPayload(reg: RegistrationRecord, eventTitles?: 
     paymentRef: reg.upiReference || reg.paymentId || 'N/A',
     paymentProof: proofDisplay,
     paymentProofUrl: proofDisplay,
+    paymentProofData: proofDisplay,
+    screenshotDriveProof: proofDisplay,
     attendance: reg.attendanceMarked ? 'Present' : 'Absent',
   };
 
