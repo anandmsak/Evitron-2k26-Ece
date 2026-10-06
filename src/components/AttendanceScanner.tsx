@@ -55,6 +55,7 @@ export const AttendanceScanner: React.FC<AttendanceScannerProps> = ({
   const [hasTorch, setHasTorch] = useState(false);
   const [scanStats, setScanStats] = useState<{ fps: number; engine: string }>({ fps: 0, engine: 'Auto' });
   const [autoApproveMode, setAutoApproveMode] = useState(false);
+  const [scannedToast, setScannedToast] = useState<{ id: string } | null>(null);
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -64,8 +65,8 @@ export const AttendanceScanner: React.FC<AttendanceScannerProps> = ({
   const isScanningRef = useRef<boolean>(false);
   const barcodeDetectorRef = useRef<any>(null);
   const lastScanTimeRef = useRef<number>(0);
-  const frameCountRef = useRef<number>(0);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const toastTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Initialize BarcodeDetector if natively supported by browser
   useEffect(() => {
@@ -188,7 +189,7 @@ export const AttendanceScanner: React.FC<AttendanceScannerProps> = ({
       if (track) {
         const capabilities: any = track.getCapabilities?.() || {};
         setHasTorch(Boolean(capabilities.torch));
-        
+
         // Attempt continuous autofocus if device supports it
         if (capabilities.focusMode?.includes('continuous')) {
           try {
@@ -352,6 +353,14 @@ export const AttendanceScanner: React.FC<AttendanceScannerProps> = ({
     lastScanTimeRef.current = now;
 
     triggerSuccessFeedback();
+
+    // 1-second floating modal popup showing ticket scanned
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    setScannedToast({ id: regId });
+    toastTimerRef.current = setTimeout(() => {
+      setScannedToast(null);
+    }, 1000);
+
     lookupRegistration(regId, true);
   };
 
@@ -372,6 +381,9 @@ export const AttendanceScanner: React.FC<AttendanceScannerProps> = ({
               const detected = extractRegistrationId(barcodes[0].rawValue);
               if (detected) {
                 triggerSuccessFeedback();
+                setScannedToast({ id: detected });
+                if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+                toastTimerRef.current = setTimeout(() => setScannedToast(null), 1000);
                 lookupRegistration(detected, true);
                 return;
               }
@@ -394,6 +406,9 @@ export const AttendanceScanner: React.FC<AttendanceScannerProps> = ({
             const detected = extractRegistrationId(code.data);
             if (detected) {
               triggerSuccessFeedback();
+              setScannedToast({ id: detected });
+              if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+              toastTimerRef.current = setTimeout(() => setScannedToast(null), 1000);
               lookupRegistration(detected, true);
               return;
             }
@@ -446,13 +461,32 @@ export const AttendanceScanner: React.FC<AttendanceScannerProps> = ({
     try {
       const res = await markAttendanceApi(token, regRecord.id);
       if (res.success) {
-        setSelectedReg((prev) => (prev ? { ...prev, attendanceMarked: true } : null));
+        const nowIso = new Date().toISOString();
+        const updatedRecord: RegistrationRecord = {
+          ...regRecord,
+          attendanceMarked: true,
+          attendanceTimestamp: nowIso,
+        };
+
+        // Update local selected state
+        setSelectedReg(updatedRecord);
+
+        // Update parent list in memory so immediate re-scans reflect attendance instantly
+        if (allRegistrations) {
+          const matchIdx = allRegistrations.findIndex((r) => r.id.toUpperCase() === regRecord.id.toUpperCase());
+          if (matchIdx !== -1) {
+            allRegistrations[matchIdx].attendanceMarked = true;
+            allRegistrations[matchIdx].attendanceTimestamp = nowIso;
+          }
+        }
+
         setLastMarkedStatus({
           id: regRecord.id,
           time: new Date().toLocaleTimeString(),
           name: regRecord.teamLeader.fullName,
         });
-        showNotification(`⚡ [CONFIRMED] Attendance marked for ${regRecord.id} (${regRecord.teamLeader.fullName})!`, 'success');
+
+        showNotification(`⚡ Attendance Marked PRESENT: ${regRecord.id} (${regRecord.teamLeader.fullName})`, 'success');
         onAttendanceMarked();
       } else {
         showNotification(`Attendance update failed: ${res.message}`, 'error');
@@ -497,11 +531,27 @@ export const AttendanceScanner: React.FC<AttendanceScannerProps> = ({
     startCamera();
     return () => {
       stopCamera();
+      if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
     };
   }, []);
 
   return (
-    <div className="space-y-6 max-w-5xl mx-auto animate-in fade-in duration-200">
+    <div className="space-y-6 max-w-5xl mx-auto animate-in fade-in duration-200 relative">
+      {/* 1-Second Ticket Scanned Popup Modal */}
+      {scannedToast && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none p-4 animate-in fade-in zoom-in-95 duration-100">
+          <div className="bg-stone-900/95 text-white px-6 py-4 rounded-2xl shadow-2xl border border-emerald-500/40 flex items-center gap-3.5 backdrop-blur-md">
+            <div className="w-10 h-10 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0 border border-emerald-500/30">
+              <CheckCircle2 className="w-6 h-6" />
+            </div>
+            <div>
+              <div className="text-xs font-bold text-emerald-400 uppercase tracking-wider">⚡ Ticket Scanned</div>
+              <div className="text-base font-extrabold font-mono text-white">{scannedToast.id}</div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Top Status Header */}
       <div className="bg-white border border-stone-200 rounded-2xl p-5 shadow-xs flex flex-wrap items-center justify-between gap-4">
         <div>
@@ -708,7 +758,7 @@ export const AttendanceScanner: React.FC<AttendanceScannerProps> = ({
               </span>
               {selectedReg && (
                 <span className="text-[10px] font-mono font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
-                  ⚡ INSTANT MATCH
+                  ⚡ LIVE SYNC
                 </span>
               )}
             </h4>

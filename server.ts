@@ -19,7 +19,7 @@ import {
   sendTestEmail,
   emailAuditLog,
 } from './server/email.js';
-import { syncRegistrationToGoogleSheet, syncAllRegistrationsToGoogleSheet, deleteRegistrationFromGoogleSheet, formatIsoTimestamp } from './server/googleSheet.js';
+import { syncRegistrationToGoogleSheet, syncAllRegistrationsToGoogleSheet, deleteRegistrationFromGoogleSheet, syncAttendanceToGoogleSheet, formatIsoTimestamp } from './server/googleSheet.js';
 import { Participant } from './src/types.js';
 import { getPricePerPerson } from './server/pricing.js';
 import { readClosedWorkshops, closeWorkshops, openWorkshops } from './server/closureStore.js';
@@ -614,23 +614,32 @@ app.post('/api/attendance/mark', requireAdmin, wrap(async (req, res) => {
 
   try {
     const result = await repository.markAttendance(cleanId);
+    scheduleBroadcast();
+
     if (result.success && result.registration) {
-      const allEvents = await repository.getEvents(false);
-      const eventTitles: string[] = [];
-      if (result.registration.selectedWorkshopId || result.registration.registrationType === 'workshop') {
-        const w = result.registration.selectedWorkshopId ? findEventByAnyKey(allEvents, result.registration.selectedWorkshopId) : null;
-        eventTitles.push(cleanWorkshopTitle(w ? w.title : result.registration.selectedWorkshopId));
-      }
-      for (const tid of result.registration.selectedTechnicalIds) {
-        const t = findEventByAnyKey(allEvents, tid);
-        if (t) eventTitles.push(t.title);
-      }
-      for (const nid of result.registration.selectedNonTechnicalIds) {
-        const n = findEventByAnyKey(allEvents, nid);
-        if (n) eventTitles.push(n.title);
-      }
-      syncRegistrationToGoogleSheet(result.registration, eventTitles).catch(() => {});
+      // Background non-blocking sync to Google Sheet
+      Promise.allSettled([
+        syncAttendanceToGoogleSheet(cleanId, true),
+        (async () => {
+          const allEvents = await repository.getEvents(false).catch(() => []);
+          const eventTitles: string[] = [];
+          if (result.registration?.selectedWorkshopId || result.registration?.registrationType === 'workshop') {
+            const w = result.registration?.selectedWorkshopId ? findEventByAnyKey(allEvents, result.registration.selectedWorkshopId) : null;
+            eventTitles.push(cleanWorkshopTitle(w ? w.title : result.registration?.selectedWorkshopId));
+          }
+          for (const tid of result.registration?.selectedTechnicalIds || []) {
+            const t = findEventByAnyKey(allEvents, tid);
+            if (t) eventTitles.push(t.title);
+          }
+          for (const nid of result.registration?.selectedNonTechnicalIds || []) {
+            const n = findEventByAnyKey(allEvents, nid);
+            if (n) eventTitles.push(n.title);
+          }
+          return syncRegistrationToGoogleSheet(result.registration!, eventTitles);
+        })(),
+      ]).catch((err) => console.warn('[ATTENDANCE SYNC NOTICE]', err));
     }
+
     res.json(result);
   } catch (err: any) {
     res.status(404).json({ success: false, message: err.message || 'Registration not found' });

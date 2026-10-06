@@ -144,10 +144,21 @@ function doPost(e) {
         let sheet = ss.getSheetByName(SHEET_NAME) || ss.getSheets()[0];
         const rows = sheet.getDataRange().getValues();
 
+        let attendanceCol = 20;
+        let updatedCol = 21;
+        if (rows.length > 0) {
+          const headerRow = rows[0];
+          for (let c = 0; c < headerRow.length; c++) {
+            const h = String(headerRow[c] || '').toLowerCase().trim();
+            if (h.includes('attendance')) attendanceCol = c + 1;
+            if (h.includes('last updated') || h.includes('updated at')) updatedCol = c + 1;
+          }
+        }
+
         for (let r = 1; r < rows.length; r++) {
           if (String(rows[r][0]).trim().toUpperCase() === regId) {
-            sheet.getRange(r + 1, 20).setValue('Present');
-            sheet.getRange(r + 1, 21).setValue(nowIST);
+            sheet.getRange(r + 1, attendanceCol).setValue('Present');
+            sheet.getRange(r + 1, updatedCol).setValue(nowIST);
             SpreadsheetApp.flush();
 
             return ContentService.createTextOutput(

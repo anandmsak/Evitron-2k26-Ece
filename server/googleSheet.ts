@@ -269,6 +269,37 @@ export async function syncAllRegistrationsToGoogleSheet(
   return { success: true, syncedCount: registrations.length, errorCount };
 }
 
+export async function syncAttendanceToGoogleSheet(
+  regId: string,
+  attendance = true,
+  customWebhookUrl?: string
+): Promise<{ success: boolean; error?: string }> {
+  const webhookUrl = getWebhookUrl(customWebhookUrl);
+  if (!webhookUrl) return { success: false, error: 'No webhook URL' };
+
+  try {
+    const res = await fetch(webhookUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'markAttendance',
+        regId: regId.toUpperCase(),
+        registrationId: regId.toUpperCase(),
+        attendance: attendance ? 'Present' : 'Absent',
+      }),
+      redirect: 'follow',
+    });
+    if (res.ok) {
+      console.log(`[GOOGLE SHEET SYNC] Successfully marked attendance for ${regId}`);
+      return { success: true };
+    }
+  } catch (err: any) {
+    console.warn(`[GOOGLE SHEET SYNC] Attendance marking failed for ${regId}:`, err.message);
+  }
+  return { success: false };
+}
+
+
 export async function fetchRegistrationsFromGoogleSheet(
   customWebhookUrl?: string
 ): Promise<any[]> {
@@ -289,4 +320,5 @@ export async function fetchRegistrationsFromGoogleSheet(
   }
   return [];
 }
+
 
