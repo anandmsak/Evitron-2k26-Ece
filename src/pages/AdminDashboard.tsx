@@ -2181,57 +2181,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
       {/* TAB 6: EVENT DAY ATTENDANCE SCANNER */}
       {activeTab === 'attendance' && (
-        <div className="bg-white border border-stone-200 rounded-xl p-6 shadow-xs max-w-xl">
-          <div className="mb-4">
-            <h3 className="text-base font-extrabold text-stone-900">
-              Event-Day QR Attendance Desk
-            </h3>
-            <p className="text-xs text-stone-500">
-              Scan or enter the attendee Registration ID to verify payment and mark attendance.
-            </p>
-          </div>
-
-          <div className="flex items-center gap-2 mb-4">
-            <input
-              type="text"
-              value={attendanceSearchId}
-              onChange={(e) => setAttendanceSearchId(e.target.value.toUpperCase())}
-              placeholder="e.g. EV26-XXXXXX"
-              className="w-full px-3 py-2.5 border border-stone-300 rounded-lg text-xs font-mono font-bold outline-none"
-            />
-            <button
-              onClick={handleMarkAttendance}
-              className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-lg cursor-pointer shrink-0"
-            >
-              Check-In Attendee
-            </button>
-          </div>
-
-          {attendanceResult && (
-            <div
-              className={`p-4 rounded-lg text-xs ${
-                attendanceResult.success
-                  ? 'bg-emerald-50 border border-emerald-200 text-emerald-900'
-                  : 'bg-red-50 border border-red-200 text-red-900'
-              }`}
-            >
-              <span className="font-bold block mb-1">
-                {attendanceResult.success ? 'Success' : 'Error'}
-              </span>
-              <p>{attendanceResult.message}</p>
-              {attendanceResult.registration && (
-                <div className="mt-2 pt-2 border-t border-emerald-200/50 space-y-1">
-                  <div>
-                    <span className="font-semibold">Leader:</span> {attendanceResult.registration.teamLeader.fullName}
-                  </div>
-                  <div>
-                    <span className="font-semibold">College:</span> {attendanceResult.registration.teamLeader.college}
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
+        <AttendanceScanner
+          token={token || ''}
+          allRegistrations={allRegistrations}
+          onAttendanceMarked={refreshLive}
+          showNotification={showNotification}
+          events={events}
+        />
       )}
 
       {/* Production Switch Confirmation Modal */}
